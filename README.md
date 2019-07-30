@@ -22,6 +22,8 @@ python3 manage.py runserver
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/4.PNG?raw=true)
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/5.PNG?raw=true)
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/6.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/7.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/8.PNG?raw=true)
 
 
 # TODO LISTS
@@ -38,7 +40,7 @@ python3 manage.py runserver
 - [ ] 修改用户组
 - [ ] 删除用户
 - [ ] 删除用户组
-- [ ] 权限管理
+- [ ] 权限管理(已实现部分)
 - [ ] 仪表盘
 - [x] 查看主机
 - [x] 查看主机用户
@@ -49,9 +51,14 @@ python3 manage.py runserver
 - [ ] 删除主机
 - [ ] 删除主机用户
 - [ ] 批量命令
+- [ ] 批量脚本
 - [x] web终端
+- [ ] 文件上传
+- [ ] 文件下载
 - [x] 用户日志审计
 - [ ] 操作日志审计
 - [x] web终端日志审计
 - [ ] 所有界面表单数据验证
 - [ ] 搜索
+
+更多新功能不断探索发现中.
