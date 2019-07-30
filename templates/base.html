@@ -1,0 +1,544 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  {% block title %}
+  <title>运维管理系统</title>
+  {% endblock title %}
+  <!-- Tell the browser to be responsive to screen width -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Font Awesome -->
+  <link href="https://cdn.bootcss.com/font-awesome/5.10.0-11/css/all.min.css" rel="stylesheet">
+  
+  <!-- Ionicons -->
+  <link href="https://cdn.bootcss.com/ionicons/2.0.1/css/ionicons.min.css" rel="stylesheet">
+  
+  <!-- overlayScrollbars -->
+  <link rel="stylesheet" href="{% static 'adminlte/plugins/overlayScrollbars/css/OverlayScrollbars.min.css' %}">
+
+  <!-- DataTables -->
+  <link rel="stylesheet" href="{% static 'adminlte/plugins/datatables/dataTables.bootstrap4.css' %}">
+
+  <!-- Theme style -->
+  <link rel="stylesheet" href="{% static 'adminlte/dist/css/adminlte.min.css' %}">
+  
+  <!-- Google Font: Source Sans Pro -->
+  <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
+  
+  <!-- 弹出窗口插件 -->
+  <link rel="stylesheet" href="{% static 'css/iziModal.min.css' %}">
+  
+  <!-- Toastr -->
+  <link rel="stylesheet" href="{% static 'adminlte/plugins/toastr/toastr.min.css' %}">
+  
+</head>
+<body class="hold-transition sidebar-mini layout-fixed">
+<!-- Site wrapper -->
+<div class="wrapper">
+  <!-- Navbar -->
+  <nav class="main-header navbar navbar-expand navbar-white navbar-light border-bottom">
+    <!-- Left navbar links -->
+    <ul class="navbar-nav">
+      <li class="nav-item">
+        <a class="nav-link" data-widget="pushmenu" href="#"><i class="fas fa-bars"></i></a>
+      </li>
+    </ul>
+	
+    <ul class="navbar-nav">
+      <li class="nav-item">
+        <a class="nav-link" href="{% url 'server:index' %}"><i class="fas fa-home"></i> 首页</a>
+      </li>
+    </ul>
+
+    <!-- SEARCH FORM -->
+    <!--form class="form-inline ml-3">
+      <div class="input-group input-group-sm">
+        <input class="form-control form-control-navbar" type="search" placeholder="搜索" aria-label="Search">
+        <div class="input-group-append">
+          <button class="btn btn-navbar" type="submit">
+            <i class="fas fa-search"></i>
+          </button>
+        </div>
+      </div>
+    </form-->
+
+    <!-- Right navbar links -->
+    <ul class="navbar-nav ml-auto">
+	 <li class="nav-item dropdown">
+		<a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" aria-expanded="false">
+		  <img src="{% static 'adminlte/dist/img/timg.jpg' %}" class="img-circle elevation-1" style="max-width:100%;height:100%;"> <small>{{ request.session.nickname }}</small>
+		</a>
+		<div class="dropdown-menu" x-placement="bottom-start" style="position: absolute; will-change: transform; top: 0px; left: 0px; transform: translate3d(0px, 40px, 0px);">
+		  <a class="dropdown-item personinfo" tabindex="-1" href="javascript:void(0);" onclick="getuserinfo();">个人信息</a>
+		  <a class="dropdown-item changepasswd" tabindex="-1" href="javascript:void(0);">修改密码</a>
+		</div>
+	  </li>
+	 
+	  <li class="nav-item">
+        <a class="nav-link logout" href="{% url 'user:logout' %}">
+           <small>退出</small>
+        </a>
+      </li>
+	  
+    </ul>
+  </nav>
+  <!-- /.navbar -->
+	
+	<!--退出窗口-->
+	<div id="modal-login" class="iziModal">
+		<div class="container-fluid">
+			<div class="row">
+				<div class="col-12 p-3">
+					<h5 class="text-center mt-3">确定要退出吗？</h5>
+				</div>
+				<div class="col-6 p-3">
+					<button type="button" class="btn btn-block btn-secondary btn-flat" data-iziModal-close>取消</button>
+				</div>
+				<div class="col-6 p-3">
+					<a href="{% url 'user:logout' %}"><button type="button" class="btn btn-block btn-success btn-flat">退出</button></a>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+	<!--修改密码窗口-->
+	<div id="modal-changepasswd" class="iziModal">
+		<form role="form" method="POST" onsubmit="changepasswd(this);return false;">
+			{% csrf_token %}
+			<div class="card-body">
+			  <h4 class="mb-3"><strong>修改密码</strong></h4>
+			  <div class="form-group">
+				<label>当前密码</label>
+				<input type="password" class="form-control" name="oldpasswd"  placeholder="Password" maxlength="256" required>
+			  </div>
+			  
+			  <div class="form-group">
+				<label>新密码</label>
+				<input type="password" class="form-control" name="newpasswd"  placeholder="Password" maxlength="256" required>
+			  </div>
+			  
+			  <div class="form-group">
+				<label>确认新密码</label>
+				<input type="password" class="form-control" name="newpasswdagain"  placeholder="Password" maxlength="256" required>
+			  </div>
+			</div>
+
+			<div class="card-footer row">
+			  <div class="col-6 pl-3 pr-3">
+				<button type="button" class="btn btn-block btn-secondary btn-flat" data-iziModal-close>取消</button>
+			  </div>
+			  <div class="col-6 pl-3 pr-3">
+				<button type="submit" class="btn btn-block btn-success btn-flat" onclick="javascript:void(0);">修改</button>
+			  </div>
+			</div>
+	  </form>
+	</div>
+	
+	<!--个人信息弹出框-->
+	<div id="modal-userinfo-container">
+	</div>
+	
+	
+  <!-- Main Sidebar Container -->
+  <aside class="main-sidebar sidebar-dark-primary elevation-4">
+    <!-- Brand Logo -->
+    <a href="{% url 'server:index' %}" class="brand-link">
+      <img src="{% static 'adminlte/dist/img/AdminLTELogo.png' %}"
+           alt="AdminLTE Logo"
+           class="brand-image img-circle elevation-3"
+           style="opacity: .8">
+      <span class="brand-text font-weight-light">运维管理系统</span>
+    </a>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <!-- Sidebar Menu -->
+      <nav class="mt-2">
+        <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+          <!-- Add icons to the links using the .nav-icon class
+               with font-awesome or any other icon font library -->
+		  <li class="nav-header">导航栏</li>
+		  {% block leftnav %}
+		  <li class="nav-item">
+            <a href="{% url 'server:index' %}" class="nav-link">
+              <i class="nav-icon fas fa-tachometer-alt fa-xs"></i>
+              <p>
+                仪表盘 - x
+              </p>
+            </a>
+          </li>
+		  {% if request.session.issuperuser %}
+		  <li class="nav-item has-treeview menu-open">
+            <a href="#" class="nav-link">
+              <i class="nav-icon fas fa-user fa-xs"></i>
+              <p>
+                用户管理
+                <i class="right fas fa-angle-left"></i>
+              </p>
+            </a>
+            <ul class="nav nav-treeview">
+              <li class="nav-item">
+                <a href="{% url 'user:lists' %}" class="nav-link">
+                  <!--i class="fas fa-user-edit nav-icon"></i-->
+                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;用户</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="{% url 'user:groups' %}" class="nav-link">
+                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;用户组</p>
+                </a>
+              </li>
+            </ul>
+          </li>
+		  {% endif %}
+		  <li class="nav-item has-treeview menu-open">
+            <a href="#" class="nav-link">
+              <i class="nav-icon fas fa-copy fa-xs"></i>
+              <p>
+                主机管理
+                <i class="right fas fa-angle-left"></i>
+              </p>
+            </a>
+            <ul class="nav nav-treeview">
+              <li class="nav-item">
+                <a href="{% url 'server:lists' %}" class="nav-link">
+                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;主机列表</p>
+                </a>
+              </li>
+			  {% if request.session.issuperuser %}
+              <li class="nav-item">
+                <a href="{% url 'server:users' %}" class="nav-link">
+                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;用户列表</p>
+                </a>
+              </li>
+			  {% endif %}
+            </ul>
+          </li>
+		  <li class="nav-item has-treeview menu-open">
+            <a href="#" class="nav-link">
+              <i class="nav-icon fas fa-coffee fa-xs"></i>
+              <p>
+                作业中心
+                <i class="right fas fa-angle-left"></i>
+              </p>
+            </a>
+            <ul class="nav nav-treeview">
+              <li class="nav-item">
+                <a href="{% url 'server:lists' %}" class="nav-link">
+                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;批量命令 - x</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="{% url 'webssh:lists' %}" class="nav-link">
+                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;web终端</p>
+                </a>
+              </li>
+            </ul>
+          </li>
+		  {% if request.session.issuperuser %}
+		  <li class="nav-item has-treeview menu-open">
+            <a href="#" class="nav-link">
+              <i class="nav-icon fas fa-history fa-xs"></i>
+              <p>
+                日志审计
+                <i class="right fas fa-angle-left"></i>
+              </p>
+            </a>
+            <ul class="nav nav-treeview">
+              <li class="nav-item">
+                <a href="{% url 'user:logs' %}" class="nav-link">
+                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;用户日志</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="{% url 'server:lists' %}" class="nav-link">
+                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;操作日志 - x</p>
+                </a>
+              </li>
+			  <li class="nav-item">
+                <a href="{% url 'server:lists' %}" class="nav-link">
+                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;批量命令日志 - x</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="{% url 'webssh:logs' %}" class="nav-link">
+                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在线会话日志</p>
+                </a>
+              </li>
+            </ul>
+          </li>
+		  {% endif %}
+		  {% endblock leftnav %}
+        </ul>
+      </nav>
+      <!-- /.sidebar-menu -->
+    </div>
+    <!-- /.sidebar -->
+  </aside>
+
+  <!-- Content Wrapper. Contains page content -->
+  <div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+	{% block navheader %}
+	{% endblock navheader %}
+
+    <!-- Main content -->
+    <section class="content">
+	
+	{% block content %}
+	
+	{% endblock content %}
+
+    </section>
+    <!-- /.content -->
+  </div>
+  <!-- /.content-wrapper -->
+
+  <footer class="main-footer">
+    <div class="float-right d-none d-sm-block">
+      运维管理系统 <b>Version</b> 1.0.0
+    </div>
+    <strong>Copyright &copy; 2019 <a href="//www.cnblogs.com/leffss" target="_blank">leffss</a>.</strong> All rights
+    reserved.
+  </footer>
+
+  <!-- Control Sidebar -->
+  <aside class="control-sidebar control-sidebar-dark">
+    <!-- Control sidebar content goes here -->
+  </aside>
+  <!-- /.control-sidebar -->
+</div>
+<!-- ./wrapper -->
+
+<!-- jQuery -->
+<script src="{% static 'adminlte/plugins/jquery/jquery.min.js' %}"></script>
+<!-- Bootstrap 4 -->
+<script src="{% static 'adminlte/plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+<!-- overlayScrollbars -->
+<script src="{% static 'adminlte/plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js' %}"></script>
+<!-- FastClick -->
+<script src="{% static 'adminlte/plugins/fastclick/fastclick.js' %}"></script>
+<!-- AdminLTE App -->
+<script src="{% static 'adminlte/dist/js/adminlte.min.js' %}"></script>
+
+<!-- Toastr -->
+<script src="{% static 'adminlte/plugins/toastr/toastr.min.js' %}"></script>
+
+<!-- 弹出框插件 -->
+<script src="{% static 'js/iziModal.min.js' %}"></script>
+<script>
+	function GetDate(format) {
+		 /**
+		 * format=1表示获取年月日
+		 * format=0表示获取年月日时分秒
+		 * **/
+		 var now = new Date();
+		 var year = now.getFullYear();
+		 var month = now.getMonth()+1;
+		 if (month < 10) {
+			month = "0" + month
+		 }
+		 var date = now.getDate();
+		 if (date < 10) {
+			date = "0" + date
+		 }
+		 
+		 var day = now.getDay();//得到周几
+		 var hour = now.getHours();//得到小时
+		 if (hour < 10) {
+			hour = "0" + hour
+		 }
+		 var minu = now.getMinutes();//得到分钟
+		 if (minu < 10) {
+			minu = "0" + minu
+		 }
+		 var sec = now.getSeconds();//得到秒
+		 if (sec < 10) {
+			sec = "0" + sec
+		 }
+		 
+		 if (format==1){
+			 _time = year+"/"+month+"/"+date
+		}
+		else if (format==2){
+			_time = year+"/"+month+"/"+date+" "+hour+":"+minu+":"+sec
+		}
+		return _time
+	}
+
+
+	$("#modal-login").iziModal({
+		//title: "退出",
+		//subtitle: "确认退出",
+		iconClass: 'icon-announcement',
+		width: 400,
+		padding: 10,
+	});
+	$(document).on('click', '.logout', function (event) {
+		event.preventDefault();
+		$('#modal-login').iziModal('open');
+	});
+	
+	
+	$("#modal-changepasswd").iziModal({
+		iconClass: 'icon-announcement',
+		//width: 400,
+		padding: 10,
+		overlayClose: false,	// 是否允许点击模态窗口的外部来关闭模态窗口。
+		closeOnEscape: false, 	// 是否允许通过点击ESC键来关闭模态窗口。
+	});
+	$(document).on('click', '.changepasswd', function (event) {
+		event.preventDefault();
+		$('#modal-changepasswd').iziModal('open');
+	});
+	
+	// 修改密码
+	changepasswd = function(event) {
+		toastr.options.closeButton = true;
+		toastr.options.showMethod = 'slideDown';
+		toastr.options.hideMethod = 'fadeOut';
+		toastr.options.closeMethod = 'fadeOut';
+		toastr.options.timeOut = 4000;	
+		toastr.options.extendedTimeOut = 0;	
+		
+		var thisObj = $(event);	//js对象转jquery对象
+		var oldpasswd = $(thisObj.find("input[name='oldpasswd']")[0]).val();
+		var newpasswd = $(thisObj.find("input[name='newpasswd']")[0]).val();
+		var newpasswdagain = $(thisObj.find("input[name='newpasswdagain']")[0]).val();
+		csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
+		
+		$.ajax({
+			url: "/xx",
+			async: true,
+			type: 'POST',
+			dataType: 'json',
+			data: {
+				'csrfmiddlewaretoken': csrfmiddlewaretoken,
+				'oldpasswd': oldpasswd,
+				'newpasswd': newpasswd,
+				'newpasswdagain': newpasswdagain,
+			},
+			timeout: 10000,
+			cache: true,
+			beforeSend: LoadFunction, //加载执行方法
+			error: errFunction,  //错误执行方法
+			success: succFunction, //成功执行方法
+		});
+		
+		function LoadFunction() {
+			//$("#aboutcontent").html('删除中...');
+			//alert('删除中');
+		};
+		
+		function errFunction() {
+			// 消息框
+			toastr.error('修改密码错误');
+		};
+		
+		function succFunction(res) {
+			if (res.code != 200) {
+				// 消息框
+				toastr.error('修改密码错误: ' + res.err);
+			} else {
+
+
+				// 消息框
+				toastr.success('修改密码成功, 下次登录生效');
+			}
+		};
+		
+		// 关闭弹出框
+		$("#modal-changepasswd").iziModal('close');
+		$(thisObj.find("input[name='oldpasswd']")[0]).val('');
+		$(thisObj.find("input[name='newpasswd']")[0]).val('');
+		$(thisObj.find("input[name='newpasswdagain']")[0]).val('');
+		return false;
+	}
+	
+	
+	getuserinfo = function () {
+		$("#modal-userinfo-container").html('');
+		$.ajax({
+			url: '/xx',
+			async: false,	// false 才能保证重新获取的验证码有效
+			type: 'GET',
+			dataType: 'json',
+			timeout: 10000,
+			cache: true,
+			beforeSend: LoadFunction, //加载执行方法
+			error: errFunction,  //错误执行方法
+			success: succFunction //成功执行方法
+		});
+
+		function LoadFunction() {
+			$("#modal-userinfo-container").html('<div id="modal-userinfo" class="iziModal"><div class="row"><h4 class="m-auto">获取中...</h4></div></div>');
+		};
+
+		function errFunction() {
+			$("#modal-userinfo-container").html('<div id="modal-userinfo" class="iziModal"><div class="row"><h4 class="m-auto">获取错误</h4></div></div>');
+		};
+
+		function succFunction(res) {
+			if (res.code != 200) {
+				$("#modal-userinfo-container").html('<div id="modal-userinfo" class="iziModal"><div class="row"><h4 class="m-auto">获取错误</h4></div></div>');
+			} else {
+				var userid = res.user.id
+				var username = res.user.username
+				var nickname = res.user.nickname
+				var email = res.user.email
+				var sex = res.user.sex
+				if (sex == 'male') {
+					sex = '男';
+				} else if (sex == 'female') {
+					sex = '女';
+				} else {
+					sex = '其他';
+				}
+
+				var status = res.user.status
+				if (status == 0) {
+					status = '启用';
+				} else if (status == 1) {
+					status = '禁用';
+				} else {
+					status = '其他';
+				}
+				var create_time = res.user.create_time
+				$("#modal-userinfo-container").html('<div id="modal-userinfo" class="iziModal"><div class="row p-4">\
+													 <div class="col-12 mb-2"><h4><strong>个人信息</strong></h4></div>\
+													 <div class="col-4 mb-1 border-bottom">用户ID: </div><div class="col-8 mb-1 border-bottom">' + userid + '</div>\
+													 <div class="col-4 mb-1 border-bottom">用户名: </div><div class="col-8 mb-1 border-bottom">' + username + '</div>\
+													 <div class="col-4 mb-1 border-bottom">用户昵称: </div><div class="col-8 mb-1 border-bottom">' + nickname + '</div>\
+													 <div class="col-4 mb-1 border-bottom">用户邮箱: </div><div class="col-8 mb-1 border-bottom">' + email + '</div>\
+													 <div class="col-4 mb-1 border-bottom">用户性别: </div><div class="col-8 mb-1 border-bottom">' + sex + '</div>\
+													 <div class="col-4 mb-1 border-bottom">用户状态: </div><div class="col-8 mb-1 border-bottom">' + status + '</div>\
+													 <div class="col-4 mb-1 border-bottom">用户创建时间: </div><div class="col-8 mb-1 border-bottom">' + create_time + '</div>\
+													 <div class="col-12 mt-3"><button type="button" class="btn btn-block btn-success btn-flat" data-iziModal-close>返回</button></div>\
+													 </div></div>');
+			}
+		};
+
+		// 初始化弹出框
+		$("#modal-userinfo").iziModal({
+			iconClass: 'icon-announcement',
+			//width: 450,
+			//padding: 10,
+			overlayClose: true,	// 是否允许点击模态窗口的外部来关闭模态窗口。
+			closeOnEscape: true, 	// 是否允许通过点击ESC键来关闭模态窗口。
+		});
+				
+		// 打开弹出框
+		$('#modal-userinfo').iziModal('open');
+	}
+	
+</script>
+		
+{% block js %}
+
+{% endblock js %}
+
+</body>
+</html>
