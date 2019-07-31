@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'server',
     'user',
     'webssh',
+    'webtelnet',
 ]
 
 MIDDLEWARE = [

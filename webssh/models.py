@@ -6,6 +6,7 @@ class TerminalLog(models.Model):
     user = models.CharField(max_length=64, verbose_name='操作人')
     hostname = models.CharField(max_length=128, verbose_name='主机名')
     ip = models.GenericIPAddressField(verbose_name='主机IP')
+    protocol = models.CharField(max_length=64, default='ssh', verbose_name="协议")
     port = models.SmallIntegerField(default=22, verbose_name='端口')
     username = models.CharField(max_length=128, verbose_name="用户名")
     cmd = models.TextField('命令详情')

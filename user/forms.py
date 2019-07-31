@@ -10,3 +10,8 @@ class LoginForm(forms.Form):
     #    model = User
     #    fields = ['name', 'email', 'url', 'text', 'captcha']
 
+
+class ChangePasswdForm(forms.Form):
+    oldpasswd = forms.CharField(label="当前密码", min_length=6, max_length=256, widget=forms.PasswordInput)
+    newpasswd = forms.CharField(label="新密码", min_length=6, max_length=256, widget=forms.PasswordInput)
+    newpasswdagain = forms.CharField(label="确认新密码", min_length=6, max_length=256, widget=forms.PasswordInput)

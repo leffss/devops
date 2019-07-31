@@ -9,9 +9,11 @@
     {% block navheader %}
     <section class="content-header">
       <div class="container-fluid">
-        <div class="row mb-1 mt-2">
-          <div class="col-sm-12">
-            <h4>仪表盘</h4>
+        <div class="row mb-1">
+          <div class="col-12">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item active">仪表盘</li>
+            </ol>
           </div>
         </div>
       </div><!-- /.container-fluid -->
@@ -20,5 +22,62 @@
 
 
 		  {% block content %}
-		  
+		  <div class="row">
+			  <div class="col-lg-3 col-6">
+				<!-- small box -->
+				<div class="small-box bg-info">
+				  <div class="inner">
+					<h3>{{ host_count }}</h3>
+
+					<p>主机</p>
+				  </div>
+				  <div class="icon">
+					<i class="ion ion-bag"></i>
+				  </div>
+				</div>
+			  </div>
+			  <!-- ./col -->
+			  <div class="col-lg-3 col-6">
+				<!-- small box -->
+				<div class="small-box bg-success">
+				  <div class="inner">
+					<h3>{{ user_count }}</h3>
+
+					<p>用户</p>
+				  </div>
+				  <div class="icon">
+					<i class="ion ion-stats-bars"></i>
+				  </div>
+				</div>
+			  </div>
+			  <!-- ./col -->
+			  <div class="col-lg-3 col-6">
+				<!-- small box -->
+				<div class="small-box bg-warning">
+				  <div class="inner">
+					<h3>{{ group_count }}</h3>
+
+					<p>组</p>
+				  </div>
+				  <div class="icon">
+					<i class="ion ion-person-add"></i>
+				  </div>
+				</div>
+			  </div>
+			  <!-- ./col -->
+			  <div class="col-lg-3 col-6">
+				<!-- small box -->
+				<div class="small-box bg-danger">
+				  <div class="inner">
+					<h3>0</h3>
+
+					<p>告警</p>
+				  </div>
+				  <div class="icon">
+					<i class="ion ion-pie-graph"></i>
+				  </div>
+				</div>
+			  </div>
+			  <!-- ./col -->
+			</div>
 		  {% endblock content %}

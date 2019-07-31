@@ -34,10 +34,11 @@
 				</div>
             </div>
             <!-- /.card-header -->
-            <div class="card-body">
-              <table id="datatables-lists" class="table table-bordered table-striped">
+            <div class="card-body table-responsive">
+              <table id="datatables-lists" class="table table-bordered table-hover">
                 <thead>
                 <tr>
+				  <th>用户ID</th>
 				  <th>用户名</th>
 				  <th>昵称</th>
 				  <th>邮箱</th>
@@ -46,12 +47,14 @@
 				  <th>角色</th>
 				  <th>组</th>
 				  <th>创建时间</th>
+				  <th>最后登陆时间</th>
                 </tr>
                 </thead>
                 <tbody>
 				{% for user in users %}
                 <tr>
-				  <td>{{ user.username}}</td>
+				  <td>{{ user.id }}</td>
+				  <td>{{ user.username }}</td>
 				  <td>{{ user.nickname }}</td>
 				  <td>{{ user.email }}</td>
 				  <td>{{ user.get_sex_display }}</td>
@@ -70,6 +73,7 @@
 				  {% endfor %}
 				  </td>
 				  <td>{{ user.create_time|date:"Y/m/d H:i:s" }}</td>
+				  <td>{{ user.last_login_time|date:"Y/m/d H:i:s"|default:'N/A'}}</td>
                 </tr>
 				{% empty %}
                 <tr>没有数据！</tr>
@@ -77,6 +81,7 @@
                 </tbody>
                 <tfoot>
                 <tr>
+				  <th>用户ID</th>
 				  <th>用户名</th>
 				  <th>昵称</th>
 				  <th>邮箱</th>
@@ -85,6 +90,7 @@
 				  <th>角色</th>
 				  <th>组</th>
 				  <th>创建时间</th>
+				  <th>最后登陆时间</th>
                 </tr>
                 </tfoot>
               </table>

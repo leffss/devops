@@ -46,9 +46,8 @@ class SSH:
             
             # 创建3个线程将服务器返回的数据发送到django websocket（1个线程都可以）
             Thread(target=self.websocket_to_django).start()
-            Thread(target=self.websocket_to_django).start()
-            Thread(target=self.websocket_to_django).start()
-            # self.su_root('root', '123456')    # 切换root测试
+            # Thread(target=self.websocket_to_django).start()
+            # Thread(target=self.websocket_to_django).start()
         except:
             self.message['status'] = 2
             self.message['message'] = 'Connection faild...'
@@ -97,8 +96,8 @@ class SSH:
         self.message['message'] = 'Connection closed...'
         message = json.dumps(self.message)
         self.websocker.send(message)
-        self.channel.close()
         self.websocker.close()
+        self.channel.close()
 
     def shell(self, data):
         # 原作者使用创建线程的方式发送数据到ssh，每次发送都是一个字符，可以不用线程

@@ -24,13 +24,14 @@ python3 manage.py runserver
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/6.PNG?raw=true)
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/7.PNG?raw=true)
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/8.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/9.PNG?raw=true)
 
 
 # TODO LISTS
 - [x] 用户登陆
 - [ ] 查看用户信息
 - [ ] 修改用户信息
-- [ ] 修改用户密码
+- [x] 修改用户密码
 - [ ] 重置用户密码
 - [x] 查看用户
 - [x] 查看用户组
@@ -50,9 +51,12 @@ python3 manage.py runserver
 - [ ] 修改主机用户
 - [ ] 删除主机
 - [ ] 删除主机用户
+- [ ] 主机信息自动获取
+- [ ] 主机监控信息查看(zabbix调用)
 - [ ] 批量命令
 - [ ] 批量脚本
-- [x] web终端
+- [x] webssh终端
+- [x] webtelnet终端
 - [ ] 文件上传
 - [ ] 文件下载
 - [x] 用户日志审计

@@ -9,7 +9,7 @@ urlpatterns = [
     path('lists/', views.lists, name='lists'),
     path('groups/', views.groups, name='groups'),
     path('logs/', views.logs, name='logs'),
-    # path('changepasswd/', views.change_passwd, name='changepasswd'),
-    # path('userinfo/', views.user_info, name='userinfo'),
+    path('changepasswd/', views.change_passwd, name='changepasswd'),
+    path('userinfo/', views.user_info, name='userinfo'),
 ]
 

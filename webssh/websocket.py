@@ -1,5 +1,6 @@
 from channels.generic.websocket import WebsocketConsumer
 from .ssh import SSH
+from django.conf import settings
 from django.http.request import QueryDict
 from django.utils.six import StringIO
 import django.utils.timezone as timezone
@@ -9,14 +10,20 @@ from webssh.models import TerminalLog, TerminalLogDetail
 import os
 import json
 import re
-import traceback
+import time
+
+try:
+    session_exipry_time = settings.CUSTOM_SESSION_EXIPRY_TIME
+except BaseException:
+    session_exipry_time = 60 * 30
 
 
-def terminal_log(user, hostname, ip, port, username, cmd, res, address, useragent, start_time):
+def terminal_log(user, hostname, ip, protocol, port, username, cmd, res, address, useragent, start_time):
     event = TerminalLog()
     event.user = user
     event.hostname = hostname
     event.ip = ip
+    event.protocol = protocol
     event.port = port
     event.username = username
     event.cmd = cmd
@@ -58,11 +65,13 @@ class WebSSH(WebsocketConsumer):
         self.session = self.scope.get('session', None)
         if not self.session.get('islogin', None):    # 未登录直接断开 websocket 连接
             self.message['status'] = 2
-            self.message['message'] = 'You are not logged in...'
+            self.message['message'] = 'You are not login in...'
             message = json.dumps(self.message)
             self.send(message)
             self.close(3001)
-            
+
+        self.check_login()
+
         query_string = self.scope.get('query_string').decode()
         ssh_args = QueryDict(query_string=query_string, encoding='utf-8')
 
@@ -86,9 +95,8 @@ class WebSSH(WebsocketConsumer):
                 except BaseException:
                     pass
         except BaseException:
-            print(traceback.format_exc())
             self.message['status'] = 2
-            self.message['message'] = 'Host not exist...'
+            self.message['message'] = 'Host is not exist...'
             message = json.dumps(self.message)
             self.send(message)
             self.close(3001)
@@ -97,9 +105,7 @@ class WebSSH(WebsocketConsumer):
         user = self.remote_host.remote_user.username
         passwd = self.remote_host.remote_user.password
         timeout = 15
-
         self.ssh = SSH(websocker=self, message=self.message)
-
         ssh_connect_dict = {
             'host': host,
             'user': user,
@@ -129,7 +135,7 @@ class WebSSH(WebsocketConsumer):
                     self.ssh.su_root(
                         self.remote_host.remote_user.superusername,
                         self.remote_host.remote_user.superpassword,
-                        0.3
+                        0.3,
                     )
 
     def disconnect(self, close_code):
@@ -142,7 +148,7 @@ class WebSSH(WebsocketConsumer):
             pass
         finally:
             # 过滤点结果中的颜色字符
-            res = re.sub('(\[\d{2};\d{2}m|\[0m)', '', self.ssh.res)
+            self.ssh.res = re.sub('(\[\d{2};\d{2}m|\[0m)', '', self.ssh.res)
             # print('命令: ')
             # print(self.ssh.cmd)
             # print('结果: ')
@@ -157,10 +163,11 @@ class WebSSH(WebsocketConsumer):
                     self.session.get('username'),
                     self.remote_host.host.hostname,
                     self.remote_host.host.ip,
+                    self.remote_host.host.get_protocol_display(),
                     self.remote_host.host.port,
                     self.remote_host.remote_user.username,
                     self.ssh.cmd,
-                    res,
+                    self.ssh.res,
                     self.scope['client'][0],
                     user_agent,
                     self.start_time,
@@ -169,6 +176,8 @@ class WebSSH(WebsocketConsumer):
     def receive(self, text_data=None, bytes_data=None):
         data = json.loads(text_data)
         if type(data) == dict:
+            if data['data'] and '\r' in data['data']:
+                self.check_login()
             status = data['status']
             if status == 0:
                 data = data['data']
@@ -177,3 +186,16 @@ class WebSSH(WebsocketConsumer):
                 cols = data['cols']
                 rows = data['rows']
                 self.ssh.resize_pty(cols=cols, rows=rows)
+
+    def check_login(self):
+        lasttime = int(self.scope['session']['lasttime'])
+        now = int(time.time())
+        if now - lasttime > session_exipry_time:
+            self.message['status'] = 2
+            self.message['message'] = 'Your login is expired...'
+            message = json.dumps(self.message)
+            self.send(message)
+            self.close(3001)
+        else:
+            self.scope['session']['lasttime'] = now
+            self.scope["session"].save()

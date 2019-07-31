@@ -34,10 +34,11 @@
 				</div>
             </div>
             <!-- /.card-header -->
-            <div class="card-body">
-              <table id="datatables-lists" class="table table-bordered table-striped">
+            <div class="card-body table-responsive">
+              <table id="datatables-lists" class="table table-bordered table-hover">
                 <thead>
                 <tr>
+				  <th>组ID</th>
 				  <th>组名</th>
 				  <th>备注</th>
 				  <th>创建时间</th>
@@ -46,8 +47,9 @@
                 <tbody>
 				{% for group in groups %}
                 <tr>
-				  <td>{{ group.group_name}}</td>
-				  <td>{{ group.memo | default:'N/A'}}</td>
+				  <td>{{ group.id }}</td>
+				  <td>{{ group.group_name }}</td>
+				  <td>{{ group.memo | default:'N/A' }}</td>
 				  <td>{{ group.create_time|date:"Y/m/d H:i:s" }}</td>
                 </tr>
 				{% empty %}
@@ -56,6 +58,7 @@
                 </tbody>
                 <tfoot>
                 <tr>
+				  <th>组ID</th>
 				  <th>组名</th>
 				  <th>备注</th>
 				  <th>创建时间</th>

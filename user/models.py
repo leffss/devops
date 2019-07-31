@@ -65,7 +65,14 @@ class LoginLog(models.Model):
         (9, '删除用户组'),
         (10, '更新用户'),
         (11, '更新用户组'),
+        (12, '添加主机'),
+        (13, '删除主机'),
+        (14, '更新主机'),
+        (15, '添加主机账号'),
+        (16, '删除主机账号'),
+        (17, '更新主机账号'),
     )
+    # 当用户被删除后，相关的登陆日志user字段设置为NULL
     user = models.ForeignKey('User', blank=True, null=True, on_delete=models.SET_NULL, verbose_name='用户')
     event_type = models.SmallIntegerField('事件类型', choices=event_type_choice, default=1)
     detail = models.TextField('事件详情', default='登陆成功')

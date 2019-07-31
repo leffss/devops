@@ -35,15 +35,14 @@ function websocket() {
         }
         ),
         protocol = (location.protocol === 'https:') ? 'wss://' : 'ws://',
-        socketURL = protocol + location.hostname + ((location.port) ? (':' + location.port) : '') +
-            '/webssh/?' + connect_info + '&width=' + cols + '&height=' + rows;
+        socketURL = protocol + location.hostname + ((location.port) ? (':' + location.port) : '') + '/webssh/?' + connect_info + '&width=' + cols + '&height=' + rows;
 
     var sock;
     sock = new WebSocket(socketURL);
 
     // 打开 websocket 连接, 打开 web 终端
     sock.addEventListener('open', function () {
-        $('#django-webssh-terminal').removeClass('hide');
+        //$('#django-webssh-terminal').removeClass('hide');
         term.open(document.getElementById('terminal'));
 		term.focus();
 		term.write('Connecting...\n\r');

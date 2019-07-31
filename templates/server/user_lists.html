@@ -23,7 +23,9 @@
 		  {% block content %}
           <div class="card">
             <div class="card-header">
-              <h3 class="card-title">用户列表<a href="javascript:void(0)" class="btn btn-sm btn-success ml-3 addsoft">新增 + </a></h3>
+              <h3 class="card-title">
+				用户列表<a href="javascript:void(0)" class="btn btn-sm btn-success ml-3 addsoft">新增 + </a>
+			  </h3>
 				<div class="card-tools">
 				  <button type="button" class="btn btn-tool" data-widget="collapse">
 					<i class="fas fa-minus"></i>
@@ -34,10 +36,11 @@
 				</div>
             </div>
             <!-- /.card-header -->
-            <div class="card-body">
-              <table id="datatables-lists" class="table table-bordered table-striped">
+            <div class="card-body table-responsive">
+              <table id="datatables-lists" class="table table-bordered table-hover">
                 <thead>
                 <tr>
+				  <th>ID</th>
 				  <th>名称</th>
 				  <th>用户名</th>
 				  <th>备注</th>
@@ -47,6 +50,7 @@
                 <tbody>
 				{% for user in users %}
                 <tr>
+				  <td>{{ user.id }}</td>
 				  <td>{{ user.name }}</td>
 				  <td>{{ user.username }}</td>
 				  <td>{{ user.memo | default:'N/A' }}</td>
@@ -58,6 +62,7 @@
                 </tbody>
                 <tfoot>
                 <tr>
+				  <th>ID</th>
 				  <th>名称</th>
 				  <th>用户名</th>
 				  <th>备注</th>

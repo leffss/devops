@@ -2,7 +2,7 @@
 {% load static %}
 
   {% block title %}
-  <title>在线会话日志</title>
+  <title>web终端日志</title>
   {% endblock title %}
 
 	{% block navheader %}
@@ -12,7 +12,7 @@
           <div class="col-12">
             <ol class="breadcrumb">
               <li class="breadcrumb-item">日志审计</li>
-              <li class="breadcrumb-item active">在线会话日志</li>
+              <li class="breadcrumb-item active">web终端日志</li>
             </ol>
           </div>
         </div>
@@ -23,7 +23,7 @@
 		  {% block content %}
           <div class="card">
             <div class="card-header">
-              <h3 class="card-title">在线会话日志</h3>
+              <h3 class="card-title">web终端日志</h3>
 				<div class="card-tools">
 				  <button type="button" class="btn btn-tool" data-widget="collapse">
 					<i class="fas fa-minus"></i>
@@ -34,13 +34,14 @@
 				</div>
             </div>
             <!-- /.card-header -->
-            <div class="card-body">
-              <table id="datatables-lists" class="table table-bordered table-striped">
+            <div class="card-body table-responsive">
+              <table id="datatables-lists" class="table table-bordered table-striped table-sm">
                 <thead>
                 <tr>
 				  <th>操作人</th>
 				  <th>主机名</th>
 				  <th>主机IP</th>
+				  <th>协议</th>
 				  <th>端口</th>
 				  <th>用户名</th>
 				  <th>命令详情</th>
@@ -56,6 +57,7 @@
 				  <td>{{ log.user | default:'N/A' }}</td>
 				  <td>{{ log.hostname }}</td>
 				  <td>{{ log.ip }}</td>
+				  <td>{{ log.protocol }}</td>
 				  <td>{{ log.port }}</td>
 				  <td>{{ log.username }}</td>
 				  <td>{{ log.cmd | linebreaksbr | truncatechars_html:15 | default:'N/A' }}<br>...</td>
@@ -73,6 +75,7 @@
 				  <th>操作人</th>
 				  <th>主机名</th>
 				  <th>主机IP</th>
+				  <th>协议</th>
 				  <th>端口</th>
 				  <th>用户名</th>
 				  <th>命令详情</th>

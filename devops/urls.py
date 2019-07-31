@@ -23,4 +23,5 @@ urlpatterns = [
     path('server/', include('server.urls')),
     path('user/', include('user.urls')),
     path('webssh/', include('webssh.urls')),
+    path('webtelnet/', include('webtelnet.urls')),
 ]

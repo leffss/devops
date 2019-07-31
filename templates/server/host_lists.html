@@ -24,10 +24,7 @@
           <div class="card">
             <div class="card-header">
               <h3 class="card-title">
-				主机列表
-				{% if request.session.issuperuser %}
-				<a href="javascript:void(0)" class="btn btn-sm btn-success ml-3 addsoft">新增 + </a>
-				{% endif %}
+				主机列表{% if request.session.issuperuser %}<a href="javascript:void(0)" class="btn btn-sm btn-success ml-3 addsoft">新增 + </a>{% endif %}
 			  </h3>
 				<div class="card-tools">
 				  <button type="button" class="btn btn-tool" data-widget="collapse">
@@ -39,13 +36,17 @@
 				</div>
             </div>
             <!-- /.card-header -->
-            <div class="card-body">
-              <table id="datatables-lists" class="table table-bordered table-striped">
+            <div class="card-body table-responsive">
+              <table id="datatables-lists" class="table table-bordered table-hover">
                 <thead>
                 <tr>
+				  <th>主机ID</th>
+				  <th>类型</th>
+				  <th>环境</th>
 				  <th>名称</th>
 				  <th>IP</th>
 				  <th>公网IP</th>
+				  <th>协议</th>
 				  <th>端口</th>
 				  <th>系统</th>
 				  <th>用户名</th>
@@ -55,9 +56,17 @@
                 <tbody>
 				{% for host in hosts %}
                 <tr>
+				  <td>{{ host.id }}</td>
+				  <td>{{ host.host.get_type_display }}</td>
+				  <td>{{ host.host.get_env_display }}</td>
+				  {% if host.remote_user %}
+				  <td>{{ host.host.hostname }}_{{ host.remote_user.name }}</td>
+				  {% else %}
 				  <td>{{ host.host.hostname }}</td>
+				  {% endif %}
 				  <td>{{ host.host.ip }}</td>
 				  <td>{{ host.host.wip | default:'N/A' }}</td>
+				  <td>{{ host.host.get_protocol_display }}</td>
 				  <td>{{ host.host.port }}</td>
 				  <td>{{ host.host.release }}</td>
 				  {% if host.remote_user %}
@@ -73,9 +82,13 @@
                 </tbody>
                 <tfoot>
                 <tr>
+				  <th>主机ID</th>
+				  <th>类型</th>
+				  <th>环境</th>
 				  <th>名称</th>
 				  <th>IP</th>
 				  <th>公网IP</th>
+				  <th>协议</th>
 				  <th>端口</th>
 				  <th>系统</th>
 				  <th>用户名</th>
