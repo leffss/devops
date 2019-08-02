@@ -3,12 +3,18 @@
 
 
 # 安装
+原始方式
 ```
 # 安装相关库
 pip install -r requirements.txt
 
 # 运行
 python3 manage.py runserver
+```
+
+docker方式(centos7)
+```
+sh start_docker.sh
 ```
 
 访问首页：http://127.0.0.1:8000
@@ -29,15 +35,15 @@ python3 manage.py runserver
 
 # TODO LISTS
 - [x] 用户登陆
-- [ ] 查看用户信息
-- [ ] 修改用户信息
+- [x] 查看用户信息
+- [x] 修改用户信息
 - [x] 修改用户密码
 - [ ] 重置用户密码
 - [x] 查看用户
 - [x] 查看用户组
 - [ ] 添加用户
 - [ ] 添加用户组
-- [ ] 修改用户
+- [x] 修改用户
 - [ ] 修改用户组
 - [ ] 删除用户
 - [ ] 删除用户组

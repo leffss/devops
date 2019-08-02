@@ -1,3 +1,9 @@
 django==2.2.3
+supervisor
+simpleui
 paramiko
 channels
+celery==4.3.0
+redis
+eventlet
+django-debug-toolbar

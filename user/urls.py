@@ -2,14 +2,15 @@ from django.urls import path
 from . import views
 
 
-app_name = 'user'
+app_name="user"
 urlpatterns = [
     path('login/', views.login, name='login'),
     path('logout/', views.logout, name='logout'),
-    path('lists/', views.lists, name='lists'),
+    path('users/', views.users, name='users'),
     path('groups/', views.groups, name='groups'),
     path('logs/', views.logs, name='logs'),
-    path('changepasswd/', views.change_passwd, name='changepasswd'),
-    path('userinfo/', views.user_info, name='userinfo'),
+    path('profile/', views.profile, name='profile'),
+    path('profile/edit/', views.profile_edit, name='profile_edit'),
+    path('user/<int:user_id>/', views.user, name='user'),
+    path('user/<int:user_id>/edit/', views.user_edit, name='user_edit'),
 ]
-

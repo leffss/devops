@@ -15,13 +15,24 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+import debug_toolbar
 from server.views import index
 
 urlpatterns = [
+    path('__debug__/', include(debug_toolbar.urls)),
+    
     path('admin/', admin.site.urls),
+    
     path('', index),
-    path('server/', include('server.urls')),
-    path('user/', include('user.urls')),
-    path('webssh/', include('webssh.urls')),
-    path('webtelnet/', include('webtelnet.urls')),
+    
+    path('server/', include('server.urls', namespace='server')),
+    path('api/server/', include('server.urls_api', namespace='server_api')),
+    
+    path('user/', include('user.urls', namespace='user')),
+    path('api/user/', include('user.urls_api', namespace='user_api')),
+    
+    path('webssh/', include('webssh.urls', namespace='webssh')),
+    
+    path('webtelnet/', include('webtelnet.urls', namespace='webtelnet')),
+    
 ]

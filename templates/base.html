@@ -72,7 +72,7 @@
 		  <img src="{% static 'adminlte/dist/img/timg.jpg' %}" class="img-circle elevation-1" style="max-width:100%;height:100%;"> <small>{{ request.session.nickname }}</small>
 		</a>
 		<div class="dropdown-menu" x-placement="bottom-start" style="position: absolute; will-change: transform; top: 0px; left: 0px; transform: translate3d(0px, 40px, 0px);">
-		  <a class="dropdown-item personinfo" tabindex="-1" href="javascript:void(0);" onclick="getuserinfo();"><small>个人信息</small></a>
+		  <a class="dropdown-item personinfo" tabindex="-1" href="{% url 'user:profile' %}" ><small>个人信息</small></a>
 		  <a class="dropdown-item changepasswd" tabindex="-1" href="javascript:void(0);"><small>修改密码</small></a>
 		</div>
 	  </li>
@@ -92,7 +92,7 @@
 		<div class="container-fluid">
 			<div class="row">
 				<div class="col-12 p-3">
-					<h5 class="text-center mt-3">确定要退出吗？</h5>
+					<h4 class="text-center mt-3">确定要退出吗？</h4>
 				</div>
 				<div class="col-6 p-3">
 					<button type="button" class="btn btn-block btn-secondary btn-flat" data-iziModal-close>取消</button>
@@ -109,7 +109,10 @@
 		<form role="form" method="POST" onsubmit="changepasswd(this);return false;">
 			{% csrf_token %}
 			<div class="card-body">
-			  <h6 class="mb-3"><strong>修改密码</strong></h6>
+			  <div class="row">
+				  <div class="col-8"><h4 class="mb-3"><strong>修改密码</strong></h4></div>
+				  <div class="col-4"><a href="javascript:void(0)" class="iziModal-button-close float-right" data-izimodal-close="" style="color:black;vertical-align:middle"><i class="fas fa-times fa-lg"></i></a></div>
+			  </div>
 			  <div class="form-group">
 				<label><small>当前密码</small></label>
 				<input type="password" class="form-control" name="oldpasswd"  placeholder="Password" maxlength="256" required>
@@ -166,7 +169,7 @@
             <a href="{% url 'server:index' %}" class="nav-link">
               <i class="nav-icon fas fa-tachometer-alt fa-xs"></i>
               <p>
-                仪表盘 - x
+                仪表盘
               </p>
             </a>
           </li>
@@ -181,7 +184,7 @@
             </a>
             <ul class="nav nav-treeview">
               <li class="nav-item">
-                <a href="{% url 'user:lists' %}" class="nav-link">
+                <a href="{% url 'user:users' %}" class="nav-link">
                   <!--i class="fas fa-user-edit nav-icon"></i-->
                   <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;用户</p>
                 </a>
@@ -204,7 +207,7 @@
             </a>
             <ul class="nav nav-treeview">
               <li class="nav-item">
-                <a href="{% url 'server:lists' %}" class="nav-link">
+                <a href="{% url 'server:hosts' %}" class="nav-link">
                   <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;主机列表</p>
                 </a>
               </li>
@@ -227,12 +230,12 @@
             </a>
             <ul class="nav nav-treeview">
               <li class="nav-item">
-                <a href="{% url 'server:lists' %}" class="nav-link">
+                <a href="{% url 'server:hosts' %}" class="nav-link">
                   <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;批量命令 - x</p>
                 </a>
               </li>
               <li class="nav-item">
-                <a href="{% url 'webssh:lists' %}" class="nav-link">
+                <a href="{% url 'webssh:hosts' %}" class="nav-link">
                   <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;web终端</p>
                 </a>
               </li>
@@ -254,7 +257,7 @@
                 </a>
               </li>
 			  <li class="nav-item">
-                <a href="{% url 'server:lists' %}" class="nav-link">
+                <a href="{% url 'server:hosts' %}" class="nav-link">
                   <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;批量命令日志 - x</p>
                 </a>
               </li>
@@ -370,7 +373,7 @@
 		//subtitle: "确认退出",
 		iconClass: 'icon-announcement',
 		width: 450,
-		padding: 10,
+		//padding: 10,
 	});
 	$(document).on('click', '.logout', function (event) {
 		event.preventDefault();
@@ -381,7 +384,7 @@
 	$("#modal-changepasswd").iziModal({
 		iconClass: 'icon-announcement',
 		width: 650,
-		padding: 5,
+		//padding: 5,
 		overlayClose: false,	// 是否允许点击模态窗口的外部来关闭模态窗口。
 		closeOnEscape: false, 	// 是否允许通过点击ESC键来关闭模态窗口。
 	});
@@ -406,7 +409,7 @@
 		csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
 		
 		$.ajax({
-			url: "{% url 'user:changepasswd' %}",
+			url: "{% url 'user_api:password_update' %}",
 			async: true,
 			type: 'POST',
 			dataType: 'json',
@@ -450,98 +453,7 @@
 		$(thisObj.find("input[name='newpasswdagain']")[0]).val('');
 		return false;
 	}
-	
-	
-	getuserinfo = function () {
-		$("#modal-userinfo-container").html('');
-		$.ajax({
-			url: "{% url 'user:userinfo' %}",
-			async: false,	// false 才能保证重新获取的验证码有效
-			type: 'GET',
-			dataType: 'json',
-			timeout: 10000,
-			cache: true,
-			beforeSend: LoadFunction, //加载执行方法
-			error: errFunction,  //错误执行方法
-			success: succFunction //成功执行方法
-		});
 
-		function LoadFunction() {
-			$("#modal-userinfo-container").html('<div id="modal-userinfo" class="iziModal"><div class="row"><h4 class="m-auto">获取中...</h4></div></div>');
-		};
-
-		function errFunction() {
-			$("#modal-userinfo-container").html('<div id="modal-userinfo" class="iziModal"><div class="row"><h4 class="m-auto">获取错误</h4></div></div>');
-		};
-
-		function succFunction(res) {
-			if (res.code != 200) {
-				$("#modal-userinfo-container").html('<div id="modal-userinfo" class="iziModal"><div class="row"><h4 class="m-auto">获取错误</h4></div></div>');
-			} else {
-				var userid = res.user.id
-				var username = res.user.username
-				var nickname = res.user.nickname
-				var email = res.user.email
-				var sex = res.user.sex
-				if (sex == 'male') {
-					sex = '男';
-				} else if (sex == 'female') {
-					sex = '女';
-				} else {
-					sex = '其他';
-				}
-
-				var enabled = res.user.enabled
-				if (enabled == true) {
-					enabled = '启用';
-				} else if (enabled == false) {
-					enabled = '禁用';
-				} else {
-					enabled = '其他';
-				}
-				var create_time = res.user.create_time
-				
-				var groups = res.user.groups
-				if (groups == null) {
-					groups = 'N/A'
-				}
-				
-				var role = res.user.role
-				if (role == 0) {
-					role = '其他';
-				} else if (role == 1) {
-					role = '超级管理员';
-				} else if (role == 2){
-					role = '普通用户';
-				}
-				$("#modal-userinfo-container").html('<div id="modal-userinfo" class="iziModal"><div class="row p-4">\
-													 <div class="col-12 mb-2"><h6><strong>个人信息</strong></h6></div>\
-													 <div class="col-4 mb-1 border-bottom">用户ID: </div><div class="col-8 mb-1 border-bottom">' + userid + '</div>\
-													 <div class="col-4 mb-1 border-bottom">用户名: </div><div class="col-8 mb-1 border-bottom">' + username + '</div>\
-													 <div class="col-4 mb-1 border-bottom">用户昵称: </div><div class="col-8 mb-1 border-bottom">' + nickname + '</div>\
-													 <div class="col-4 mb-1 border-bottom">用户邮箱: </div><div class="col-8 mb-1 border-bottom">' + email + '</div>\
-													 <div class="col-4 mb-1 border-bottom">用户性别: </div><div class="col-8 mb-1 border-bottom">' + sex + '</div>\
-													 <div class="col-4 mb-1 border-bottom">用户状态: </div><div class="col-8 mb-1 border-bottom">' + enabled + '</div>\
-													 <div class="col-4 mb-1 border-bottom">用户创建时间: </div><div class="col-8 mb-1 border-bottom">' + create_time + '</div>\
-													 <div class="col-4 mb-1 border-bottom">用户组: </div><div class="col-8 mb-1 border-bottom">' + groups + '</div>\
-													 <div class="col-4 mb-1 border-bottom">用户角色: </div><div class="col-8 mb-1 border-bottom">' + role + '</div>\
-													 <div class="col-12 mt-3"><button type="button" class="btn btn-block btn-success btn-flat" data-iziModal-close>返回</button></div>\
-													 </div></div>');
-			}
-		};
-
-		// 初始化弹出框
-		$("#modal-userinfo").iziModal({
-			iconClass: 'icon-announcement',
-			width: 650,
-			padding: 5,
-			overlayClose: true,	// 是否允许点击模态窗口的外部来关闭模态窗口。
-			closeOnEscape: true, 	// 是否允许通过点击ESC键来关闭模态窗口。
-		});
-		// 打开弹出框
-		$('#modal-userinfo').iziModal('open');
-	}
-	
 </script>
 		
 {% block js %}

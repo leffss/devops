@@ -3,14 +3,20 @@ from server.models import RemoteUserBindHost
 from .models import TerminalLog
 from util.tool import login_required, post_required, admin_required
 from django.http import JsonResponse
+from django.db.models import Q
 from .forms import HostForm
 # Create your views here.
 
 
 @login_required
-def lists(request):
-    hosts = RemoteUserBindHost.objects.all()
-    return render(request, 'webssh/host_lists.html', locals())
+def hosts(request):
+    if request.session['issuperuser']:
+        hosts = RemoteUserBindHost.objects.all()
+    else:
+        hosts = RemoteUserBindHost.objects.filter(
+            Q(user__username = request.session['username']) | Q(group__user__username = request.session['username'])
+        ).distinct()
+    return render(request, 'webssh/hosts.html', locals())
 
 
 @login_required
@@ -30,5 +36,5 @@ def terminal(request):
 @admin_required
 def logs(request):
     logs = TerminalLog.objects.all()
-    return render(request, 'webssh/terminal_logs.html', locals())
+    return render(request, 'webssh/logs.html', locals())
 

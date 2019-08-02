@@ -7,6 +7,7 @@ import django.utils.timezone as timezone
 from devops.settings import TMP_DIR
 from server.models import RemoteUserBindHost
 from webssh.models import TerminalLog, TerminalLogDetail
+from django.db.models import Q
 import os
 import json
 import re
@@ -84,6 +85,17 @@ class WebSSH(WebsocketConsumer):
         ssh_key_name = '123456'
         hostid = int(ssh_args.get('hostid'))
         try:
+            if not self.session['issuperuser']:     # 普通用户判断是否有相关主机或者权限
+                hosts = RemoteUserBindHost.objects.filter(
+                    Q(id=hostid),
+                    Q(user__username = self.session['username']) | Q(group__user__username = self.session['username']),
+                ).distinct()
+                if not hosts:
+                    self.message['status'] = 2
+                    self.message['message'] = 'Host is not exist...'
+                    message = json.dumps(self.message)
+                    self.send(message)
+                    self.close(3001)
             self.remote_host = RemoteUserBindHost.objects.get(id=hostid)
             if not self.remote_host.enabled:
                 try:

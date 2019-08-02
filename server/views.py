@@ -2,6 +2,7 @@ from django.shortcuts import render
 from util.tool import login_required, admin_required
 from .models import RemoteUserBindHost, RemoteUser
 from user.models import User, Group
+from django.db.models import Q
 # Create your views here.
 
 
@@ -14,13 +15,19 @@ def index(request):
 
 
 @login_required
-def lists(request):
-    hosts = RemoteUserBindHost.objects.all()
-    return render(request, 'server/host_lists.html', locals())
+def hosts(request):
+    if request.session['issuperuser']:
+        hosts = RemoteUserBindHost.objects.all()
+    else:
+        hosts = RemoteUserBindHost.objects.filter(
+            Q(user__username = request.session['username']) | Q(group__user__username = request.session['username'])
+        ).distinct()
+    return render(request, 'server/hosts.html', locals())
 
-    
+
 @login_required
 @admin_required
 def users(request):
     users = RemoteUser.objects.all()
-    return render(request, 'server/user_lists.html', locals())
+    return render(request, 'server/users.html', locals())
+

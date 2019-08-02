@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% load static %}
+
+  {% block title %}
+  <title>个人信息设置</title>
+  {% endblock title %}
+
+	{% block navheader %}
+    <section class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-1">
+          <div class="col-12">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item active">个人信息设置</li>
+            </ol>
+          </div>
+        </div>
+      </div><!-- /.container-fluid -->
+    </section>
+	{% endblock navheader %}
+	
+		  {% block content %}
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">个人信息</h3>
+				<div class="card-tools">
+				  <button type="button" class="btn btn-tool" data-widget="collapse">
+					<i class="fas fa-minus"></i>
+				  </button>
+				  <button type="button" class="btn btn-tool" data-widget="remove">
+					<i class="fas fa-times"></i>
+				  </button>
+				</div>
+            </div>
+            <!-- /.card-header -->
+            <div class="card-body row">
+				<div class="col-2 pt-1 pb-1">用户名：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" value="{{ user.username }}" disabled></div>
+				<div class="col-2 pt-1 pb-1">昵称：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="nickname"  value="{{ user.nickname }}"></div>
+				<div class="col-2 pt-1 pb-1">邮箱：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="email" value="{{ user.email }}"></div>
+				<div class="col-2 pt-1 pb-1">手机：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="phone" value="{{ user.phone | default:'' }}"></div>
+				<div class="col-2 pt-1 pb-1">微信：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="weixin"value="{{ user.weixin | default:'' }}"></div>
+				<div class="col-2 pt-1 pb-1">QQ：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="qq" value="{{ user.qq | default:'' }}"></div>
+				<div class="col-2 pt-1 pb-1">性别：</div>
+				<div class="col-10 pt-1 pb-1">
+				  <select class="form-control select2" id="sex" style="width: 100%;">
+                    <option {% if user.get_sex_display == '男' %}selected="selected"{% endif %} value="male">男</option>
+                    <option {% if user.get_sex_display == '女' %}selected="selected"{% endif %} value="female">女</option>
+                  </select>
+				</div>
+				<div class="col-2 pt-1 pb-1">备注：</div><div class="col-10 pt-1 pb-1"><textarea id="memo" class="form-control">{{ user.memo | default:'' }}</textarea></div>
+				<div class="offset-2 col-10 pt-2"><button class="btn btn-default" type="reset">重置</button><button class="btn btn-success ml-2" onclick="changeuserprofile(this);">提交</button></div>
+            </div>
+            <!-- /.card-body -->
+          </div>
+          <!-- /.card --> 
+		  {% endblock content %}
+
+{% block js %}
+
+<script>
+// 修改个人信息
+changeuserprofile = function(event) {
+	toastr.options.closeButton = true;
+	toastr.options.showMethod = 'slideDown';
+	toastr.options.hideMethod = 'fadeOut';
+	toastr.options.closeMethod = 'fadeOut';
+	toastr.options.timeOut = 3000;	
+	toastr.options.extendedTimeOut = 0;	
+	
+	$(event).removeAttr("onclick");
+	$(event).attr("disabled", true);
+	
+	var nickname = $('#nickname').val();
+	var email = $('#email').val();
+	var phone = $('#phone').val();
+	var weixin = $('#weixin').val();
+	var qq = $('#qq').val();
+	//var sex = $("#sex").find("option:selected").text();
+	var sex = $("#sex").find("option:selected").val();
+	var memo = $('#memo').val();
+	csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
+
+	$.ajax({
+		url: "{% url 'user_api:profile_update' %}",
+		async: true,
+		type: 'POST',
+		dataType: 'json',
+		data: {
+			'csrfmiddlewaretoken': csrfmiddlewaretoken,
+			'nickname': nickname,
+			'email': email,
+			'phone': phone,
+			'weixin': weixin,
+			'qq': qq,
+			'sex': sex,
+			'memo': memo,
+		},
+		timeout: 5000,
+		cache: true,
+		beforeSend: LoadFunction, //加载执行方法
+		error: errFunction,  //错误执行方法
+		success: succFunction, //成功执行方法
+	});
+	
+	function LoadFunction() {
+		// 提交中
+	};
+	
+	function errFunction() {
+		// 消息框
+		toastr.error('更新个人信息错误');
+		$(event).removeAttr("disabled");
+		$(event).attr("onclick", "changeuserprofile(this);");
+	};
+	
+	function succFunction(res) {
+		if (res.code != 200) {
+			// 消息框
+			toastr.error('更新个人信息错误: ' + res.err);
+			$(event).removeAttr("disabled");
+			$(event).attr("onclick", "changeuserprofile(this);");
+		} else {
+			// 消息框
+			toastr.success('更新个人信息成功');
+		}
+	};
+}
+
+</script>
+{% endblock js %}
