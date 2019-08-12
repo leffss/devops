@@ -53,7 +53,7 @@
 				  <td>{{ log.get_event_type_display }}</td>
 				  <td>{{ log.detail }}</td>
 				  <td>{{ log.address }}</td>
-				  <td>{{ log.useragent | truncatechars_html:25 }}...</td>
+				  <td>{{ log.useragent | truncatechars_html:30 }}...</td>
 				  <td>{{ log.create_time|date:"Y/m/d H:i:s" }}</td>
                 </tr>
 				{% endfor %}

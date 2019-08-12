@@ -34,17 +34,18 @@
             </div>
             <!-- /.card-header -->
             <div class="card-body row">
-				<div class="col-2 pt-1 pb-1">用户名：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" value="{{ user.username }}" disabled></div>
-				<div class="col-2 pt-1 pb-1">昵称：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="nickname"  value="{{ user.nickname }}"></div>
-				<div class="col-2 pt-1 pb-1">邮箱：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="email" value="{{ user.email }}"></div>
+				<div class="col-2 pt-1 pb-1">用户名<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" value="{{ user.username }}" disabled></div>
+				<div class="col-2 pt-1 pb-1">昵称<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="nickname"  value="{{ user.nickname }}"></div>
+				<div class="col-2 pt-1 pb-1">邮箱<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="email" value="{{ user.email }}"></div>
 				<div class="col-2 pt-1 pb-1">手机：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="phone" value="{{ user.phone | default:'' }}"></div>
 				<div class="col-2 pt-1 pb-1">微信：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="weixin"value="{{ user.weixin | default:'' }}"></div>
 				<div class="col-2 pt-1 pb-1">QQ：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="qq" value="{{ user.qq | default:'' }}"></div>
 				<div class="col-2 pt-1 pb-1">性别：</div>
 				<div class="col-10 pt-1 pb-1">
 				  <select class="form-control select2" id="sex" style="width: 100%;">
-                    <option {% if user.get_sex_display == '男' %}selected="selected"{% endif %} value="male">男</option>
-                    <option {% if user.get_sex_display == '女' %}selected="selected"{% endif %} value="female">女</option>
+					{% for sex in sex_choices %}
+					<option value="{{ sex.0 }}" {% if user.sex == sex.0 %}selected="selected"{% endif %}>{{ sex.1 }}</option>
+					{% endfor %}
                   </select>
 				</div>
 				<div class="col-2 pt-1 pb-1">备注：</div><div class="col-10 pt-1 pb-1"><textarea id="memo" class="form-control">{{ user.memo | default:'' }}</textarea></div>
@@ -66,6 +67,8 @@ changeuserprofile = function(event) {
 	toastr.options.closeMethod = 'fadeOut';
 	toastr.options.timeOut = 3000;	
 	toastr.options.extendedTimeOut = 0;	
+	toastr.options.progressBar = true;
+	toastr.options.positionClass = 'toast-top-right'; 
 	
 	$(event).removeAttr("onclick");
 	$(event).attr("disabled", true);
@@ -121,6 +124,8 @@ changeuserprofile = function(event) {
 			$(event).attr("onclick", "changeuserprofile(this);");
 		} else {
 			// 消息框
+			toastr.options.timeOut = 1000;
+			toastr.options.onHidden = function() { window.location.href = "{% url 'user:profile' %}"; }
 			toastr.success('更新个人信息成功');
 		}
 	};

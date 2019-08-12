@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% load static %}
+
+  {% block title %}
+  <title>主机信息</title>
+  {% endblock title %}
+
+	{% block navheader %}
+    <section class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-1">
+          <div class="col-12">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item">主机管理</li>
+			  <li class="breadcrumb-item"><a href="{% url 'server:hosts' %}">主机列表</a></li>
+			  <li class="breadcrumb-item active">主机信息</li>
+            </ol>
+          </div>
+        </div>
+      </div><!-- /.container-fluid -->
+    </section>
+	{% endblock navheader %}
+	
+		  {% block content %}
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">主机信息</h3>
+				<div class="card-tools">
+				  <button type="button" class="btn btn-tool" data-widget="collapse">
+					<i class="fas fa-minus"></i>
+				  </button>
+				  <a class="btn btn-tool" href="{% url 'server:host_edit' host.id %}" title="编辑">
+					<!--i class="fas fa-wrench"></i-->编辑
+				  </a>
+				  <button type="button" class="btn btn-tool" data-widget="remove">
+					<i class="fas fa-times"></i>
+				  </button>
+				</div>
+            </div>
+            <!-- /.card-header -->
+            <div class="card-body row">
+				<div class="col-3 pt-1 pb-1 border-bottom">主机名：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.hostname }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">类型：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.get_type_display }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">主机IP：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.ip }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">公网IP：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.wip | default:'' }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">协议：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.get_protocol_display }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">环境：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.get_env_display }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">端口：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.port }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">系统/型号：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.release }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">用户名：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.remote_user.username }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">添加时间：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.create_time | date:"Y/m/d H:i:s" }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">是否启用：</div><div class="col-9 pt-1 pb-1 border-bottom">{% if host.enabled %}启用{% else %}<span style="color:red">禁用</span>{% endif %}</div>
+				<div class="col-3 pt-1 pb-1">备注：</div><div class="col-9 pt-1 pb-1">{{ host.memo | default:'' }}</div>
+            </div>
+            <!-- /.card-body -->
+          </div>
+          <!-- /.card --> 
+		  {% endblock content %}
+
+{% block js %}
+<!-- DataTables -->
+<script src="{% static 'adminlte/plugins/datatables/jquery.dataTables.js' %}"></script>
+<script src="{% static 'adminlte/plugins/datatables/dataTables.bootstrap4.js' %}"></script>
+<script>
+$("#datatables-lists").DataTable({
+	language: {
+		"sProcessing": "处理中...",
+		"sLengthMenu": "显示 _MENU_ 项结果",
+		"sZeroRecords": "没有匹配结果",
+		"sInfo": "显示第 _START_ 至 _END_ 项结果，共 _TOTAL_ 项",
+		"sInfoEmpty": "显示第 0 至 0 项结果，共 0 项",
+		"sInfoFiltered": "(由 _MAX_ 项结果过滤)",
+		"sInfoPostFix": "",
+		"sSearch": "搜索:",
+		"sUrl": "",
+		"sEmptyTable": "表中数据为空",
+		"sLoadingRecords": "载入中...",
+		"sInfoThousands": ",",
+		"oPaginate": {
+			"sFirst": "首页",
+			"sPrevious": "上页",
+			"sNext": "下页",
+			"sLast": "末页"
+		},
+		"oAria": {
+			"sSortAscending": ": 以升序排列此列",
+			"sSortDescending": ": 以降序排列此列"
+		}
+	},
+	destroy: true,	// 允许重建
+	bProcessing:true,  // 表格数据过多处理时显示: sProcessing
+	lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "全部"]],
+	order: [],
+	 //scrollY: 480,	// 滚动条
+	 //scrollCollapse: true,
+	 //jQueryUI: true,
+	 stateSave: true,	// 保存最后一次分页信息、排序信息，当页面刷新，或者重新进入这个页面，恢复上次的状态。
+	 stateDuration: 86400,	// 本地储存(0~更大)还是session储存(-1) 
+});
+</script>
+{% endblock js %}

@@ -13,4 +13,10 @@ urlpatterns = [
     path('profile/edit/', views.profile_edit, name='profile_edit'),
     path('user/<int:user_id>/', views.user, name='user'),
     path('user/<int:user_id>/edit/', views.user_edit, name='user_edit'),
+    path('user/add/', views.user_add, name='user_add'),
+    
+    path('group/<int:group_id>/', views.group, name='group'),
+    path('group/<int:group_id>/edit/', views.group_edit, name='group_edit'),
+    path('group/add/', views.group_add, name='group_add'),
+    
 ]

@@ -88,7 +88,7 @@ class WebSSH(WebsocketConsumer):
             if not self.session['issuperuser']:     # 普通用户判断是否有相关主机或者权限
                 hosts = RemoteUserBindHost.objects.filter(
                     Q(id=hostid),
-                    Q(user__username = self.session['username']) | Q(group__user__username = self.session['username']),
+                    Q(user__username=self.session['username']) | Q(group__user__username=self.session['username']),
                 ).distinct()
                 if not hosts:
                     self.message['status'] = 2
@@ -112,8 +112,8 @@ class WebSSH(WebsocketConsumer):
             message = json.dumps(self.message)
             self.send(message)
             self.close(3001)
-        host = self.remote_host.host.ip
-        port = self.remote_host.host.port
+        host = self.remote_host.ip
+        port = self.remote_host.port
         user = self.remote_host.remote_user.username
         passwd = self.remote_host.remote_user.password
         timeout = 15
@@ -160,7 +160,7 @@ class WebSSH(WebsocketConsumer):
             pass
         finally:
             # 过滤点结果中的颜色字符
-            self.ssh.res = re.sub('(\[\d{2};\d{2}m|\[0m)', '', self.ssh.res)
+            self.ssh.res = re.sub(r'(\[\d{2};\d{2}m|\[0m)', '', self.ssh.res)
             # print('命令: ')
             # print(self.ssh.cmd)
             # print('结果: ')
@@ -173,10 +173,10 @@ class WebSSH(WebsocketConsumer):
             if self.ssh.cmd:
                 terminal_log(
                     self.session.get('username'),
-                    self.remote_host.host.hostname,
-                    self.remote_host.host.ip,
-                    self.remote_host.host.get_protocol_display(),
-                    self.remote_host.host.port,
+                    self.remote_host.hostname,
+                    self.remote_host.ip,
+                    self.remote_host.get_protocol_display(),
+                    self.remote_host.port,
                     self.remote_host.remote_user.username,
                     self.ssh.cmd,
                     self.ssh.res,

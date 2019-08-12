@@ -1,2 +1,2 @@
-python3 manage.py runserver
+"C:\Program Files\Python37\python" manage.py runserver
 pause

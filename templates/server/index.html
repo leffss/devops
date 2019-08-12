@@ -24,45 +24,48 @@
 		  {% block content %}
 		  <div class="row">
 			  <div class="col-lg-3 col-6">
-				<!-- small box -->
-				<div class="small-box bg-info">
-				  <div class="inner">
-					<h3>{{ host_count }}</h3>
-
-					<p>主机</p>
-				  </div>
-				  <div class="icon">
-					<i class="ion ion-bag"></i>
-				  </div>
-				</div>
+				<a href="{% url 'server:hosts' %}">
+					<!-- small box -->
+					<div class="small-box bg-info">
+					  <div class="inner">
+						<h3>{{ host_count }}</h3>
+						<p>主机</p>
+					  </div>
+					  <div class="icon">
+						<i class="fas fa-server"></i>
+					  </div>
+					</div>
+				</a>
 			  </div>
 			  <!-- ./col -->
 			  <div class="col-lg-3 col-6">
-				<!-- small box -->
-				<div class="small-box bg-success">
-				  <div class="inner">
-					<h3>{{ user_count }}</h3>
-
-					<p>用户</p>
-				  </div>
-				  <div class="icon">
-					<i class="ion ion-stats-bars"></i>
-				  </div>
-				</div>
+				<a href="{% url 'user:users' %}">
+					<!-- small box -->
+					<div class="small-box bg-success">
+					  <div class="inner">
+						<h3>{{ user_count }}</h3>
+						<p>用户</p>
+					  </div>
+					  <div class="icon">
+						<i class="fas fa-user"></i>
+					  </div>
+					</div>
+				</a>
 			  </div>
 			  <!-- ./col -->
 			  <div class="col-lg-3 col-6">
-				<!-- small box -->
-				<div class="small-box bg-warning">
-				  <div class="inner">
-					<h3>{{ group_count }}</h3>
-
-					<p>组</p>
-				  </div>
-				  <div class="icon">
-					<i class="ion ion-person-add"></i>
-				  </div>
-				</div>
+				<a href="{% url 'user:groups' %}">
+					<!-- small box -->
+					<div class="small-box bg-warning">
+					  <div class="inner">
+						<h3>{{ group_count }}</h3>
+						<p>用户组</p>
+					  </div>
+					  <div class="icon">
+						<i class="fas fa-users"></i>
+					  </div>
+					</div>
+				</a>
 			  </div>
 			  <!-- ./col -->
 			  <div class="col-lg-3 col-6">
@@ -70,14 +73,14 @@
 				<div class="small-box bg-danger">
 				  <div class="inner">
 					<h3>0</h3>
-
 					<p>告警</p>
 				  </div>
 				  <div class="icon">
-					<i class="ion ion-pie-graph"></i>
+					<i class="fas fa-bell"></i>
 				  </div>
 				</div>
 			  </div>
 			  <!-- ./col -->
 			</div>
+			
 		  {% endblock content %}

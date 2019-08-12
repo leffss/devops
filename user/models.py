@@ -10,12 +10,11 @@ class User(models.Model):
         ('female', "女"),
     )
     ROLE_CHOICES = (
-        (0, '其他'),
         (1, '超级管理员'),
         (2, '普通用户'),
     )
     username = models.CharField(max_length=64, unique=True, verbose_name='用户名')
-    nickname = models.CharField(max_length=64, blank=True, null=True, verbose_name='昵称')
+    nickname = models.CharField(max_length=64, verbose_name='昵称')
     password = models.CharField(max_length=256, verbose_name='密码')
     email = models.EmailField(verbose_name='邮箱')
     sex = models.CharField(max_length=32, choices=SEX_CHOICES, default="male", verbose_name='性别')
@@ -31,7 +30,7 @@ class User(models.Model):
     last_login_time = models.DateTimeField(blank=True, null=True, verbose_name='最后登录时间')
 
     def __str__(self):
-        return '[%s] <%s>' % (self.username, self.nickname)
+        return self.username
 
     class Meta:
         ordering = ["-create_time"]
@@ -46,7 +45,7 @@ class Group(models.Model):
     create_time = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
 
     def __str__(self):
-        return '[%s]' % (self.group_name)
+        return self.group_name
 
     class Meta:
         ordering = ["-create_time"]
@@ -56,7 +55,6 @@ class Group(models.Model):
 
 class LoginLog(models.Model):
     event_type_choice = (
-        (0, '其他'),
         (1, '登陆'),
         (2, '退出'),
         (3, '登陆错误'),
@@ -64,19 +62,20 @@ class LoginLog(models.Model):
         (5, '修改密码成功'),
         (6, '添加用户'),
         (7, '删除用户'),
-        (8, '添加用户组'),
-        (9, '删除用户组'),
+        (8, '添加组'),
+        (9, '删除组'),
         (10, '更新用户'),
-        (11, '更新用户组'),
+        (11, '更新组'),
         (12, '添加主机'),
         (13, '删除主机'),
         (14, '更新主机'),
-        (15, '添加主机账号'),
-        (16, '删除主机账号'),
-        (17, '更新主机账号'),
+        (15, '添加主机用户'),
+        (16, '删除主机用户'),
+        (17, '更新主机用户'),
     )
     # 当用户被删除后，相关的登陆日志user字段设置为NULL
-    user = models.ForeignKey('User', blank=True, null=True, on_delete=models.SET_NULL, verbose_name='用户')
+    # user = models.ForeignKey('User', blank=True, null=True, on_delete=models.PROTECT, verbose_name='用户')
+    user = models.CharField(max_length=64, blank=True, null=True, verbose_name="用户")
     event_type = models.SmallIntegerField('事件类型', choices=event_type_choice, default=1)
     detail = models.TextField('事件详情', default='登陆成功')
     address = models.GenericIPAddressField('IP地址', blank=True, null=True)
@@ -84,9 +83,7 @@ class LoginLog(models.Model):
     create_time = models.DateTimeField('事件时间', auto_now_add=True)
 
     def __str__(self):
-        if self.user:
-            return '[%s] <%s:%s>' % (self.event_type, self.user.username, self.user.nickname)
-        return '[%s]' % (self.event_type)
+        return self.get_event_type_display()
 
     class Meta:
         ordering = ["-create_time"]

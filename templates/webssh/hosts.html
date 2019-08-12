@@ -38,12 +38,10 @@
               <table id="datatables-lists" class="table table-bordered table-hover">
                 <thead>
                 <tr>
-				  <th>主机ID</th>
+				  <th>名称</th>
 				  <th>类型</th>
 				  <th>环境</th>
-				  <th>名称</th>
 				  <th>IP</th>
-				  <th>公网IP</th>
 				  <th>协议</th>
 				  <th>端口</th>
 				  <th>系统</th>
@@ -55,19 +53,13 @@
                 <tbody>
 				{% for host in hosts %}
                 <tr>
-				  <td>{{ host.id }}</td>
-				  <td>{{ host.host.get_type_display }}</td>
-				  <td>{{ host.host.get_env_display }}</td>
-				  {% if host.remote_user %}
-				  <td>{{ host.host.hostname }}_{{ host.remote_user.name }}</td>
-				  {% else %}
-				  <td>{{ host.host.hostname }}</td>
-				  {% endif %}
-				  <td>{{ host.host.ip }}</td>
-				  <td>{{ host.host.wip | default:'' }}</td>
-				  <td>{{ host.host.get_protocol_display }}</td>
-				  <td>{{ host.host.port }}</td>
-				  <td>{{ host.host.release }}</td>
+				  <td>{{ host.hostname }}</td>
+				  <td>{{ host.get_type_display }}</td>
+				  <td>{{ host.get_env_display }}</td>
+				  <td>{{ host.ip }}</td>
+				  <td>{{ host.get_protocol_display }}</td>
+				  <td>{{ host.port }}</td>
+				  <td>{{ host.release }}</td>
 				  {% if host.remote_user %}
 				  <td>{{ host.remote_user.username }}</td>
 				  {% else %}
@@ -76,9 +68,9 @@
 				  <td>{{ host.create_time|date:"Y/m/d H:i:s" }}</td>
 				  <td>
 					{% if host.remote_user and host.enabled %}
-					{% if host.host.get_protocol_display == 'ssh' %}
+					{% if host.get_protocol_display == 'ssh' %}
 					<form method="post" action="{% url 'webssh:terminal' %}" target="_blank">
-					{% elif host.host.get_protocol_display == 'telnet' %}
+					{% elif host.get_protocol_display == 'telnet' %}
 					<form method="post" action="{% url 'webtelnet:terminal' %}" target="_blank">
 					{% else %}
 					<form method="post" action="#">
@@ -97,12 +89,10 @@
                 </tbody>
                 <tfoot>
                 <tr>
-				  <th>主机ID</th>
+				  <th>名称</th>
 				  <th>类型</th>
 				  <th>环境</th>
-				  <th>名称</th>
 				  <th>IP</th>
-				  <th>公网IP</th>
 				  <th>协议</th>
 				  <th>端口</th>
 				  <th>系统</th>

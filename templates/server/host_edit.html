@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+{% load static %}
+
+  {% block title %}
+  <title>主机编辑</title>
+  {% endblock title %}
+
+	{% block navheader %}
+    <section class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-1">
+          <div class="col-12">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item">主机管理</li>
+			  <li class="breadcrumb-item"><a href="{% url 'server:hosts' %}">主机列表</a></li>
+			  <li class="breadcrumb-item active">主机编辑</li>
+            </ol>
+          </div>
+        </div>
+      </div><!-- /.container-fluid -->
+    </section>
+	{% endblock navheader %}
+	
+		  {% block content %}
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">主机编辑</h3>
+				<div class="card-tools">
+				  <button type="button" class="btn btn-tool" data-widget="collapse">
+					<i class="fas fa-minus"></i>
+				  </button>
+				  <button type="button" class="btn btn-tool" data-widget="remove">
+					<i class="fas fa-times"></i>
+				  </button>
+				</div>
+            </div>
+            <!-- /.card-header -->
+            <div class="card-body row">
+				<input type="text" id="hostid" value="{{ host.id }}" hidden>
+				<div class="col-2 pt-1 pb-1">主机名<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="hostname" value="{{ host.hostname }}" disabled></div>
+				<div class="col-2 pt-1 pb-1">类型<span style="color:red;"> * </span>：</div>
+				<div class="col-10 pt-1 pb-1">
+					<select class="form-control" id="type" style="width: 100%;">
+						{% for type in type_choices %}
+						<option value="{{ type.0 }}" {% if host.type == type.0 %}selected="selected"{% endif %}>{{ type.1 }}</option>
+						{% endfor %}
+					</select>
+				</div>
+				<div class="col-2 pt-1 pb-1">主机IP<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="ip" value="{{ host.ip }}"></div>
+				<div class="col-2 pt-1 pb-1">公网IP：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="wip" value="{{ host.wip | default:'' }}"></div>
+				<div class="col-2 pt-1 pb-1">协议<span style="color:red;"> * </span>：</div>
+				<div class="col-10 pt-1 pb-1">
+					<select class="form-control" id="protocol" style="width: 100%;">
+						{% for protocol in protocol_choices %}
+						<option value="{{ protocol.0 }}" {% if host.protocol == protocol.0 %}selected="selected"{% endif %}>{{ protocol.1 }}</option>
+						{% endfor %}
+					</select>
+				</div>
+				<div class="col-2 pt-1 pb-1">环境<span style="color:red;"> * </span>：</div>
+				<div class="col-10 pt-1 pb-1">
+					<select class="form-control" id="env" style="width: 100%;">
+						{% for env in env_choices %}
+						<option value="{{ env.0 }}" {% if host.env == env.0 %}selected="selected"{% endif %}>{{ env.1 }}</option>
+						{% endfor %}
+					</select>
+				</div>
+				<div class="col-2 pt-1 pb-1">端口<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="port" value="{{ host.port }}"></div>
+				<div class="col-2 pt-1 pb-1">系统/型号<span style="color:red;"> * </span>：</div><div class="col-10 pt-1"><input class="form-control" type="text" id="release" value="{{ host.release }}"></div>
+				<div class="col-2 pt-1 pb-1">用户<span style="color:red;"> * </span>：</div>
+				<div class="col-10 pt-1 pb-1">
+					<select class="form-control" id="binduserid" style="width: 100%;">
+						<option value="{{ host.remote_user.id }}" selected="selected">{{ host.remote_user.name }}</option>
+						{% for user in other_users %}
+						<option value="{{ user.id }}">{{ user.name }}</option>
+						{% endfor %}
+					</select>
+				</div>
+				<div class="col-2 pt-1 pb-1">备注：</div><div class="col-10 pt-1 pb-1"><textarea id="memo" class="form-control">{{ host.memo | default:'' }}</textarea></div>
+				<div class="offset-2 col-10 pt-1 pb-1">
+					<div class="custom-switch custom-switch-on-success">
+                      <input type="checkbox" class="custom-control-input" id="enabled" {% if host.enabled %}checked{% endif %}>
+                      <label class="custom-control-label" for="enabled">启用</label>
+                    </div>
+				</div>
+				<div class="offset-2 col-10 pt-2"><button class="btn btn-default" type="reset">重置</button><button class="btn btn-success ml-2" onclick="changeuserprofile(this);">提交</button></div>
+            </div>
+            <!-- /.card-body -->
+          </div>
+          <!-- /.card --> 
+		  {% endblock content %}
+
+{% block js %}
+<!-- DataTables -->
+<script src="{% static 'adminlte/plugins/datatables/jquery.dataTables.js' %}"></script>
+<script src="{% static 'adminlte/plugins/datatables/dataTables.bootstrap4.js' %}"></script>
+<script>
+$("#datatables-lists").DataTable({
+	language: {
+		"sProcessing": "处理中...",
+		"sLengthMenu": "显示 _MENU_ 项结果",
+		"sZeroRecords": "没有匹配结果",
+		"sInfo": "显示第 _START_ 至 _END_ 项结果，共 _TOTAL_ 项",
+		"sInfoEmpty": "显示第 0 至 0 项结果，共 0 项",
+		"sInfoFiltered": "(由 _MAX_ 项结果过滤)",
+		"sInfoPostFix": "",
+		"sSearch": "搜索:",
+		"sUrl": "",
+		"sEmptyTable": "表中数据为空",
+		"sLoadingRecords": "载入中...",
+		"sInfoThousands": ",",
+		"oPaginate": {
+			"sFirst": "首页",
+			"sPrevious": "上页",
+			"sNext": "下页",
+			"sLast": "末页"
+		},
+		"oAria": {
+			"sSortAscending": ": 以升序排列此列",
+			"sSortDescending": ": 以降序排列此列"
+		}
+	},
+	destroy: true,	// 允许重建
+	bProcessing:true,  // 表格数据过多处理时显示: sProcessing
+	lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "全部"]],
+	order: [],
+	 //scrollY: 480,	// 滚动条
+	 //scrollCollapse: true,
+	 //jQueryUI: true,
+	 stateSave: true,	// 保存最后一次分页信息、排序信息，当页面刷新，或者重新进入这个页面，恢复上次的状态。
+	 stateDuration: 86400,	// 本地储存(0~更大)还是session储存(-1) 
+});
+
+
+// 修改主机信息
+changeuserprofile = function(event) {
+	toastr.options.closeButton = true;
+	toastr.options.showMethod = 'slideDown';
+	toastr.options.hideMethod = 'fadeOut';
+	toastr.options.closeMethod = 'fadeOut';
+	toastr.options.timeOut = 3000;
+	toastr.options.extendedTimeOut = 0;	
+	toastr.options.progressBar = true;
+	toastr.options.positionClass = 'toast-top-right'; 
+	
+	$(event).removeAttr("onclick");
+	$(event).attr("disabled", true);
+	
+	var hostid = $('#hostid').val();
+	var hostname = $('#hostname').val();
+	var type = $('#type').val();
+	var ip = $('#ip').val();
+	var wip = $('#wip').val();
+	var protocol = $('#protocol').val();
+	var env = $('#env').val();
+	var port = $('#port').val();
+	var release = $('#release').val();
+	var memo = $('#memo').val();
+	var binduserid = $('#binduserid').val();
+	var enabled;
+	if ($("#enabled").is(':checked')) {
+		enabled = true;
+	} else {
+		enabled = false;
+	}
+	
+	csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
+	
+	$.ajax({
+		url: "{% url 'server_api:host_update' %}",
+		async: true,
+		type: 'POST',
+		dataType: 'json',
+		data: {
+			'csrfmiddlewaretoken': csrfmiddlewaretoken,
+			'hostid': hostid,
+			'type': type,
+			'ip': ip,
+			'wip': wip,
+			'protocol': protocol,
+			'env': env,
+			'port': port,
+			'release': release,
+			'memo': memo,
+			'enabled': enabled,
+			'binduserid': binduserid,
+		},
+		timeout: 5000,
+		cache: true,
+		beforeSend: LoadFunction, //加载执行方法
+		error: errFunction,  //错误执行方法
+		success: succFunction, //成功执行方法
+	});
+	
+	function LoadFunction() {
+		// 提交中
+	};
+	
+	function errFunction() {
+		// 消息框
+		toastr.error('更新主机错误');
+		$(event).removeAttr("disabled");
+		$(event).attr("onclick", "changeuserprofile(this);");
+	};
+	
+	function succFunction(res) {
+		if (res.code != 200) {
+			// 消息框
+			toastr.error('更新主机错误: ' + res.err);
+			$(event).removeAttr("disabled");
+			$(event).attr("onclick", "changeuserprofile(this);");
+		} else {
+			// 消息框
+			toastr.options.timeOut = 1000;
+			toastr.options.onHidden = function() { window.location.href = "{% url 'server:host' host.id %}"; }
+			toastr.success('更新主机成功');
+		}
+	};
+}
+// 修改主机信息
+
+</script>
+{% endblock js %}

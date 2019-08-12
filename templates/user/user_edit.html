@@ -11,7 +11,9 @@
         <div class="row mb-1">
           <div class="col-12">
             <ol class="breadcrumb">
-              <li class="breadcrumb-item active">用户信息设置</li>
+              <li class="breadcrumb-item">用户管理</li>
+			  <li class="breadcrumb-item"><a href="{% url 'user:users' %}">用户</a></li>
+			  <li class="breadcrumb-item active">用户信息设置</li>
             </ol>
           </div>
         </div>
@@ -34,11 +36,12 @@
             </div>
             <!-- /.card-header -->
             <div class="card-body row">
-				<div class="col-2 pt-1 pb-1">用户名：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="username" value="{{ user.username }}" disabled></div>
-				<div class="col-2 pt-1 pb-1">昵称：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="nickname"  value="{{ user.nickname }}"></div>
-				<div class="col-2 pt-1 pb-1">邮箱：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="email" value="{{ user.email }}"></div>
+				<input type="text" id="userid" value="{{ user.id }}" hidden>
+				<div class="col-2 pt-1 pb-1">用户名<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="username" value="{{ user.username }}" disabled></div>
+				<div class="col-2 pt-1 pb-1">昵称<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="nickname"  value="{{ user.nickname }}"></div>
+				<div class="col-2 pt-1 pb-1">邮箱<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="email" value="{{ user.email }}"></div>
 				<div class="col-2 pt-1 pb-1">手机：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="phone" value="{{ user.phone | default:'' }}"></div>
-				<div class="col-2 pt-1 pb-1">微信：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="weixin"value="{{ user.weixin | default:'' }}"></div>
+				<div class="col-2 pt-1 pb-1">微信：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="weixin" value="{{ user.weixin | default:'' }}"></div>
 				<div class="col-2 pt-1 pb-1">QQ：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="qq" value="{{ user.qq | default:'' }}"></div>
 				
 				<div class="col-2 pt-1 pb-1">用户组：</div>
@@ -63,18 +66,42 @@
                   </div>
 				</div>
 				
-				<div class="col-2 pt-1 pb-1">性别：</div>
+				<div class="col-2 pt-1 pb-1">主机：</div>
+				<div class="col-5 pt-1 pb-1">
+				  <div class="form-group">
+                    <span>拥有主机</span>
+                    <select multiple class="form-control" id="host_select_left" style="min-height:150px">
+					  {% for host in user.remote_user_bind_hosts.all %}
+					  <option value="{{ host.id }}">{{ host.hostname }}_{{ host.ip }}_{{ host.remote_user.username }}</option>
+					  {% endfor %}
+                    </select>
+                  </div>
+				</div>
+				<div class="col-5 pt-1 pb-1">
+				  <div class="form-group">
+                    <span>其他主机</span>
+                    <select multiple class="form-control" id="host_select_right" style="min-height:150px">
+					  {% for host in other_hosts %}
+					  <option value="{{ host.id }}">{{ host.hostname }}_{{ host.ip }}_{{ host.remote_user.username }}</option>
+					  {% endfor %}
+                    </select>
+                  </div>
+				</div>
+				
+				<div class="col-2 pt-1 pb-1">性别<span style="color:red;"> * </span>：</div>
 				<div class="col-10 pt-1 pb-1">
 				  <select class="form-control" id="sex" style="width: 100%;">
-                    <option {% if user.get_sex_display == '男' %}selected="selected"{% endif %} value="male">男</option>
-                    <option {% if user.get_sex_display == '女' %}selected="selected"{% endif %} value="female">女</option>
+					{% for sex in sex_choices %}
+                    <option value="{{ sex.0 }}" {% if user.sex == sex.0 %}selected="selected"{% endif %}>{{ sex.1 }}</option>
+					{% endfor %}
                   </select>
 				</div>
-				<div class="col-2 pt-1 pb-1">角色：</div>
+				<div class="col-2 pt-1 pb-1">角色<span style="color:red;"> * </span>：</div>
 				<div class="col-10 pt-1 pb-1">
 				  <select class="form-control" id="role" style="width: 100%;">
-                    <option {% if user.get_role_display == '普通用户' %}selected="selected"{% endif %} value="2">普通用户</option>
-                    <option {% if user.get_role_display == '超级管理员' %}selected="selected"{% endif %} value="1">超级管理员</option>
+					{% for role in role_choices %}
+					<option value="{{ role.0 }}" {% if user.role == role.0 %}selected="selected"{% endif %}>{{ role.1 }}</option>
+					{% endfor %}
                   </select>
 				</div>
 				<div class="col-2 pt-1 pb-1">备注：</div><div class="col-10 pt-1 pb-1"><textarea id="memo" class="form-control">{{ user.memo | default:'' }}</textarea></div>
@@ -94,7 +121,7 @@
 {% block js %}
 
 <script>
-// 修改个人信息
+// 修改用户信息
 changeuserprofile = function(event) {
 	toastr.options.closeButton = true;
 	toastr.options.showMethod = 'slideDown';
@@ -102,11 +129,13 @@ changeuserprofile = function(event) {
 	toastr.options.closeMethod = 'fadeOut';
 	toastr.options.timeOut = 3000;	
 	toastr.options.extendedTimeOut = 0;	
+	toastr.options.progressBar = true;
+	toastr.options.positionClass = 'toast-top-right'; 
 	
 	$(event).removeAttr("onclick");
 	$(event).attr("disabled", true);
-
-	var username = $('#username').val();
+	
+	var userid = $('#userid').val();
 	var nickname = $('#nickname').val();
 	var email = $('#email').val();
 	var phone = $('#phone').val();
@@ -129,6 +158,14 @@ changeuserprofile = function(event) {
 		groups.push(value);
 	});
 	groups = groups.join(",")
+	
+	var hosts = new Array();
+	$("#host_select_left option").each(function(){
+		var value = $(this).val();   //获取option值
+		hosts.push(value);
+	});
+	hosts = hosts.join(",")
+	
 	csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
 	
 	$.ajax({
@@ -138,7 +175,7 @@ changeuserprofile = function(event) {
 		dataType: 'json',
 		data: {
 			'csrfmiddlewaretoken': csrfmiddlewaretoken,
-			'username': username,
+			'userid': userid,
 			'nickname': nickname,
 			'email': email,
 			'phone': phone,
@@ -149,6 +186,7 @@ changeuserprofile = function(event) {
 			'enabled': enabled,
 			'role': role,
 			'groups': groups,
+			'hosts': hosts,
 		},
 		timeout: 5000,
 		cache: true,
@@ -176,6 +214,8 @@ changeuserprofile = function(event) {
 			$(event).attr("onclick", "changeuserprofile(this);");
 		} else {
 			// 消息框
+			toastr.options.timeOut = 1000;
+			toastr.options.onHidden = function() { window.location.href = "{% url 'user:user' user.id %}"; }
 			toastr.success('更新用户信息成功');
 		}
 	};
@@ -211,6 +251,16 @@ $(function(){
     //双击选项
     $('#group_select_right').dblclick(function(){
        $("option:selected",this).appendTo('#group_select_left');
+    });
+	
+	//双击选项
+    $('#host_select_left').dblclick(function(){ //绑定双击事件
+        //获取全部的选项,删除并追加给对方
+        $("option:selected",this).appendTo('#host_select_right'); //追加给对方
+    });
+    //双击选项
+    $('#host_select_right').dblclick(function(){
+       $("option:selected",this).appendTo('#host_select_left');
     });
 });
 

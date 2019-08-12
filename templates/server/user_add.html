@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+{% load static %}
+
+  {% block title %}
+  <title>用户添加</title>
+  {% endblock title %}
+
+	{% block navheader %}
+    <section class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-1">
+          <div class="col-12">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item">主机管理</li>
+			  <li class="breadcrumb-item"><a href="{% url 'server:users' %}">用户列表</a></li>
+			  <li class="breadcrumb-item active">用户添加</li>
+            </ol>
+          </div>
+        </div>
+      </div><!-- /.container-fluid -->
+    </section>
+	{% endblock navheader %}
+	
+		  {% block content %}
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">用户添加</h3>
+				<div class="card-tools">
+				  <button type="button" class="btn btn-tool" data-widget="collapse">
+					<i class="fas fa-minus"></i>
+				  </button>
+				  <button type="button" class="btn btn-tool" data-widget="remove">
+					<i class="fas fa-times"></i>
+				  </button>
+				</div>
+            </div>
+            <!-- /.card-header -->
+            <div class="card-body row">
+				<div class="col-12">
+					<div class="alert alert-warning alert-dismissible" style="font-size:0.9rem;">
+						<button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+						提示：1.添加后名称不可修改&nbsp;&nbsp;&nbsp;&nbsp;2.su 跳转功能目前只对超级管理员有效。
+					</div>
+				</div>
+				<div class="col-2 pt-1 pb-1">名称<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="name"></div>
+				<div class="col-2 pt-1 pb-1">用户名<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="username"></div>
+				<div class="col-2 pt-1 pb-1">密码<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="password"></div>
+				<div class="offset-2 col-10 pt-1 pb-1" id="enabled_click">
+					<div class="custom-switch custom-switch-on-success">
+                      <input type="checkbox" class="custom-control-input" id="enabled">
+                      <label class="custom-control-label" for="enabled">登陆后是否 su 跳转超级用户</label>
+                    </div>
+				</div>
+				<div class="col-2 pt-1 pb-1 super" style="display:none;">超级用户<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1 super" style="display:none;"><input class="form-control" type="text" id="superusername"  value="{{ user.superusername | default:'' }}"></div>
+				<div class="col-2 pt-1 pb-1 super" style="display:none;">超级密码<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1 super" style="display:none;"><input class="form-control" type="text" id="superpassword" value="{{ user.superpassword | default:'' }}"></div>
+				<div class="col-2 pt-1 pb-1">备注：</div><div class="col-10 pt-1 pb-1"><textarea id="memo" class="form-control"></textarea></div>
+				<div class="offset-2 col-10 pt-2"><button class="btn btn-default" type="reset">重置</button><button class="btn btn-success ml-2" onclick="changeuserprofile(this);">提交</button></div>
+            </div>
+            <!-- /.card-body -->
+          </div>
+          <!-- /.card --> 
+		  {% endblock content %}
+
+{% block js %}
+
+<script>
+
+$("#enabled_click").click(function(){
+	if ($("#enabled").is(':checked')) {
+		$(".super").show();
+	} else {
+		$(".super").hide();
+	}
+});
+
+// 添加主机用户
+changeuserprofile = function(event) {
+	toastr.options.closeButton = true;
+	toastr.options.showMethod = 'slideDown';
+	toastr.options.hideMethod = 'fadeOut';
+	toastr.options.closeMethod = 'fadeOut';
+	toastr.options.timeOut = 3000;	
+	toastr.options.extendedTimeOut = 0;	
+	toastr.options.progressBar = true;
+	toastr.options.positionClass = 'toast-top-right'; 
+	
+	$(event).removeAttr("onclick");
+	$(event).attr("disabled", true);
+	
+	var name = $('#name').val();
+	var username = $('#username').val();
+	var password = $('#password').val();
+	var memo = $('#memo').val();
+	var enabled;
+	if ($("#enabled").is(':checked')) {
+		enabled = true;
+	} else {
+		enabled = false;
+	}
+	var superusername = $('#superusername').val();
+	var superpassword = $('#superpassword').val();
+	
+	if (enabled == true) {
+		if (superusername == '' || superpassword == '') {
+			toastr.error('超级用户或者超级密码不能为空');
+			$(event).removeAttr("disabled");
+			$(event).attr("onclick", "changeuserprofile(this);");
+			return false;
+		}
+	} else {
+		superusername = '';
+		superpassword = '';
+	}
+	
+	csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
+	
+	$.ajax({
+		url: "{% url 'server_api:user_add' %}",
+		async: true,
+		type: 'POST',
+		dataType: 'json',
+		data: {
+			'csrfmiddlewaretoken': csrfmiddlewaretoken,
+			'name': name,
+			'username': username,
+			'password': password,
+			'memo': memo,
+			'enabled': enabled,
+			'superusername': superusername,
+			'superpassword': superpassword,
+		},
+		timeout: 5000,
+		cache: true,
+		beforeSend: LoadFunction, //加载执行方法
+		error: errFunction,  //错误执行方法
+		success: succFunction, //成功执行方法
+	});
+	
+	function LoadFunction() {
+		// 提交中
+	};
+	
+	function errFunction() {
+		// 消息框
+		toastr.error('添加主机用户错误');
+		$(event).removeAttr("disabled");
+		$(event).attr("onclick", "changeuserprofile(this);");
+	};
+	
+	function succFunction(res) {
+		if (res.code != 200) {
+			// 消息框
+			toastr.error('添加主机用户错误: ' + res.err);
+			$(event).removeAttr("disabled");
+			$(event).attr("onclick", "changeuserprofile(this);");
+		} else {
+			// 消息框
+			toastr.options.timeOut = 1000;
+			toastr.options.onHidden = function() { window.location.href = "{% url 'server:users' %}"; }
+			toastr.success('添加主机用户成功');
+		}
+	};
+}
+
+</script>
+{% endblock js %}

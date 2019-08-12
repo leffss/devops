@@ -33,6 +33,7 @@
   
   <!-- Toastr -->
   <link rel="stylesheet" href="{% static 'adminlte/plugins/toastr/toastr.min.css' %}">
+
   
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
@@ -191,7 +192,7 @@
               </li>
               <li class="nav-item">
                 <a href="{% url 'user:groups' %}" class="nav-link">
-                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;用户组</p>
+                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;组</p>
                 </a>
               </li>
             </ul>
@@ -297,7 +298,7 @@
 
   <footer class="main-footer">
     <div class="float-right d-none d-sm-block">
-      运维管理系统 <b>Version</b> 1.0.0
+      运维管理系统 <b>Version</b> 1.0.0 <a href="https://github.com/leffss/devops" target="_blank">Github</a>
     </div>
     <strong>Copyright &copy; 2019 <a href="//www.cnblogs.com/leffss" target="_blank">leffss</a>.</strong> All rights
     reserved.
@@ -406,6 +407,10 @@
 		var oldpasswd = $(thisObj.find("input[name='oldpasswd']")[0]).val();
 		var newpasswd = $(thisObj.find("input[name='newpasswd']")[0]).val();
 		var newpasswdagain = $(thisObj.find("input[name='newpasswdagain']")[0]).val();
+		if (newpasswd != newpasswdagain) {
+			toastr.error('修改密码错误: 两次密码不一致');
+			return false;
+		}
 		csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
 		
 		$.ajax({

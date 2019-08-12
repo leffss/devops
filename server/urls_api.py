@@ -4,5 +4,14 @@ from . import views_api
 app_name="server"
 urlpatterns = [
     path('test/', views_api.test, name='test'),
+    
+    path('host/delete/', views_api.host_delete, name='host_delete'),
+    path('host/update/', views_api.host_update, name='host_update'),
+    path('host/add/', views_api.host_add, name='host_add'),
+    
+    path('user/update/', views_api.user_update, name='user_update'),
+    path('user/add/', views_api.user_add, name='user_add'),
+    path('user/delete/', views_api.user_delete, name='user_delete'),
+    
 ]
 

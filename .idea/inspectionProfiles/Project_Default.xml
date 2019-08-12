@@ -1,6 +1,7 @@
 <component name="InspectionProjectProfileManager">
   <profile version="1.0">
     <option name="myName" value="Project Default" />
+    <inspection_tool class="PyBroadExceptionInspection" enabled="false" level="WEAK WARNING" enabled_by_default="false" />
     <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="ignoredPackages">
         <value>
@@ -9,6 +10,18 @@
             <item index="1" class="java.lang.String" itemvalue="supervisor" />
           </list>
         </value>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="PyUnresolvedReferencesInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredIdentifiers">
+        <list>
+          <option value="server.models.RemoteUserBindHost.*" />
+          <option value="user.models.User.*" />
+          <option value="user.models.Group.*" />
+          <option value="user.models.LoginLog.*" />
+          <option value="server.models.RemoteUser.*" />
+          <option value="webssh.models.TerminalLog.*" />
+        </list>
       </option>
     </inspection_tool>
   </profile>

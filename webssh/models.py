@@ -16,7 +16,7 @@ class TerminalLog(models.Model):
     create_time = models.DateTimeField('事件时间', auto_now_add=True)
 
     def __str__(self):
-        return '[%s]' % (self.user)
+        return self.user
 
     class Meta:
         ordering = ["-create_time"]
@@ -28,7 +28,7 @@ class TerminalLogDetail(models.Model):
     """
     结果详情单独以一对一的关系表存储，提高查询速度
     """
-    terminallog = models.OneToOneField('TerminalLog', on_delete=models.CASCADE)
+    terminallog = models.OneToOneField('TerminalLog', blank=True, null=True, on_delete=models.PROTECT)
     res = models.TextField('结果详情', default='未记录')
 
     def __str__(self):

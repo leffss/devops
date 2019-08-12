@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load user_tags %}
 
   {% block title %}
   <title>用户</title>
@@ -23,7 +24,7 @@
 		  {% block content %}
           <div class="card">
             <div class="card-header">
-              <h3 class="card-title">用户<a href="javascript:void(0)" class="btn btn-sm btn-success ml-3 addsoft">新增 + </a></h3>
+              <h3 class="card-title">用户<a href="{% url 'user:user_add' %}" class="btn btn-sm btn-success ml-3 addsoft">新增 + </a></h3>
 				<div class="card-tools">
 				  <button type="button" class="btn btn-tool" data-widget="collapse">
 					<i class="fas fa-minus"></i>
@@ -41,7 +42,7 @@
 				  <th>用户名</th>
 				  <th>昵称</th>
 				  <th>邮箱</th>
-				  <th>性别</th>
+				  <th>拥有主机</th>
 				  <th>是否启用</th>
 				  <th>角色</th>
 				  <th>组</th>
@@ -52,11 +53,12 @@
                 </thead>
                 <tbody>
 				{% for user in users %}
-                <tr>
+                <tr id="user-{{ user.id }}">
 				  <td><a href="{% url 'user:user' user.id %}">{{ user.username }}</a></td>
 				  <td>{{ user.nickname }}</td>
 				  <td>{{ user.email }}</td>
-				  <td>{{ user.get_sex_display }}</td>
+				  {% count_user_hosts user.username as hosts_count %}
+				  <td>{{ hosts_count }}</td>
 				  {% if user.enabled %}
 				  <td>启用</td>
 				  {% else %}
@@ -65,12 +67,17 @@
 				  <td>{{ user.get_role_display }}</td>
 				  
 				  <td>
-				  {% for group in user.groups.all %}<button type="button" class="btn btn-sm btn-success btn-flat">{{ group.group_name }}</button>&nbsp;&nbsp;{% endfor %}
+				  {% for group in user.groups.all %}<a href="{% url 'user:group' group.id %}" class="btn btn-sm btn-success btn-flat mb-2">{{ group.group_name }}</a>&nbsp;&nbsp;{% endfor %}
 				  </td>
 				  <td>{{ user.create_time|date:"Y/m/d H:i:s" }}</td>
 				  <td>{{ user.last_login_time|date:"Y/m/d H:i:s"|default:''}}</td>
 				  <td>
-				  <a href="{% url 'user:user' user.id %}">查看</a>&nbsp;&nbsp;<a href="{% url 'user:user_edit' user.id %}">修改</a>&nbsp;&nbsp;删除
+				  <a href="{% url 'user:user' user.id %}">详细</a>&nbsp;&nbsp;<a href="{% url 'user:user_edit' user.id %}">编辑</a>
+				  {% if user.groups.all.count == 0 and user.remote_user_bind_hosts.all.count == 0 %}
+				  &nbsp;&nbsp;<a href="javascript:void(0)" id="{{ user.id }}" title="{{ user.username }}" onclick="createdeletemodal(this);">删除</a>
+				  {% else %}
+				  &nbsp;&nbsp;删除
+				  {% endif %}
 				  </td>
                 </tr>
 				{% endfor %}
@@ -80,7 +87,7 @@
 				  <th>用户名</th>
 				  <th>昵称</th>
 				  <th>邮箱</th>
-				  <th>性别</th>
+				  <th>拥有主机</th>
 				  <th>是否启用</th>
 				  <th>角色</th>
 				  <th>组</th>
@@ -93,7 +100,12 @@
             </div>
             <!-- /.card-body -->
           </div>
-          <!-- /.card --> 
+          <!-- /.card -->
+		  
+		  <!--删除确认窗口-->
+		  <div id="modal-container">
+		  </div>
+		  
 		  {% endblock content %}
 
 {% block js %}
@@ -101,40 +113,165 @@
 <script src="{% static 'adminlte/plugins/datatables/jquery.dataTables.js' %}"></script>
 <script src="{% static 'adminlte/plugins/datatables/dataTables.bootstrap4.js' %}"></script>
 <script>
-$("#datatables-lists").DataTable({
-	language: {
-		"sProcessing": "处理中...",
-		"sLengthMenu": "显示 _MENU_ 项结果",
-		"sZeroRecords": "没有匹配结果",
-		"sInfo": "显示第 _START_ 至 _END_ 项结果，共 _TOTAL_ 项",
-		"sInfoEmpty": "显示第 0 至 0 项结果，共 0 项",
-		"sInfoFiltered": "(由 _MAX_ 项结果过滤)",
-		"sInfoPostFix": "",
-		"sSearch": "搜索:",
-		"sUrl": "",
-		"sEmptyTable": "表中数据为空",
-		"sLoadingRecords": "载入中...",
-		"sInfoThousands": ",",
-		"oPaginate": {
-			"sFirst": "首页",
-			"sPrevious": "上页",
-			"sNext": "下页",
-			"sLast": "末页"
+	$("#datatables-lists").DataTable({
+		language: {
+			"sProcessing": "处理中...",
+			"sLengthMenu": "显示 _MENU_ 项结果",
+			"sZeroRecords": "没有匹配结果",
+			"sInfo": "显示第 _START_ 至 _END_ 项结果，共 _TOTAL_ 项",
+			"sInfoEmpty": "显示第 0 至 0 项结果，共 0 项",
+			"sInfoFiltered": "(由 _MAX_ 项结果过滤)",
+			"sInfoPostFix": "",
+			"sSearch": "搜索:",
+			"sUrl": "",
+			"sEmptyTable": "表中数据为空",
+			"sLoadingRecords": "载入中...",
+			"sInfoThousands": ",",
+			"oPaginate": {
+				"sFirst": "首页",
+				"sPrevious": "上页",
+				"sNext": "下页",
+				"sLast": "末页"
+			},
+			"oAria": {
+				"sSortAscending": ": 以升序排列此列",
+				"sSortDescending": ": 以降序排列此列"
+			}
 		},
-		"oAria": {
-			"sSortAscending": ": 以升序排列此列",
-			"sSortDescending": ": 以降序排列此列"
-		}
-	},
-	destroy: true,	// 允许重建
-	bProcessing:true,  // 表格数据过多处理时显示: sProcessing
-	lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "全部"]],
-	order: [],
-	 //scrollY: 480,	// 滚动条
-	 //scrollCollapse: true,
-	 //jQueryUI: true,
-	 stateSave: true,	// 保存最后一次分页信息、排序信息，当页面刷新，或者重新进入这个页面，恢复上次的状态。
-	 stateDuration: 86400,	// 本地储存(0~更大)还是session储存(-1) 
-});
+		destroy: true,	// 允许重建
+		bProcessing:true,  // 表格数据过多处理时显示: sProcessing
+		lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "全部"]],
+		order: [],
+		 //scrollY: 480,	// 滚动条
+		 //scrollCollapse: true,
+		 //jQueryUI: true,
+		 stateSave: true,	// 保存最后一次分页信息、排序信息，当页面刷新，或者重新进入这个页面，恢复上次的状态。
+		 stateDuration: 86400,	// 本地储存(0~更大)还是session储存(-1) 
+	});
+	
+	// 删除用户 - start
+	createdeletemodal = function (event) {
+		var thisObj = $(event);	//js对象转jquery对象  
+		var user_id = thisObj.attr('id');
+		var user_name = thisObj.attr("title");
+		// 生成弹出框，使用 \ 换行
+		$("#modal-container").html('<div id="modal-delete-' + user_id + '" class="iziModal"><div class="container-fluid"><div class="row">\
+									<div class="col-12 p-3"><h5 class="text-center mt-3">确定要删除用户 "' + user_name + '" 吗？</h5></div><div class="col-6 p-3">\
+									<button type="button" class="btn btn-block btn-secondary btn-flat" data-iziModal-close>取消</button></div><div class="col-6 p-3">\
+									<a href="javascript:void(0)"><button type="button" class="btn btn-block btn-success btn-flat" id="' + user_id + '-yes" title="\
+									' + user_name + '" onclick="deletethis(this);">确定</button></a></div></div></div></div>');
+		
+		// 初始化弹出框
+		$("#modal-delete-" + user_id).iziModal({
+			iconClass: 'icon-announcement',
+			width: 450,
+			//padding: 10,
+			overlayClose: false,	// 是否允许点击模态窗口的外部来关闭模态窗口。
+			closeOnEscape: false, 	// 是否允许通过点击ESC键来关闭模态窗口。
+		});
+				
+		// 打开弹出框
+		$('#modal-delete-' + user_id).iziModal('open');
+	}
+	
+		
+	deletethis = function(event) {
+		toastr.options.closeButton = true;
+		toastr.options.showMethod = 'slideDown';
+		toastr.options.hideMethod = 'fadeOut';
+		toastr.options.closeMethod = 'fadeOut';
+		toastr.options.timeOut = 4000;	
+		toastr.options.extendedTimeOut = 0;	
+		
+		var thisObj = $(event);	//js对象转jquery对象
+		var user_id = thisObj.attr('id').split("-")[0];
+		var user_name = thisObj.attr("title");
+		csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
+		$.ajax({
+			url: "{% url 'user_api:user_delete' %}",
+			async: true,
+			type: 'POST',
+			dataType: 'json',
+			data: {
+				'csrfmiddlewaretoken': csrfmiddlewaretoken,
+				'id': user_id,
+			},
+			timeout: 10000,
+			cache: true,
+			beforeSend: LoadFunction, //加载执行方法
+			error: errFunction,  //错误执行方法
+			success: succFunction, //成功执行方法
+		});
+		
+		function LoadFunction() {
+			//$("#aboutcontent").html('删除中...');
+			//alert('删除中');
+		};
+		
+		function errFunction() {
+			// 关闭弹出框
+			$('#modal-delete-' + user_id).iziModal('close');
+			// 消息框
+			toastr.error('删除错误 "' + user_name + '"');
+		};
+		
+		function succFunction(res) {
+			if (res.code != 200) {
+				// 关闭弹出框
+				$('#modal-delete-' + user_id).iziModal('close');
+				// 消息框
+				toastr.error('删除错误 "' + user_name + '": ' + res.err);
+			} else {
+				// 先销毁 datatable , 动态删除数据后，然后再重建
+				var dttable = $('#datatables-lists').DataTable();
+				dttable.destroy();
+				
+				$("#user-" + user_id).remove();
+				
+				$("#datatables-lists").DataTable({
+					language: {
+						"sProcessing": "处理中...",
+						"sLengthMenu": "显示 _MENU_ 项结果",
+						"sZeroRecords": "没有匹配结果",
+						"sInfo": "显示第 _START_ 至 _END_ 项结果，共 _TOTAL_ 项",
+						"sInfoEmpty": "显示第 0 至 0 项结果，共 0 项",
+						"sInfoFiltered": "(由 _MAX_ 项结果过滤)",
+						"sInfoPostFix": "",
+						"sSearch": "搜索:",
+						"sUrl": "",
+						"sEmptyTable": "表中数据为空",
+						"sLoadingRecords": "载入中...",
+						"sInfoThousands": ",",
+						"oPaginate": {
+							"sFirst": "首页",
+							"sPrevious": "上页",
+							"sNext": "下页",
+							"sLast": "末页"
+						},
+						"oAria": {
+							"sSortAscending": ": 以升序排列此列",
+							"sSortDescending": ": 以降序排列此列"
+						}
+					},
+					destroy: true,	// 允许重建
+					bProcessing:true,  // 表格数据过多处理时显示: sProcessing
+					lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "全部"]],
+					order: [],
+					 //scrollY: 480,	// 滚动条
+					 //scrollCollapse: true,
+					 //jQueryUI: true,
+					 stateSave: true,	// 保存最后一次分页信息、排序信息，当页面刷新，或者重新进入这个页面，恢复上次的状态。
+					 stateDuration: 86400,	// 本地储存(0~更大)还是session储存(-1) 
+				});
+				
+				// 关闭弹出框
+				$('#modal-delete-' + user_id).iziModal('close');
+				
+				// 消息框
+				toastr.success('成功删除 "' + user_name + '"');
+			}
+		};
+	}
+	// 删除用户 - end
 </script>
 {% endblock js %}

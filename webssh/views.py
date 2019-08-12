@@ -14,7 +14,7 @@ def hosts(request):
         hosts = RemoteUserBindHost.objects.all()
     else:
         hosts = RemoteUserBindHost.objects.filter(
-            Q(user__username = request.session['username']) | Q(group__user__username = request.session['username'])
+            Q(user__username=request.session['username']) | Q(group__user__username=request.session['username'])
         ).distinct()
     return render(request, 'webssh/hosts.html', locals())
 

@@ -38,13 +38,13 @@
       <form action="{% url 'user:login' %}" method="post" class="mb-2 login-form">
 		{% csrf_token %}
         <div class="input-group mb-3">
-          <input type="username" class="form-control" name="username" placeholder="用户名" required="required">
+          <input type="username" class="form-control" name="username" placeholder="用户名" required="required" value="admin">
           <div class="input-group-append input-group-text">
               <span class="fas fa-envelope"></span>
           </div>
         </div>
         <div class="input-group mb-3">
-          <input type="password" class="form-control" name="password" placeholder="密码" required="required">
+          <input type="password" class="form-control" name="password" placeholder="密码" required="required" value="123456">
           <div class="input-group-append input-group-text">
               <span class="fas fa-lock"></span>
           </div>
