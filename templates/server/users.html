@@ -24,12 +24,15 @@
           <div class="card">
             <div class="card-header">
               <h3 class="card-title">
-				用户列表<a href="{% url 'server:user_add' %}" class="btn btn-sm btn-success ml-3 addsoft">新增 + </a>
+				用户列表<a href="{% url 'server:user_add' %}" class="btn btn-sm btn-outline-success ml-3 addsoft">新增 + </a>
 			  </h3>
 				<div class="card-tools">
 				  <button type="button" class="btn btn-tool" data-widget="collapse">
 					<i class="fas fa-minus"></i>
 				  </button>
+				  <button type="button" class="btn btn-tool" data-widget="maximize">
+				  <i class="fas fa-expand"></i>
+                  </button>
 				  <button type="button" class="btn btn-tool" data-widget="remove">
 					<i class="fas fa-times"></i>
 				  </button>

@@ -37,3 +37,29 @@ class TerminalLogDetail(models.Model):
     class Meta:
         verbose_name = '在线会话日志结果详情'
         verbose_name_plural = '在线会话日志结果详情'
+
+
+class TerminalSession(models.Model):
+    PROTOCOL_CHOICES = (    # 目前支持ssh, telnet
+        (1, 'ssh'),
+        (2, 'telnet'),
+        (3, 'rdp'),
+        (4, 'vnc'),
+        (5, 'sftp'),
+        (6, 'ftp'),
+    )
+    name = models.CharField(max_length=512, verbose_name='会话名称')
+    user = models.CharField(max_length=128, verbose_name='用户')
+    host = models.GenericIPAddressField(verbose_name='主机')
+    port = models.SmallIntegerField(default=22, verbose_name='端口')
+    username = models.CharField(max_length=128, verbose_name='账号')
+    protocol = models.SmallIntegerField(default=1, choices=PROTOCOL_CHOICES, verbose_name='协议')
+    create_time = models.DateTimeField('会话时间', auto_now_add=True)
+
+    def __str__(self):
+        return '{0}'.format(self.name)
+
+    class Meta:
+        ordering = ["-create_time"]
+        verbose_name = '在线会话'
+        verbose_name_plural = '在线会话'

@@ -24,12 +24,15 @@
           <div class="card">
             <div class="card-header">
               <h3 class="card-title">
-				主机列表{% if request.session.issuperuser %}<a href="{% url 'server:host_add' %}" class="btn btn-sm btn-success ml-3 addsoft">新增 + </a>{% endif %}
+				主机列表{% if request.session.issuperuser %}<a href="{% url 'server:host_add' %}" class="btn btn-sm btn-outline-success ml-3 addsoft">新增 + </a>{% endif %}
 			  </h3>
 				<div class="card-tools">
 				  <button type="button" class="btn btn-tool" data-widget="collapse">
 					<i class="fas fa-minus"></i>
 				  </button>
+				  <button type="button" class="btn btn-tool" data-widget="maximize">
+				  <i class="fas fa-expand"></i>
+                  </button>
 				  <button type="button" class="btn btn-tool" data-widget="remove">
 					<i class="fas fa-times"></i>
 				  </button>

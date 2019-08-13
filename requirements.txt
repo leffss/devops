@@ -3,6 +3,7 @@ supervisor
 simpleui
 paramiko
 channels
+channels-redis
 celery==4.3.0
 redis
 eventlet

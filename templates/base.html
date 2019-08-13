@@ -240,6 +240,13 @@
                   <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;web终端</p>
                 </a>
               </li>
+			  {% if request.session.issuperuser %}
+              <li class="nav-item">
+                <a href="{% url 'webssh:sessions' %}" class="nav-link">
+                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在线会话</p>
+                </a>
+              </li>
+			  {% endif %}
             </ul>
           </li>
 		  {% if request.session.issuperuser %}

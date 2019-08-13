@@ -32,6 +32,7 @@ urlpatterns = [
     path('api/user/', include('user.urls_api', namespace='user_api')),
     
     path('webssh/', include('webssh.urls', namespace='webssh')),
+    path('api/webssh/', include('webssh.urls_api', namespace='webssh_api')),
     
     path('webtelnet/', include('webtelnet.urls', namespace='webtelnet')),
     

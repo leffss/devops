@@ -66,7 +66,7 @@ class WebTelnet(WebsocketConsumer):
             message = json.dumps(self.message)
             self.send(message)
             self.close(3001)
-
+        
         self.check_login()
 
         query_string = self.scope.get('query_string')
@@ -100,6 +100,7 @@ class WebTelnet(WebsocketConsumer):
             message = json.dumps(self.message)
             self.send(message)
             self.close(3001)
+        
         host = self.remote_host.ip
         port = self.remote_host.port
         user = self.remote_host.remote_user.username
@@ -123,7 +124,7 @@ class WebTelnet(WebsocketConsumer):
                         self.remote_host.remote_user.superpassword,
                         0.3,
                     )
-
+    
     def disconnect(self, close_code):
         try:
             if close_code == 3001:

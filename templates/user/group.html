@@ -26,12 +26,15 @@
             <div class="card-header">
               <h3 class="card-title">组信息</h3>
 				<div class="card-tools">
-				  <button type="button" class="btn btn-tool" data-widget="collapse">
-					<i class="fas fa-minus"></i>
-				  </button>
 				  <a class="btn btn-tool" href="{% url 'user:group_edit' group.id %}" title="编辑">
 					<!--i class="fas fa-wrench"></i-->编辑
 				  </a>
+				  <button type="button" class="btn btn-tool" data-widget="collapse">
+					<i class="fas fa-minus"></i>
+				  </button>
+				  <button type="button" class="btn btn-tool" data-widget="maximize">
+				  <i class="fas fa-expand"></i>
+                  </button>
 				  <button type="button" class="btn btn-tool" data-widget="remove">
 					<i class="fas fa-times"></i>
 				  </button>

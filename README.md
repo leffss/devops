@@ -12,10 +12,14 @@ pip install -r requirements.txt
 python3 manage.py runserver
 ```
 
-docker方式(centos7)
+docker方式(Centos 7)
 ```
 sh start_docker.sh
 ```
+
+- 注意，celery 与 channel_layers 依赖 redis 服务，默认使用 redis 服务：地址 127.0.0.1 ，端口 6379
+- redis 相关配置见项目配置文件：settings.py
+- windows 对 celery 兼容很差，无法正常使用，所以请使用 linux 部署，推荐 Centos 7 系列
 
 访问首页：http://127.0.0.1:8000
 账号： admin     密码：123456
@@ -53,6 +57,10 @@ sh start_docker.sh
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/29.PNG?raw=true)
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/30.PNG?raw=true)
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/31.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/32.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/33.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/34.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/35.PNG?raw=true)
 
 
 # TODO LISTS
@@ -85,6 +93,8 @@ sh start_docker.sh
 - [ ] 批量脚本
 - [x] webssh终端
 - [x] webtelnet终端
+- [x] 查看在线会话
+- [x] 强制关闭在线会话
 - [ ] 文件上传
 - [ ] 文件下载
 - [x] 用户日志审计
@@ -93,4 +103,6 @@ sh start_docker.sh
 - [ ] 所有界面表单数据验证
 - [ ] 搜索
 - [ ] 后台耗时任务使用 celery
+
 更多新功能不断探索发现中.
+

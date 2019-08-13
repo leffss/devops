@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from server.models import RemoteUserBindHost
-from .models import TerminalLog
+from .models import TerminalLog, TerminalSession
 from util.tool import login_required, post_required, admin_required
 from django.http import JsonResponse
 from django.db.models import Q
@@ -38,3 +38,20 @@ def logs(request):
     logs = TerminalLog.objects.all()
     return render(request, 'webssh/logs.html', locals())
 
+
+@login_required
+@admin_required
+def sessions(request):
+    sessions = TerminalSession.objects.all()
+    return render(request, 'webssh/sessions.html', locals())
+
+
+# 每次重启时清空在线会话表
+def cls_terminalsession():
+    try:
+        TerminalSession.objects.all().delete()
+    except:
+        pass
+    
+
+cls_terminalsession()

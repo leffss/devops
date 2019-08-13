@@ -21,6 +21,7 @@
           <option value="user.models.LoginLog.*" />
           <option value="server.models.RemoteUser.*" />
           <option value="webssh.models.TerminalLog.*" />
+          <option value="webssh.models.TerminalSession.*" />
         </list>
       </option>
     </inspection_tool>

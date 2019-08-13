@@ -72,6 +72,7 @@ class LoginLog(models.Model):
         (15, '添加主机用户'),
         (16, '删除主机用户'),
         (17, '更新主机用户'),
+        (18, '停止在线会话'),
     )
     # 当用户被删除后，相关的登陆日志user字段设置为NULL
     # user = models.ForeignKey('User', blank=True, null=True, on_delete=models.PROTECT, verbose_name='用户')
