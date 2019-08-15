@@ -35,20 +35,27 @@
 
       <p class="login-box-msg">登陆</p>
 
-      <form action="{% url 'user:login' %}" method="post" class="mb-2 login-form">
+      <form action="{% url 'user:login' %}" method="post" class="mb-2 login-form" onsubmit="return login_form();">
 		{% csrf_token %}
-        <div class="input-group mb-3">
-          <input type="username" class="form-control" name="username" placeholder="用户名" required="required" value="admin">
-          <div class="input-group-append input-group-text">
+        <div class="input-group">
+          <input type="username" class="form-control" name="username" placeholder="用户名" id="username" value="admin" onkeyup="check_username();" onblur="check_username();">
+          <div class="input-group-append input-group-text" id="username-icon">
               <span class="fas fa-envelope"></span>
           </div>
         </div>
-        <div class="input-group mb-3">
-          <input type="password" class="form-control" name="password" placeholder="密码" required="required" value="123456">
-          <div class="input-group-append input-group-text">
+		<div class="input-group mb-3">
+			<span id="username_error" style="color:red;"></span>
+		</div>
+		
+        <div class="input-group">
+          <input type="password" class="form-control" name="password" placeholder="密码" id="password" value="123456" onkeyup="check_password();" onblur="check_password();">
+          <div class="input-group-append input-group-text" id="password-icon">
               <span class="fas fa-lock"></span>
           </div>
         </div>
+		<div class="input-group mb-3">
+			<span id="password_error" style="color:red;"></span>
+		</div>
         <div class="row">
           <!-- /.col -->
           <div class="col">
@@ -74,7 +81,75 @@
 <script src="{% static 'adminlte/plugins/jquery/jquery.min.js' %}"></script>
 <!-- Bootstrap 4 -->
 <script src="{% static 'adminlte/plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+<script>
+	// 校验表单数据
+	check_username = function() {
+		var username = $('#username').val();
+		if (username == '') {
+			$('#username').removeClass("border-success");
+			$('#username').addClass("border-danger");
+			$('#username-icon').removeClass("border-success");
+			$('#username-icon').addClass("border-danger");
+			$('#username_error').text('用户名不能未空');
+			return false;
+		} else if(/[@#\$%\^&\*]+/g.test(username)) {	// 正则判断
+			$('#username').removeClass("border-success");
+			$('#username').addClass("border-danger");
+			$('#username-icon').removeClass("border-success");
+			$('#username-icon').addClass("border-danger");
+			$('#username_error').text('用户名不能存在特殊符号');
+			return false;
+		} else {
+			$('#username').removeClass("border-danger");
+			$('#username').addClass("border-success");
+			$('#username-icon').removeClass("border-danger");
+			$('#username-icon').addClass("border-success");
+			$('#username_error').text('');
+			return true;
+		};
+	}
+	
+	check_password = function() {
+		var password = $('#password').val();
+		if (password == '') {
+			$('#password').removeClass("border-success");
+			$('#password').addClass("border-danger");
+			$('#password-icon').removeClass("border-success");
+			$('#password-icon').addClass("border-danger");
+			$('#password_error').text('密码不能为空');
+			return false;
+		} else if(password.length < 6) {
+			$('#password').removeClass("border-success");
+			$('#password').addClass("border-danger");
+			$('#password-icon').removeClass("border-success");
+			$('#password-icon').addClass("border-danger");
+			$('#password_error').text('密码长度必须大于等于6个字符');
+			return false;
+		} else {
+			$('#password').removeClass("border-danger");
+			$('#password').addClass("border-success");
+			$('#password-icon').removeClass("border-danger");
+			$('#password-icon').addClass("border-success");
+			$('#password_error').text('');
+			return true;
+		};
+	}
+	// 校验表单数据
 
-
+	login_form = function() {
+		var check_right = new Array();
+		var username = $('#username').val();
+		check_right[0] = check_username();
+		
+		var password = $('#password').val();
+		check_right[1] = check_password();
+		// console.log(check_right)
+		if (!/false/.test(check_right)) {
+			return true;
+		} else {
+			return false;
+		};
+	};
+</script>
 </body>
 </html>

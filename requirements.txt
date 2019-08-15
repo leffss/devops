@@ -1,6 +1,6 @@
 django==2.2.3
 supervisor
-simpleui
+# simpleui
 paramiko
 channels
 channels-redis

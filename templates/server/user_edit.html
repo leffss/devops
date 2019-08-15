@@ -41,18 +41,26 @@
             <div class="card-body row">
 				<input type="text" id="userid" value="{{ user.id }}" hidden>
 				<div class="col-2 pt-1 pb-1">名称<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="name" value="{{ user.name }}" disabled></div>
-				<div class="col-2 pt-1 pb-1">用户名<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="username"  value="{{ user.username }}"></div>
-				<div class="col-2 pt-1 pb-1">密码<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="password" value="{{ user.password }}"></div>
+				<div class="col-2 pt-1 pb-1">用户名<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="username"  value="{{ user.username }}" onkeyup="check_username();" onblur="check_username();"></div>
+				<div class="offset-2 col-10 pb-1"><small id="username_error" style="color:red;"></small></div>
+				
+				<div class="col-2 pt-1 pb-1">密码<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="password" value="{{ user.password }}" onkeyup="check_password();" onblur="check_password();"></div>
+				<div class="offset-2 col-10 pb-1"><small id="password_error" style="color:red;"></small></div>
+				
 				<div class="offset-2 col-10 pt-1 pb-1" id="enabled_click">
 					<div class="custom-switch custom-switch-on-success">
                       <input type="checkbox" class="custom-control-input" id="enabled" {% if user.enabled %}checked{% endif %}>
                       <label class="custom-control-label" for="enabled">登陆后是否 su 跳转超级用户</label>
                     </div>
 				</div>
-				<div class="col-2 pt-1 pb-1 super" {% if not user.enabled %}style="display:none;"{% endif %}>超级用户：</div><div class="col-10 pt-1 pb-1 super" {% if not user.enabled %}style="display:none;"{% endif %}><input class="form-control" type="text" id="superusername"  value="{{ user.superusername | default:'' }}"></div>
-				<div class="col-2 pt-1 pb-1 super" {% if not user.enabled %}style="display:none;"{% endif %}>超级密码：</div><div class="col-10 pt-1 pb-1 super" {% if not user.enabled %}style="display:none;"{% endif %}><input class="form-control" type="text" id="superpassword" value="{{ user.superpassword | default:'' }}"></div>
+				<div class="col-2 pt-1 pb-1 super" {% if not user.enabled %}style="display:none;"{% endif %}>超级用户：</div><div class="col-10 pt-1 pb-1 super" {% if not user.enabled %}style="display:none;"{% endif %}><input class="form-control" type="text" id="superusername"  value="{{ user.superusername | default:'' }}" onkeyup="check_superusername();" onblur="check_superusername();"></div>
+				<div class="offset-2 col-10 pb-1"><small id="superusername_error" style="color:red;"></small></div>
+				
+				<div class="col-2 pt-1 pb-1 super" {% if not user.enabled %}style="display:none;"{% endif %}>超级密码：</div><div class="col-10 pt-1 pb-1 super" {% if not user.enabled %}style="display:none;"{% endif %}><input class="form-control" type="text" id="superpassword" value="{{ user.superpassword | default:'' }}" onkeyup="check_superpassword();" onblur="check_superpassword();"></div>
+				<div class="offset-2 col-10 pb-1"><small id="superpassword_error" style="color:red;"></small></div>
+				
 				<div class="col-2 pt-1 pb-1">备注：</div><div class="col-10 pt-1 pb-1"><textarea id="memo" class="form-control">{{ user.memo | default:'' }}</textarea></div>
-				<div class="offset-2 col-10 pt-2"><button class="btn btn-default" type="reset">重置</button><button class="btn btn-success ml-2" onclick="changeuserprofile(this);">提交</button></div>
+				<div class="offset-2 col-10 pt-2"><button class="btn btn-default" type="reset">重置</button><button class="btn btn-success ml-2" onclick="changeuserprofile(this);">提交</button><span id="feed_error" class="ml-2" style="color:red;"></span></div>
             </div>
             <!-- /.card-body -->
           </div>
@@ -63,103 +71,193 @@
 
 <script>
 
-$("#enabled_click").click(function(){
-	if ($("#enabled").is(':checked')) {
-		$(".super").show();
-	} else {
-		$(".super").hide();
+	$("#enabled_click").click(function(){
+		if ($("#enabled").is(':checked')) {
+			$(".super").show();
+		} else {
+			$(".super").hide();
+		}
+	});
+	
+	// 校验表单数据	
+	check_username = function() {
+		var username = $('#username').val();
+		if (username == '') {
+			$('#username').removeClass("is-valid");
+			$('#username').addClass("is-invalid");
+			$('#username_error').text('用户名不能未空');
+			return false;
+		} else if(/[@#\$%\^&\*]+/g.test(username)) {	// 正则判断
+			$('#username').removeClass("is-valid");
+			$('#username').addClass("is-invalid");
+			$('#username_error').text('用户名不能存在特殊符号');
+			return false;
+		} else {
+			$('#username').removeClass("is-invalid");
+			$('#username').addClass("is-valid");
+			$('#username_error').text('');
+			return true;
+		};
 	}
-});
 
-// 修改用户信息
-changeuserprofile = function(event) {
-	toastr.options.closeButton = true;
-	toastr.options.showMethod = 'slideDown';
-	toastr.options.hideMethod = 'fadeOut';
-	toastr.options.closeMethod = 'fadeOut';
-	toastr.options.timeOut = 3000;	
-	toastr.options.extendedTimeOut = 0;	
-	toastr.options.progressBar = true;
-	toastr.options.positionClass = 'toast-top-right'; 
-	
-	$(event).removeAttr("onclick");
-	$(event).attr("disabled", true);
-	
-	var userid = $('#userid').val();
-	var name = $('#name').val();
-	var username = $('#username').val();
-	var password = $('#password').val();
-	var memo = $('#memo').val();
-	var enabled;
-	if ($("#enabled").is(':checked')) {
-		enabled = true;
-	} else {
-		enabled = false;
+	check_password = function() {
+		var password = $('#password').val();
+		if (password == '') {
+			$('#password').removeClass("is-valid");
+			$('#password').addClass("is-invalid");
+			$('#password_error').text('密码不能为空');
+			return false;
+		} else if(password.length < 6) {
+			$('#password').removeClass("is-valid");
+			$('#password').addClass("is-invalid");
+			$('#password_error').text('密码长度必须大于等于6个字符');
+			return false;
+		} else {
+			$('#password').removeClass("is-invalid");
+			$('#password').addClass("is-valid");
+			$('#password_error').text('');
+			return true;
+		};
 	}
-	var superusername = $('#superusername').val();
-	var superpassword = $('#superpassword').val();
+
+	check_superusername = function() {
+		var superusername = $('#superusername').val();
+		if (superusername == '') {
+			$('#superusername').removeClass("is-valid");
+			$('#superusername').addClass("is-invalid");
+			$('#superusername_error').text('超级用户名不能未空');
+			return false;
+		} else if(/[@#\$%\^&\*]+/g.test(superusername)) {	// 正则判断
+			$('#superusername').removeClass("is-valid");
+			$('#superusername').addClass("is-invalid");
+			$('#superusername_error').text('超级用户名不能存在特殊符号');
+			return false;
+		} else {
+			$('#superusername').removeClass("is-invalid");
+			$('#superusername').addClass("is-valid");
+			$('#superusername_error').text('');
+			return true;
+		};
+	}
+
+	check_superpassword = function() {
+		var superpassword = $('#superpassword').val();
+		if (superpassword == '') {
+			$('#superpassword').removeClass("is-valid");
+			$('#superpassword').addClass("is-invalid");
+			$('#superpassword_error').text('超级密码不能为空');
+			return false;
+		} else if(superpassword.length < 6) {
+			$('#superpassword').removeClass("is-valid");
+			$('#superpassword').addClass("is-invalid");
+			$('#superpassword_error').text('超级密码长度必须大于等于6个字符');
+			return false;
+		} else {
+			$('#superpassword').removeClass("is-invalid");
+			$('#superpassword').addClass("is-valid");
+			$('#superpassword_error').text('');
+			return true;
+		};
+	}
+	// 校验表单数据
 	
-	if (enabled == true) {
-		if (superusername == '' || superpassword == '') {
-			toastr.error('超级用户或者超级密码不能为空');
+	// 修改用户信息
+	changeuserprofile = function(event) {
+		toastr.options.closeButton = true;
+		toastr.options.showMethod = 'slideDown';
+		toastr.options.hideMethod = 'fadeOut';
+		toastr.options.closeMethod = 'fadeOut';
+		toastr.options.timeOut = 3000;	
+		toastr.options.extendedTimeOut = 0;	
+		toastr.options.progressBar = true;
+		toastr.options.positionClass = 'toast-top-right'; 
+		
+		$(event).removeAttr("onclick");
+		$(event).attr("disabled", true);
+		
+		var check_right = new Array();
+		
+		var userid = $('#userid').val();
+		var name = $('#name').val();
+		
+		var username = $('#username').val();
+		check_right[0] = check_username();
+		
+		var password = $('#password').val();
+		check_right[1] = check_password();
+		
+		var memo = $('#memo').val();
+		
+		var superusername = $('#superusername').val();
+		var superpassword = $('#superpassword').val();
+		var enabled;
+		if ($("#enabled").is(':checked')) {
+			enabled = true;
+			check_right[2] = check_superusername();
+			check_right[3] = check_superpassword();
+		} else {
+			enabled = false;
+			superusername = '';
+			superpassword = '';
+		}
+
+		csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
+		
+		if (!/false/.test(check_right)) {
+			$('#feed_error').text('');
+			$.ajax({
+				url: "{% url 'server_api:user_update' %}",
+				async: true,
+				type: 'POST',
+				dataType: 'json',
+				data: {
+					'csrfmiddlewaretoken': csrfmiddlewaretoken,
+					'userid': userid,
+					'username': username,
+					'password': password,
+					'memo': memo,
+					'enabled': enabled,
+					'superusername': superusername,
+					'superpassword': superpassword,
+				},
+				timeout: 5000,
+				cache: true,
+				beforeSend: LoadFunction, //加载执行方法
+				error: errFunction,  //错误执行方法
+				success: succFunction, //成功执行方法
+			});
+		} else {
+			$('#feed_error').text('信息填写有误，请检查并重新填写');
 			$(event).removeAttr("disabled");
 			$(event).attr("onclick", "changeuserprofile(this);");
 			return false;
-		}
-	} else {
-		superusername = '';
-		superpassword = '';
-	}
-	
-	csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
-	
-	$.ajax({
-		url: "{% url 'server_api:user_update' %}",
-		async: true,
-		type: 'POST',
-		dataType: 'json',
-		data: {
-			'csrfmiddlewaretoken': csrfmiddlewaretoken,
-			'userid': userid,
-			'username': username,
-			'password': password,
-			'memo': memo,
-			'enabled': enabled,
-			'superusername': superusername,
-			'superpassword': superpassword,
-		},
-		timeout: 5000,
-		cache: true,
-		beforeSend: LoadFunction, //加载执行方法
-		error: errFunction,  //错误执行方法
-		success: succFunction, //成功执行方法
-	});
-	
-	function LoadFunction() {
-		// 提交中
-	};
-	
-	function errFunction() {
-		// 消息框
-		toastr.error('更新用户错误');
-		$(event).removeAttr("disabled");
-		$(event).attr("onclick", "changeuserprofile(this);");
-	};
-	
-	function succFunction(res) {
-		if (res.code != 200) {
+		};
+		
+		function LoadFunction() {
+			// 提交中
+		};
+		
+		function errFunction() {
 			// 消息框
-			toastr.error('更新用户错误: ' + res.err);
+			toastr.error('更新用户错误');
 			$(event).removeAttr("disabled");
 			$(event).attr("onclick", "changeuserprofile(this);");
-		} else {
-			// 消息框
-			toastr.options.timeOut = 1000;
-			toastr.options.onHidden = function() { window.location.href = "{% url 'server:user' user.id %}"; }
-			toastr.success('更新用户成功');
-		}
-	};
-}
+		};
+		
+		function succFunction(res) {
+			if (res.code != 200) {
+				// 消息框
+				toastr.error('更新用户错误: ' + res.err);
+				$(event).removeAttr("disabled");
+				$(event).attr("onclick", "changeuserprofile(this);");
+			} else {
+				// 消息框
+				toastr.options.timeOut = 1000;
+				toastr.options.onHidden = function() { window.location.href = "{% url 'server:user' user.id %}"; }
+				toastr.success('更新用户成功');
+			}
+		};
+	}
 
 </script>
 {% endblock js %}

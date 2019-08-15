@@ -5,7 +5,11 @@
   {% block title %}
   <title>用户</title>
   {% endblock title %}
-
+	
+  {% block css %}
+  <link rel="stylesheet" href="https://cdn.datatables.net/buttons/1.5.6/css/buttons.bootstrap4.min.css">
+  {% endblock css %}
+	
 	{% block navheader %}
     <section class="content-header">
       <div class="container-fluid">
@@ -115,8 +119,12 @@
 <!-- DataTables -->
 <script src="{% static 'adminlte/plugins/datatables/jquery.dataTables.js' %}"></script>
 <script src="{% static 'adminlte/plugins/datatables/dataTables.bootstrap4.js' %}"></script>
+<script src="https://cdn.datatables.net/buttons/1.5.6/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/1.5.6/js/buttons.bootstrap4.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/1.5.6/js/buttons.html5.min.js"></script>
 <script>
-	$("#datatables-lists").DataTable({
+	var table = $("#datatables-lists").DataTable({
 		language: {
 			"sProcessing": "处理中...",
 			"sLengthMenu": "显示 _MENU_ 项结果",
@@ -139,6 +147,9 @@
 			"oAria": {
 				"sSortAscending": ": 以升序排列此列",
 				"sSortDescending": ": 以降序排列此列"
+			},
+			buttons: {
+				//"pageLength": "Select 0 items",
 			}
 		},
 		destroy: true,	// 允许重建
@@ -148,8 +159,32 @@
 		 //scrollY: 480,	// 滚动条
 		 //scrollCollapse: true,
 		 //jQueryUI: true,
-		 stateSave: true,	// 保存最后一次分页信息、排序信息，当页面刷新，或者重新进入这个页面，恢复上次的状态。
-		 stateDuration: 86400,	// 本地储存(0~更大)还是session储存(-1) 
+		stateSave: true,	// 保存最后一次分页信息、排序信息，当页面刷新，或者重新进入这个页面，恢复上次的状态。
+		stateDuration: 86400,	// 本地储存(0~更大)还是session储存(-1)
+		//dom: 'Bfrtlip',
+		//dom: '<"row"<"col-sm-12 col-md-2"lB><"col-sm-12 col-md-10"f>>r<"row"<"col-sm-12"t>><"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+        buttons: [
+			//'copy',
+			//'pageLength',
+			//'excel', // or excelHtml5
+			{
+				text: '导出电子表格',
+				extend: 'excel',
+				className: 'btn btn-primary', //按钮的class样式
+				exportOptions: { //从DataTable中选择要收集的数据。这包括列、行、排序和搜索的选项。请参阅button.exportdata()方法以获得完整的详细信息——该参数所提供的对象将直接传递到该操作中，以收集所需的数据，更多options选项参见：https://datatables.net/reference/api/buttons.exportData()
+					format: { //用于导出将使用的单元格格式化函数的容器对象 format有三个子标签，header，body和foot
+						body: function (data, row, column, node) { //body区域的function，可以操作需要导出excel的数据格式
+							if(column === 9){
+								return 0;
+							}
+							else{
+								return data;
+							}
+						}
+					}
+				},
+			},
+        ],
 	});
 	
 	// 删除用户 - start

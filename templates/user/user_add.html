@@ -45,14 +45,29 @@
 						提示：添加后用户名不可修改.
 					</div>
 				</div>
-				<div class="col-2 pt-1 pb-1">用户名<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="username"></div>
-				<div class="col-2 pt-1 pb-1">密码<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input type="password" class="form-control" id="newpasswd" maxlength="256"></div>
-				<div class="col-2 pt-1 pb-1">确认密码<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input type="password" class="form-control" id="newpasswdagain" maxlength="256"></div>
-				<div class="col-2 pt-1 pb-1">昵称<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="nickname"></div>
-				<div class="col-2 pt-1 pb-1">邮箱<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="email"></div>
-				<div class="col-2 pt-1 pb-1">手机：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="phone"></div>
-				<div class="col-2 pt-1 pb-1">微信：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="weixin"></div>
-				<div class="col-2 pt-1 pb-1">QQ：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="qq"></div>
+				<div class="col-2 pt-1 pb-1">用户名<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="username" onkeyup="check_username();" onblur="check_newpasswd();"></div>
+				<div class="offset-2 col-10 pb-1"><small id="username_error" style="color:red;"></small></div>
+				
+				<div class="col-2 pt-1 pb-1">密码<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input type="password" class="form-control" id="newpasswd" onkeyup="check_newpasswd();" onblur="check_newpasswd();" maxlength="256"></div>
+				<div class="offset-2 col-10 pb-1"><small id="newpasswd_error" style="color:red;"></small></div>
+				
+				<div class="col-2 pt-1 pb-1">确认密码<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input type="password" class="form-control" id="newpasswdagain" onkeyup="check_newpasswdagain();" onblur="check_newpasswdagain();" maxlength="256"></div>
+				<div class="offset-2 col-10 pb-1"><small id="newpasswdagain_error" style="color:red;"></small></div>
+
+				<div class="col-2 pt-1 pb-1">昵称<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="nickname" onkeyup="check_nickname();" onblur="check_nickname();"></div>
+				<div class="offset-2 col-10 pb-1"><small id="nickname_error" style="color:red;"></small></div>
+				
+				<div class="col-2 pt-1 pb-1">邮箱<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="email" onkeyup="check_email();" onblur="check_email();"></div>
+				<div class="offset-2 col-10 pb-1"><small id="email_error" style="color:red;"></small></div>
+				
+				<div class="col-2 pt-1 pb-1">手机：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="phone" onkeyup="check_phone();" onblur="check_phone();"></div>
+				<div class="offset-2 col-10 pb-1"><small id="phone_error" style="color:red;"></small></div>
+				
+				<div class="col-2 pt-1 pb-1">微信：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="weixin" onkeyup="check_weixin();" onblur="check_weixin();"></div>
+				<div class="offset-2 col-10 pb-1"><small id="weixin_error" style="color:red;"></small></div>
+				
+				<div class="col-2 pt-1 pb-1">QQ：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="qq" onkeyup="check_qq();" onblur="check_qq();"></div>
+				<div class="offset-2 col-10 pb-1"><small id="qq_error" style="color:red;"></small></div>
 				
 				<div class="col-2 pt-1 pb-1">用户组：</div>
 				<div class="col-5 pt-1 pb-1">
@@ -92,16 +107,16 @@
                   </div>
 				</div>
 				
-				<div class="col-2 pt-1 pb-1">性别<span style="color:red;"> * </span>：</div>
-				<div class="col-10 pt-1 pb-1">
+				<div class="col-2 pt-1 pb-2">性别：</div>
+				<div class="col-10 pt-1 pb-2">
 				  <select class="form-control" id="sex" style="width: 100%;">
 					{% for sex in sex_choices %}
                     <option value="{{ sex.0 }}">{{ sex.1 }}</option>
 					{% endfor %}
                   </select>
 				</div>
-				<div class="col-2 pt-1 pb-1">角色<span style="color:red;"> * </span>：</div>
-				<div class="col-10 pt-1 pb-1">
+				<div class="col-2 pt-1 pb-2">角色：</div>
+				<div class="col-10 pt-1 pb-2">
 				  <select class="form-control" id="role" style="width: 100%;">
 					{% for role in role_choices %}
 					<option value="{{ role.0 }}">{{ role.1 }}</option>
@@ -115,7 +130,7 @@
                       <label class="custom-control-label" for="enabled">启用</label>
                     </div>
 				</div>
-				<div class="offset-2 col-10 pt-2"><button class="btn btn-default" type="reset">重置</button><button class="btn btn-success ml-2" onclick="changeuserprofile(this);">提交</button></div>
+				<div class="offset-2 col-10 pt-2"><button class="btn btn-default" type="reset">重置</button><button class="btn btn-success ml-2" onclick="changeuserprofile(this);">提交</button><span id="feed_error" class="ml-2" style="color:red;"></span></div>
             </div>
             <!-- /.card-body -->
           </div>
@@ -125,158 +140,353 @@
 {% block js %}
 
 <script>
-// 修改用户信息
-changeuserprofile = function(event) {
-	toastr.options.closeButton = true;
-	toastr.options.showMethod = 'slideDown';
-	toastr.options.hideMethod = 'fadeOut';
-	toastr.options.closeMethod = 'fadeOut';
-	toastr.options.timeOut = 3000;	
-	toastr.options.extendedTimeOut = 0;	
-	toastr.options.progressBar = true;
-	toastr.options.positionClass = 'toast-top-right'; 
-	
-	$(event).removeAttr("onclick");
-	$(event).attr("disabled", true);
-	
-	var username = $('#username').val();
-	var newpasswd = $('#newpasswd').val();
-	var newpasswdagain = $('#newpasswdagain').val();
-	if (newpasswd != newpasswdagain) {
-		toastr.error('新增用户错误: 两次密码不一致');
-		$(event).removeAttr("disabled");
-		$(event).attr("onclick", "changeuserprofile(this);");
-		return false;
+	// 校验表单数据
+	check_username = function() {
+		var username = $('#username').val();
+		if (username == '') {
+			$('#username').removeClass("is-valid");
+			$('#username').addClass("is-invalid");
+			$('#username_error').text('用户名不能未空');
+			return false;
+		} else if(/[@#\$%\^&\*]+/g.test(username)) {	// 正则判断
+			$('#username').removeClass("is-valid");
+			$('#username').addClass("is-invalid");
+			$('#username_error').text('用户名不能存在特殊符号');
+			return false;
+		} else {
+			$('#username').removeClass("is-invalid");
+			$('#username').addClass("is-valid");
+			$('#username_error').text('');
+			return true;
+		};
 	}
-	var nickname = $('#nickname').val();
-	var email = $('#email').val();
-	var phone = $('#phone').val();
-	var weixin = $('#weixin').val();
-	var qq = $('#qq').val();
-	//var sex = $("#sex").find("option:selected").text();
-	var sex = $("#sex").find("option:selected").val();
-	var role = $("#role").find("option:selected").val();
-	var memo = $('#memo').val();
-	var enabled;
-	if ($("#enabled").is(':checked')) {
-		enabled = true;
-	} else {
-		enabled = false;
+
+	check_newpasswd = function() {
+		var newpasswd = $('#newpasswd').val();
+		if (newpasswd == '') {
+			$('#newpasswd').removeClass("is-valid");
+			$('#newpasswd').addClass("is-invalid");
+			$('#newpasswd_error').text('密码不能为空');
+			return false;
+		} else if(newpasswd.length < 6) {
+			$('#newpasswd').removeClass("is-valid");
+			$('#newpasswd').addClass("is-invalid");
+			$('#newpasswd_error').text('密码长度必须大于等于6个字符');
+			return false;
+		} else {
+			$('#newpasswd').removeClass("is-invalid");
+			$('#newpasswd').addClass("is-valid");
+			$('#newpasswd_error').text('');
+			return true;
+		};
 	}
-	
-	var groups = new Array();
-	$("#group_select_left option").each(function(){
-		var value = $(this).val();   //获取option值
-		groups.push(value);
-	});
-	groups = groups.join(",")
-	
-	var hosts = new Array();
-	$("#host_select_left option").each(function(){
-		var value = $(this).val();   //获取option值
-		hosts.push(value);
-	});
-	hosts = hosts.join(",")
-	
-	csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
-	
-	$.ajax({
-		url: "{% url 'user_api:user_add' %}",
-		async: true,
-		type: 'POST',
-		dataType: 'json',
-		data: {
-			'csrfmiddlewaretoken': csrfmiddlewaretoken,
-			'username': username,
-			'newpasswd': newpasswd,
-			'newpasswdagain': newpasswdagain,
-			'nickname': nickname,
-			'email': email,
-			'phone': phone,
-			'weixin': weixin,
-			'qq': qq,
-			'sex': sex,
-			'memo': memo,
-			'enabled': enabled,
-			'role': role,
-			'groups': groups,
-			'hosts': hosts,
-		},
-		timeout: 5000,
-		cache: true,
-		beforeSend: LoadFunction, //加载执行方法
-		error: errFunction,  //错误执行方法
-		success: succFunction, //成功执行方法
-	});
-	
-	function LoadFunction() {
-		// 提交中
-	};
-	
-	function errFunction() {
-		// 消息框
-		toastr.error('新增用户错误');
-		$(event).removeAttr("disabled");
-		$(event).attr("onclick", "changeuserprofile(this);");
-	};
-	
-	function succFunction(res) {
-		if (res.code != 200) {
-			// 消息框
-			toastr.error('新增用户错误: ' + res.err);
+
+	check_newpasswdagain = function() {
+		var newpasswd = $('#newpasswd').val();
+		var newpasswdagain = $('#newpasswdagain').val();
+		if (newpasswdagain == '') {
+			$('#newpasswdagain').removeClass("is-valid");
+			$('#newpasswdagain').addClass("is-invalid");
+			$('#newpasswdagain_error').text('确认密码不能为空');
+			return false;
+		} else if (newpasswd != newpasswdagain) {
+			$('#newpasswdagain').removeClass("is-valid");
+			$('#newpasswdagain').addClass("is-invalid");
+			$('#newpasswdagain_error').text('两次密码不一致');
+			return false;
+		} else {
+			$('#newpasswdagain').removeClass("is-invalid");
+			$('#newpasswdagain').addClass("is-valid");
+			$('#newpasswdagain_error').text('');
+			return true;
+		};
+	}
+
+	check_nickname = function() {
+		var nickname = $('#nickname').val();
+		if (nickname == '') {
+			$('#nickname').removeClass("is-valid");
+			$('#nickname').addClass("is-invalid");
+			$('#nickname_error').text('昵称不能未空');
+			return false;
+		} else if(/[@#\$%\^&\*]+/g.test(nickname)) {
+			$('#nickname').removeClass("is-valid");
+			$('#nickname').addClass("is-invalid");
+			$('#nickname_error').text('昵称不能存在特殊符号');
+			return false;
+		}  else if(nickname.length < 3) {
+			$('#nickname').removeClass("is-valid");
+			$('#nickname').addClass("is-invalid");
+			$('#nickname_error').text('昵称长度必须大于等于3个字符');
+			return false;
+		} else {
+			$('#nickname').removeClass("is-invalid");
+			$('#nickname').addClass("is-valid");
+			$('#nickname_error').text('');
+			return true;
+		};
+	}
+
+	check_email = function() {
+		var email = $('#email').val();
+		if (email == '') {
+			$('#email').removeClass("is-valid");
+			$('#email').addClass("is-invalid");
+			$('#email_error').text('邮箱不能未空');
+			return false;
+		} else if(!/^\w+((-\w+)|(\.\w+))*\@[A-Za-z0-9]+((\.|-)[A-Za-z0-9]+)*\.[A-Za-z0-9]+$/.test(email)) {
+			$('#email').removeClass("is-valid");
+			$('#email').addClass("is-invalid");
+			$('#email_error').text('邮箱格式不正确');
+			return false;
+		} else {
+			$('#email').removeClass("is-invalid");
+			$('#email').addClass("is-valid");
+			$('#email_error').text('');
+			return true;
+		};
+	}
+
+	check_phone = function() {
+		var phone = $('#phone').val();
+		if (phone == '') {
+			$('#phone').removeClass("is-invalid");
+			$('#phone').removeClass("is-valid");
+			//$('#phone').addClass("is-valid");
+			$('#phone_error').text('');
+			return true;
+		} else if(!/^1[3-9][0-9]{9}$/.test(phone)) {
+			$('#phone').removeClass("is-valid");
+			$('#phone').addClass("is-invalid");
+			$('#phone_error').text('手机可为空或者11位正确数字');
+			return false;
+		} else {
+			$('#phone').removeClass("is-invalid");
+			$('#phone').addClass("is-valid");
+			$('#phone_error').text('');
+			return true;
+		};
+	}
+
+	check_weixin = function() {
+		var weixin = $('#weixin').val();
+		if (weixin == '') {
+			$('#weixin').removeClass("is-invalid");
+			$('#weixin').removeClass("is-valid");
+			//$('#weixin').addClass("is-valid");
+			$('#weixin_error').text('');
+			return true;
+		} else if(weixin.length < 2) {
+			$('#weixin').removeClass("is-valid");
+			$('#weixin').addClass("is-invalid");
+			$('#weixin_error').text('微信可为空或者大于等于2个字符');
+			return false;
+		} else {
+			$('#weixin').removeClass("is-invalid");
+			$('#weixin').addClass("is-valid");
+			$('#weixin_error').text('');
+			return true;
+		};
+	}
+
+	check_qq = function() {
+		var qq = $('#qq').val();
+		if (qq == '') {
+			$('#qq').removeClass("is-invalid");
+			$('#qq').removeClass("is-valid");
+			//$('#qq').addClass("is-valid");
+			$('#qq_error').text('');
+			return true;
+		} else if(!/^[1-9]\d{3,20}$/.test(qq)) {
+			$('#qq').removeClass("is-valid");
+			$('#qq').addClass("is-invalid");
+			$('#qq_error').text('QQ可为空或者4-20位数字');
+			return false;
+		} else {
+			$('#qq').removeClass("is-invalid");
+			$('#qq').addClass("is-valid");
+			$('#qq_error').text('');
+			return true;
+		};
+	}
+	// 校验表单数据
+
+
+	// 修改用户信息
+	changeuserprofile = function(event) {
+		toastr.options.closeButton = true;
+		toastr.options.showMethod = 'slideDown';
+		toastr.options.hideMethod = 'fadeOut';
+		toastr.options.closeMethod = 'fadeOut';
+		toastr.options.timeOut = 3000;	
+		toastr.options.extendedTimeOut = 0;	
+		toastr.options.progressBar = true;
+		toastr.options.positionClass = 'toast-top-right'; 
+		
+		$(event).removeAttr("onclick");
+		$(event).attr("disabled", true);
+		
+		var check_right = new Array();
+		
+		var username = $('#username').val();
+		check_right[0] = check_username();
+
+		var newpasswd = $('#newpasswd').val();
+		check_right[1] = check_newpasswd();
+
+		var newpasswdagain = $('#newpasswdagain').val();
+		check_right[2] = check_newpasswdagain();
+		
+		var nickname = $('#nickname').val();
+		check_right[3] = check_nickname();
+		
+		var email = $('#email').val();
+		check_right[4] = check_email();
+		
+		var phone = $('#phone').val();
+		check_right[5] = check_phone();
+		
+		var weixin = $('#weixin').val();
+		check_right[6] = check_weixin();
+
+		var qq = $('#qq').val();
+		check_right[7] = check_qq();
+
+		
+		var sex = $("#sex").find("option:selected").val();
+		var role = $("#role").find("option:selected").val();
+		var memo = $('#memo').val();
+		var enabled;
+		if ($("#enabled").is(':checked')) {
+			enabled = true;
+		} else {
+			enabled = false;
+		}
+		
+		var groups = new Array();
+		$("#group_select_left option").each(function(){
+			var value = $(this).val();   //获取option值
+			groups.push(value);
+		});
+		groups = groups.join(",")
+		
+		var hosts = new Array();
+		$("#host_select_left option").each(function(){
+			var value = $(this).val();   //获取option值
+			hosts.push(value);
+		});
+		hosts = hosts.join(",")
+		
+		csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
+		
+		if (!/false/.test(check_right)) {
+			$('#feed_error').text('');
+			$.ajax({
+				url: "{% url 'user_api:user_add' %}",
+				async: true,
+				type: 'POST',
+				dataType: 'json',
+				data: {
+					'csrfmiddlewaretoken': csrfmiddlewaretoken,
+					'username': username,
+					'newpasswd': newpasswd,
+					'newpasswdagain': newpasswdagain,
+					'nickname': nickname,
+					'email': email,
+					'phone': phone,
+					'weixin': weixin,
+					'qq': qq,
+					'sex': sex,
+					'memo': memo,
+					'enabled': enabled,
+					'role': role,
+					'groups': groups,
+					'hosts': hosts,
+				},
+				timeout: 5000,
+				cache: true,
+				beforeSend: LoadFunction, //加载执行方法
+				error: errFunction,  //错误执行方法
+				success: succFunction, //成功执行方法
+			});
+		} else {
+			$('#feed_error').text('信息填写有误，请检查并重新填写');
 			$(event).removeAttr("disabled");
 			$(event).attr("onclick", "changeuserprofile(this);");
-		} else {
-			// 消息框
-			toastr.options.timeOut = 1000;
-			toastr.options.onHidden = function() { window.location.href = "{% url 'user:users' %}"; }
-			toastr.success('新增用户成功');
-		}
-	};
-}
+			return false;
+		};
 
-// 左右选项框
-$(function(){
-    //移到右边
-    $('#add').click(function() {
-    //获取选中的选项，删除并追加给对方
-        $('#select1 option:selected').appendTo('#select2');
-    });
-    //移到左边
-    $('#remove').click(function() {
-        $('#select2 option:selected').appendTo('#select1');
-    });
-	
-    //全部移到右边
-    $('#add_all').click(function() {
-        //获取全部的选项,删除并追加给对方
-        $('#select1 option').appendTo('#select2');
-    });
-    //全部移到左边
-    $('#remove_all').click(function() {
-        $('#select2 option').appendTo('#select1');
-    });
-	
-    //双击选项
-    $('#group_select_left').dblclick(function(){ //绑定双击事件
-        //获取全部的选项,删除并追加给对方
-        $("option:selected",this).appendTo('#group_select_right'); //追加给对方
-    });
-    //双击选项
-    $('#group_select_right').dblclick(function(){
-       $("option:selected",this).appendTo('#group_select_left');
-    });
-	
-	//双击选项
-    $('#host_select_left').dblclick(function(){ //绑定双击事件
-        //获取全部的选项,删除并追加给对方
-        $("option:selected",this).appendTo('#host_select_right'); //追加给对方
-    });
-    //双击选项
-    $('#host_select_right').dblclick(function(){
-       $("option:selected",this).appendTo('#host_select_left');
-    });
-});
+		function LoadFunction() {
+			// 提交中
+		};
+		
+		function errFunction() {
+			// 消息框
+			toastr.error('新增用户错误');
+			$(event).removeAttr("disabled");
+			$(event).attr("onclick", "changeuserprofile(this);");
+			return false;
+		};
+		
+		function succFunction(res) {
+			if (res.code != 200) {
+				// 消息框
+				toastr.error('新增用户错误: ' + res.err);
+				$(event).removeAttr("disabled");
+				$(event).attr("onclick", "changeuserprofile(this);");
+				return false;
+			} else {
+				// 消息框
+				toastr.options.timeOut = 1000;
+				toastr.options.onHidden = function() { window.location.href = "{% url 'user:users' %}"; }
+				toastr.success('新增用户成功');
+				return true;
+			}
+		};
+	}
+
+	// 左右选项框
+	$(function(){
+		//移到右边
+		$('#add').click(function() {
+		//获取选中的选项，删除并追加给对方
+			$('#select1 option:selected').appendTo('#select2');
+		});
+		//移到左边
+		$('#remove').click(function() {
+			$('#select2 option:selected').appendTo('#select1');
+		});
+		
+		//全部移到右边
+		$('#add_all').click(function() {
+			//获取全部的选项,删除并追加给对方
+			$('#select1 option').appendTo('#select2');
+		});
+		//全部移到左边
+		$('#remove_all').click(function() {
+			$('#select2 option').appendTo('#select1');
+		});
+		
+		//双击选项
+		$('#group_select_left').dblclick(function(){ //绑定双击事件
+			//获取全部的选项,删除并追加给对方
+			$("option:selected",this).appendTo('#group_select_right'); //追加给对方
+		});
+		//双击选项
+		$('#group_select_right').dblclick(function(){
+		   $("option:selected",this).appendTo('#group_select_left');
+		});
+		
+		//双击选项
+		$('#host_select_left').dblclick(function(){ //绑定双击事件
+			//获取全部的选项,删除并追加给对方
+			$("option:selected",this).appendTo('#host_select_right'); //追加给对方
+		});
+		//双击选项
+		$('#host_select_right').dblclick(function(){
+		   $("option:selected",this).appendTo('#host_select_left');
+		});
+	});
 
 </script>
 {% endblock js %}
