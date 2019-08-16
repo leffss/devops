@@ -21,7 +21,7 @@
 	{% endblock navheader %}
 	
 		  {% block content %}
-          <div class="card">
+          <div class="card card-primary card-outline">
             <div class="card-header">
               <h3 class="card-title">web终端日志</h3>
 				<div class="card-tools">
@@ -60,7 +60,7 @@
 				  <td>{{ log.user | default:'' }}</td>
 				  <td>{{ log.hostname }}</td>
 				  <td>{{ log.ip }}</td>
-				  <td>{{ log.protocol }}</td>
+				  <td><span class="badge badge-success">{{ log.protocol }}</span></td>
 				  <td>{{ log.port }}</td>
 				  <td>{{ log.username }}</td>
 				  <td>{{ log.cmd | linebreaksbr | truncatechars_html:15 | default:'' }}<br>...</td>

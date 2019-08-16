@@ -11,7 +11,8 @@ class Telnet:
     def __init__(self, websocker, message):
         self.websocker = websocker
         self.message = message
-        self.cmd = ''
+        self.cmd = ''       # 多行命令
+        self.cmd_tmp = ''   # 一行命令
         self.res = ''
         self.tn = telnetlib.Telnet()
 
@@ -70,7 +71,12 @@ class Telnet:
             self.tn.write(data.encode('utf-8'))
             if data == '\r':
                 data = '\n'
-            self.cmd += data
+                if self.cmd_tmp.strip() != '':
+                    self.cmd_tmp += data
+                    self.cmd += self.cmd_tmp
+                    self.cmd_tmp = ''
+            else:
+                self.cmd_tmp += data
         except:
             self.close()
 

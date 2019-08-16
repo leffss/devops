@@ -26,9 +26,9 @@
 	{% endblock navheader %}
 	
 		  {% block content %}
-          <div class="card">
+          <div class="card card-primary card-outline">
             <div class="card-header">
-              <h3 class="card-title">用户<a href="{% url 'user:user_add' %}" class="btn btn-sm btn-outline-success ml-3 addsoft">新增 + </a></h3>
+              <h3 class="card-title">用户<a href="{% url 'user:user_add' %}" class="btn btn-sm btn-outline-success ml-3 addsoft"><i class="fas fa-plus fa-sm"></i> 新增</a></h3>
 				<div class="card-tools">
 				  <button type="button" class="btn btn-tool" data-widget="collapse">
 					<i class="fas fa-minus"></i>
@@ -61,15 +61,15 @@
                 <tbody>
 				{% for user in users %}
                 <tr id="user-{{ user.id }}">
-				  <td><a href="{% url 'user:user' user.id %}">{{ user.username }}</a></td>
+				  <td>{{ user.username }}</td>
 				  <td>{{ user.nickname }}</td>
 				  <td>{{ user.email }}</td>
 				  {% count_user_hosts user.username as hosts_count %}
 				  <td>{{ hosts_count }}</td>
 				  {% if user.enabled %}
-				  <td>启用</td>
+				  <td><span class="badge badge-success">启用</span></td>
 				  {% else %}
-				  <td style="color:red;">禁用</td>
+				  <td><span class="badge badge-danger">禁用</span></td>
 				  {% endif %}
 				  <td>{{ user.get_role_display }}</td>
 				  
@@ -79,11 +79,11 @@
 				  <td>{{ user.create_time|date:"Y/m/d H:i:s" }}</td>
 				  <td>{{ user.last_login_time|date:"Y/m/d H:i:s"|default:''}}</td>
 				  <td>
-				  <a href="{% url 'user:user' user.id %}">详细</a>&nbsp;&nbsp;<a href="{% url 'user:user_edit' user.id %}">编辑</a>
+				  <a href="{% url 'user:user' user.id %}" class="btn btn-primary btn-sm"><i class="fas fa-folder"></i> 详细</a>&nbsp;&nbsp;<a href="{% url 'user:user_edit' user.id %}" class="btn btn-info btn-sm"><i class="fas fa-pencil-alt"></i> 编辑</a>
 				  {% if user.groups.all.count == 0 and user.remote_user_bind_hosts.all.count == 0 %}
-				  &nbsp;&nbsp;<a href="javascript:void(0)" id="{{ user.id }}" title="{{ user.username }}" onclick="createdeletemodal(this);">删除</a>
+				  &nbsp;&nbsp;<a href="javascript:void(0)" id="{{ user.id }}" title="{{ user.username }}" onclick="createdeletemodal(this);" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> 删除</a>
 				  {% else %}
-				  &nbsp;&nbsp;删除
+				  &nbsp;&nbsp;<a href="javascript:void(0)" class="btn btn-danger btn-sm disabled"><i class="fas fa-trash"></i> 删除</a>
 				  {% endif %}
 				  </td>
                 </tr>

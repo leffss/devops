@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+""" 初始化创建 admin 账号"""
 import os
 import sys
 
@@ -10,14 +11,18 @@ def main():
     # 让django初始化
     import django
     django.setup()
+    
+    from user.models import User
+    from util.tool import hash_code
+    
     from channels.layers import get_channel_layer
     from asgiref.sync import async_to_sync
     channel_layer = get_channel_layer()
-    async_to_sync(channel_layer.send)("specific.FEfncEYP!bFdhrEmvyBIV", {
+    async_to_sync(channel_layer.send)('specific.WjcnLeaL!oejCJLfYFOdT', {
         "type": "chat.message",
-        "text": '{"status":2, "message":"\\n\\rAdministrator forcibly interrupts your connection"}',
+        "text": '{"status":3, "message":"系统即将关闭，请退出当前会话！"}',
     })
-
-
+    
+    
 if __name__ == '__main__':
     main()

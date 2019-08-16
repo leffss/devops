@@ -22,119 +22,117 @@
 	{% endblock navheader %}
 	
 		  {% block content %}
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">用户</h3>
-				<div class="card-tools">
-				  <button type="button" class="btn btn-tool" data-widget="collapse">
-					<i class="fas fa-minus"></i>
-				  </button>
-				  <button type="button" class="btn btn-tool" data-widget="maximize">
-				  <i class="fas fa-expand"></i>
-                  </button>
-				  <button type="button" class="btn btn-tool" data-widget="remove">
-					<i class="fas fa-times"></i>
-				  </button>
-				</div>
-            </div>
-            <!-- /.card-header -->
-            <div class="card-body row">
-				<div class="col-12">
-					<div class="alert alert-warning alert-dismissible" style="font-size:0.9rem;">
-						<button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
-						提示：添加后用户名不可修改.
+		  <div class="row">
+			  <div class="col-md-6">
+				  <div class="card card-primary">
+					<div class="card-header">
+					  <h3 class="card-title">必填</h3>
 					</div>
-				</div>
-				<div class="col-2 pt-1 pb-1">用户名<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="username" onkeyup="check_username();" onblur="check_newpasswd();"></div>
-				<div class="offset-2 col-10 pb-1"><small id="username_error" style="color:red;"></small></div>
-				
-				<div class="col-2 pt-1 pb-1">密码<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input type="password" class="form-control" id="newpasswd" onkeyup="check_newpasswd();" onblur="check_newpasswd();" maxlength="256"></div>
-				<div class="offset-2 col-10 pb-1"><small id="newpasswd_error" style="color:red;"></small></div>
-				
-				<div class="col-2 pt-1 pb-1">确认密码<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input type="password" class="form-control" id="newpasswdagain" onkeyup="check_newpasswdagain();" onblur="check_newpasswdagain();" maxlength="256"></div>
-				<div class="offset-2 col-10 pb-1"><small id="newpasswdagain_error" style="color:red;"></small></div>
+					<!-- /.card-header -->
+					<div class="card-body row">
+						<div class="col-2 pt-1 pb-1">用户名<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="username" onkeyup="check_username();" onblur="check_newpasswd();"></div>
+						<div class="offset-2 col-10 pb-1"><small id="username_error" style="color:red;"></small></div>
+						
+						<div class="col-2 pt-1 pb-1">密码<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input type="password" class="form-control" id="newpasswd" onkeyup="check_newpasswd();" onblur="check_newpasswd();" maxlength="256"></div>
+						<div class="offset-2 col-10 pb-1"><small id="newpasswd_error" style="color:red;"></small></div>
+						
+						<div class="col-2 pt-1 pb-1">确认密码<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input type="password" class="form-control" id="newpasswdagain" onkeyup="check_newpasswdagain();" onblur="check_newpasswdagain();" maxlength="256"></div>
+						<div class="offset-2 col-10 pb-1"><small id="newpasswdagain_error" style="color:red;"></small></div>
 
-				<div class="col-2 pt-1 pb-1">昵称<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="nickname" onkeyup="check_nickname();" onblur="check_nickname();"></div>
-				<div class="offset-2 col-10 pb-1"><small id="nickname_error" style="color:red;"></small></div>
-				
-				<div class="col-2 pt-1 pb-1">邮箱<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="email" onkeyup="check_email();" onblur="check_email();"></div>
-				<div class="offset-2 col-10 pb-1"><small id="email_error" style="color:red;"></small></div>
-				
-				<div class="col-2 pt-1 pb-1">手机：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="phone" onkeyup="check_phone();" onblur="check_phone();"></div>
-				<div class="offset-2 col-10 pb-1"><small id="phone_error" style="color:red;"></small></div>
-				
-				<div class="col-2 pt-1 pb-1">微信：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="weixin" onkeyup="check_weixin();" onblur="check_weixin();"></div>
-				<div class="offset-2 col-10 pb-1"><small id="weixin_error" style="color:red;"></small></div>
-				
-				<div class="col-2 pt-1 pb-1">QQ：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="qq" onkeyup="check_qq();" onblur="check_qq();"></div>
-				<div class="offset-2 col-10 pb-1"><small id="qq_error" style="color:red;"></small></div>
-				
-				<div class="col-2 pt-1 pb-1">用户组：</div>
-				<div class="col-5 pt-1 pb-1">
-				  <div class="form-group">
-                    <span>所属组</span>
-                    <select multiple class="form-control" id="group_select_left" style="min-height:150px">
-                    </select>
-                  </div>
-				</div>
-				<div class="col-5 pt-1 pb-1">
-				  <div class="form-group">
-                    <span>其他组</span>
-                    <select multiple class="form-control" id="group_select_right" style="min-height:150px">
-					  {% for group in all_groups %}
-					  <option value="{{ group.id }}">{{ group.group_name }}</option>
-					  {% endfor %}
-                    </select>
-                  </div>
-				</div>
-				
-				<div class="col-2 pt-1 pb-1">主机：</div>
-				<div class="col-5 pt-1 pb-1">
-				  <div class="form-group">
-                    <span>拥有主机</span>
-                    <select multiple class="form-control" id="host_select_left" style="min-height:150px">
-                    </select>
-                  </div>
-				</div>
-				<div class="col-5 pt-1 pb-1">
-				  <div class="form-group">
-                    <span>其他主机</span>
-                    <select multiple class="form-control" id="host_select_right" style="min-height:150px">
-					  {% for host in all_hosts %}
-					  <option value="{{ host.id }}">{{ host.hostname }}_{{ host.ip }}_{{ host.remote_user.username }}</option>
-					  {% endfor %}
-                    </select>
-                  </div>
-				</div>
-				
-				<div class="col-2 pt-1 pb-2">性别：</div>
-				<div class="col-10 pt-1 pb-2">
-				  <select class="form-control" id="sex" style="width: 100%;">
-					{% for sex in sex_choices %}
-                    <option value="{{ sex.0 }}">{{ sex.1 }}</option>
-					{% endfor %}
-                  </select>
-				</div>
-				<div class="col-2 pt-1 pb-2">角色：</div>
-				<div class="col-10 pt-1 pb-2">
-				  <select class="form-control" id="role" style="width: 100%;">
-					{% for role in role_choices %}
-					<option value="{{ role.0 }}">{{ role.1 }}</option>
-					{% endfor %}
-                  </select>
-				</div>
-				<div class="col-2 pt-1 pb-1">备注：</div><div class="col-10 pt-1 pb-1"><textarea id="memo" class="form-control"></textarea></div>
-				<div class="offset-2 col-10 pt-1 pb-1">
-					<div class="custom-switch custom-switch-on-success">
-                      <input type="checkbox" class="custom-control-input" id="enabled" checked>
-                      <label class="custom-control-label" for="enabled">启用</label>
-                    </div>
-				</div>
-				<div class="offset-2 col-10 pt-2"><button class="btn btn-default" type="reset">重置</button><button class="btn btn-success ml-2" onclick="changeuserprofile(this);">提交</button><span id="feed_error" class="ml-2" style="color:red;"></span></div>
-            </div>
-            <!-- /.card-body -->
-          </div>
-          <!-- /.card --> 
+						<div class="col-2 pt-1 pb-1">昵称<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="nickname" onkeyup="check_nickname();" onblur="check_nickname();"></div>
+						<div class="offset-2 col-10 pb-1"><small id="nickname_error" style="color:red;"></small></div>
+						
+						<div class="col-2 pt-1 pb-1">邮箱<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="email" onkeyup="check_email();" onblur="check_email();"></div>
+						<div class="offset-2 col-10 pb-1"><small id="email_error" style="color:red;"></small></div>
+						
+						<div class="col-2 pt-1 pb-2">性别：</div>
+						<div class="col-10 pt-1 pb-2">
+						  <select class="form-control" id="sex" style="width: 100%;">
+							{% for sex in sex_choices %}
+							<option value="{{ sex.0 }}">{{ sex.1 }}</option>
+							{% endfor %}
+						  </select>
+						</div>
+						<div class="col-2 pt-1 pb-2">角色：</div>
+						<div class="col-10 pt-1 pb-2">
+						  <select class="form-control" id="role" style="width: 100%;">
+							{% for role in role_choices %}
+							<option value="{{ role.0 }}">{{ role.1 }}</option>
+							{% endfor %}
+						  </select>
+						</div>
+						<div class="offset-2 col-10 pt-1 pb-1">
+							<div class="custom-switch custom-switch-on-success">
+							  <input type="checkbox" class="custom-control-input" id="enabled" checked>
+							  <label class="custom-control-label" for="enabled">启用</label>
+							</div>
+						</div>
+						<div class="offset-2 col-10 pt-2"><a class="btn btn-default" href="{% url 'user:users' %}">返回</a> <button class="btn btn-success ml-2" onclick="changeuserprofile(this);">提交</button><span id="feed_error" class="ml-2" style="color:red;"></span></div>
+					</div>
+					<!-- /.card-body -->
+				  </div>
+				  <!-- /.card --> 
+			  </div>
+			  <div class="col-md-6">
+				  <div class="card card-secondary">
+					<div class="card-header">
+					  <h3 class="card-title">选填</h3>
+					</div>
+					<!-- /.card-header -->
+					<div class="card-body row">
+						<div class="col-2 pt-1 pb-1">手机：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="phone" onkeyup="check_phone();" onblur="check_phone();"></div>
+						<div class="offset-2 col-10 pb-1"><small id="phone_error" style="color:red;"></small></div>
+						
+						<div class="col-2 pt-1 pb-1">微信：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="weixin" onkeyup="check_weixin();" onblur="check_weixin();"></div>
+						<div class="offset-2 col-10 pb-1"><small id="weixin_error" style="color:red;"></small></div>
+						
+						<div class="col-2 pt-1 pb-1">QQ：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="qq" onkeyup="check_qq();" onblur="check_qq();"></div>
+						<div class="offset-2 col-10 pb-1"><small id="qq_error" style="color:red;"></small></div>
+						
+						<div class="col-2 pt-1 pb-1">用户组：</div>
+						<div class="col-5 pt-1 pb-1">
+						  <div class="form-group">
+							<span>所属组</span>
+							<select multiple class="form-control" id="group_select_left" style="min-height:150px">
+							</select>
+						  </div>
+						</div>
+						<div class="col-5 pt-1 pb-1">
+						  <div class="form-group">
+							<span>其他组</span>
+							<select multiple class="form-control" id="group_select_right" style="min-height:150px">
+							  {% for group in all_groups %}
+							  <option value="{{ group.id }}">{{ group.group_name }}</option>
+							  {% endfor %}
+							</select>
+						  </div>
+						</div>
+						
+						<div class="col-2 pt-1 pb-1">主机：</div>
+						<div class="col-5 pt-1 pb-1">
+						  <div class="form-group">
+							<span>拥有主机</span>
+							<select multiple class="form-control" id="host_select_left" style="min-height:150px">
+							</select>
+						  </div>
+						</div>
+						<div class="col-5 pt-1 pb-1">
+						  <div class="form-group">
+							<span>其他主机</span>
+							<select multiple class="form-control" id="host_select_right" style="min-height:150px">
+							  {% for host in all_hosts %}
+							  <option value="{{ host.id }}">{{ host.hostname }}_{{ host.ip }}_{{ host.remote_user.username }}</option>
+							  {% endfor %}
+							</select>
+						  </div>
+						</div>
+						<div class="col-2 pt-1 pb-1">备注：</div><div class="col-10 pt-1 pb-1"><textarea id="memo" class="form-control"></textarea></div>
+					</div>
+					<!-- /.card-body -->
+				  </div>
+				  <!-- /.card --> 
+			  </div>
+		  </div>
 		  {% endblock content %}
 
 {% block js %}

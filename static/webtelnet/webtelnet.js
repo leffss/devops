@@ -59,7 +59,7 @@ function websocket() {
         var status = data.status;
         if (status === 0) {
             term.write(message)
-        } else {
+        } else if (status === 1 || status === 2 ) {
             //window.location.reload() 端口连接后刷新页面
 			//term.clear()
 			term.write(message)
@@ -73,7 +73,18 @@ function websocket() {
 			//term.dispose()
 			//$('#django-webssh-terminal').addClass('hide');
 			//$('#form').removeClass('hide');
-        }
+        } else if (status === 3 ) {
+			console.log(message);
+			toastr.options.closeButton = true;
+			toastr.options.showMethod = 'slideDown';
+			toastr.options.hideMethod = 'fadeOut';
+			toastr.options.closeMethod = 'fadeOut';
+			toastr.options.timeOut = 0;	
+			toastr.options.extendedTimeOut = 0;	
+			toastr.options.progressBar = true;
+			toastr.options.positionClass = 'toast-top-right'; 
+			toastr.warning(message);
+		};
     });
 
     /*

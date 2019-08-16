@@ -21,7 +21,7 @@
 	{% endblock navheader %}
 	
 		  {% block content %}
-          <div class="card">
+          <div class="card card-primary card-outline">
             <div class="card-header">
               <h3 class="card-title">在线会话</h3>
 				<div class="card-tools">
@@ -38,7 +38,7 @@
             </div>
             <!-- /.card-header -->
             <div class="card-body table-responsive">
-              <table id="datatables-lists" class="table table-bordered table-striped table-sm">
+              <table id="datatables-lists" class="table table-bordered table-hover">
                 <thead>
                 <tr>
 				  <th>ID</th>
@@ -63,7 +63,16 @@
 				  <td>{{ session.username }}</td>
 				  <td><button class="btn btn-sm btn-success btn-flat">{{ session.get_protocol_display }}</button></td>
 				  <td>{{ session.create_time | date:"Y/m/d H:i:s" }}</td>
-				  <td><a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" class="btn btn-block btn-sm btn-danger btn-flat" onclick="createdeletemodal(this);">断开</a></td>
+				  <td>
+
+					<form method="post" action="{% url 'webssh:terminal_view' %}" target="_blank" style="display:inline;">
+					{% csrf_token %}
+					<input type="text" name="sessionname" value="{{ session.name  }}" hidden>
+					<input type="text" name="group" value="{{ session.group  }}" hidden>
+					<button type="submit" class="btn btn-sm btn-success btn-flat"><i class="fas fa-folder"></i> 查看</button>
+					</form>&nbsp;&nbsp;
+					<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" group="{{ session.group }}" class="btn btn-sm btn-danger btn-flat" onclick="createdeletemodal(this);"><i class="far fa-times-circle"></i> 断开</a>
+				  </td>
                 </tr>
 				{% endfor %}
                 </tbody>
@@ -138,12 +147,13 @@
 		var thisObj = $(event);	//js对象转jquery对象  
 		var session_id = thisObj.attr('id');
 		var session_name = thisObj.attr("title");
+		var session_group = thisObj.attr("group");
 		// 生成弹出框，使用 \ 换行
 		$("#modal-container").html('<div id="modal-delete-' + session_id + '" class="iziModal"><div class="container-fluid"><div class="row">\
 									<div class="col-12 p-3"><h5 class="text-center mt-3">确定要强制关闭会话 "' + session_name + '" 吗？</h5></div><div class="col-6 p-3">\
 									<button type="button" class="btn btn-block btn-secondary btn-flat" data-iziModal-close>取消</button></div><div class="col-6 p-3">\
 									<a href="javascript:void(0)"><button type="button" class="btn btn-block btn-success btn-flat" id="' + session_id + '-yes" title="\
-									' + session_name + '" onclick="deletethis(this);">确定</button></a></div></div></div></div>');
+									' + session_name + '" group="' + session_group + '" onclick="deletethis(this);">确定</button></a></div></div></div></div>');
 		
 		// 初始化弹出框
 		$("#modal-delete-" + session_id).iziModal({
@@ -170,6 +180,7 @@
 		var thisObj = $(event);	//js对象转jquery对象
 		var session_id = thisObj.attr('id').split("-")[0];
 		var session_name = thisObj.attr("title");
+		var session_group = thisObj.attr("group");
 		csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
 		$.ajax({
 			url: "{% url 'webssh_api:session_close' %}",
@@ -179,6 +190,7 @@
 			data: {
 				'csrfmiddlewaretoken': csrfmiddlewaretoken,
 				'id': session_id,
+				'group': session_group,
 			},
 			timeout: 10000,
 			cache: true,
@@ -252,7 +264,7 @@
 				$('#modal-delete-' + session_id).iziModal('close');
 				
 				// 消息框
-				toastr.success('成功关闭会话 "' + user_name + '"');
+				toastr.success('成功关闭会话 "' + session_name + '"');
 			}
 		};
 	}

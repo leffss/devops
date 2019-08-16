@@ -202,6 +202,8 @@ class WebTelnet(WebsocketConsumer):
             if message['status'] == 2:
                 self.send(data['text'])
                 self.close()
+            elif message['status'] == 3:
+                self.send(data['text'])
             else:
                 self.send(data['text'])
         except BaseException:

@@ -22,7 +22,7 @@
 	{% endblock navheader %}
 	
 		  {% block content %}
-          <div class="card">
+          <div class="card card-primary">
             <div class="card-header">
               <h3 class="card-title">用户信息</h3>
 				<div class="card-tools">
@@ -45,7 +45,7 @@
 				<div class="col-3 pt-1 pb-1 border-bottom">名称：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ user.name }}</div>
 				<div class="col-3 pt-1 pb-1 border-bottom">用户名：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ user.username }}</div>
 				<div class="col-3 pt-1 pb-1 border-bottom">密码：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ user.password }}</div>
-				<div class="col-3 pt-1 pb-1 border-bottom">登陆后是否su跳转超级用户：</div><div class="col-9 pt-1 pb-1 border-bottom">{% if user.enabled %}是{% else %}<span style="color:red">否<span>{% endif %}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">登陆后是否su跳转超级用户：</div><div class="col-9 pt-1 pb-1 border-bottom">{% if user.enabled %}<span class="badge badge-success">是</span>{% else %}<span class="badge badge-danger">否</span>{% endif %}</div>
 				{% if user.enabled %}
 				<div class="col-3 pt-1 pb-1 border-bottom">超级用户：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ user.superusername | default:'' }}</div>
 				<div class="col-3 pt-1 pb-1 border-bottom">超级密码：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ user.superpassword | default:'' }}</div>

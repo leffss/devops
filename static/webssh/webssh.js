@@ -57,7 +57,7 @@ function websocket() {
         var status = data.status;
         if (status === 0) {
             term.write(message)
-        } else {
+        } else if (status === 1 || status === 2 ) {
             //window.location.reload() 端口连接后刷新页面
 			//term.clear()
 			term.write(message)
@@ -71,7 +71,18 @@ function websocket() {
 			//term.dispose()
 			//$('#django-webssh-terminal').addClass('hide');
 			//$('#form').removeClass('hide');
-        }
+        } else if (status === 3 ) {
+			console.log(message);
+			toastr.options.closeButton = true;
+			toastr.options.showMethod = 'slideDown';
+			toastr.options.hideMethod = 'fadeOut';
+			toastr.options.closeMethod = 'fadeOut';
+			toastr.options.timeOut = 0;	
+			toastr.options.extendedTimeOut = 0;	
+			toastr.options.progressBar = true;
+			toastr.options.positionClass = 'toast-top-right'; 
+			toastr.warning(message);
+		};
     });
 
     /*
@@ -79,13 +90,13 @@ function websocket() {
     * status 为 1 时, resize pty ssh 终端大小, cols 为每行显示的最大字数, rows 为每列显示的最大字数, 忽略 data 参数
     */
     var message = {'status': 0, 'data': null, 'cols': null, 'rows': null};
-
+	
     // 向服务器端发送数据
     term.on('data', function (data) {
         message['status'] = 0;
         message['data'] = data;
         var send_data = JSON.stringify(message);
-        sock.send(send_data)
+        sock.send(send_data);
     });
 
     // 监听浏览器窗口, 根据浏览器窗口大小修改终端大小

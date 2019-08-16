@@ -23,7 +23,7 @@
 	{% endblock navheader %}
 	
 		  {% block content %}
-          <div class="card">
+          <div class="card card-primary">
             <div class="card-header">
               <h3 class="card-title">用户信息</h3>
 				<div class="card-tools">
@@ -50,7 +50,7 @@
 				<div class="col-3 pt-1 pb-1 border-bottom">微信：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ user.weixin | default:'' }}</div>
 				<div class="col-3 pt-1 pb-1 border-bottom">QQ：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ user.qq | default:'' }}</div>
 				<div class="col-3 pt-1 pb-1 border-bottom">性别：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ user.get_sex_display }}</div>
-				<div class="col-3 pt-1 pb-1 border-bottom">是否启用：</div><div class="col-9 pt-1 pb-1 border-bottom">{% if user.enabled %}启用{% else %}<span style="color:red">禁用<span>{% endif %}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">是否启用：</div><div class="col-9 pt-1 pb-1 border-bottom">{% if user.enabled %}<span class="badge badge-success">启用</span>{% else %}<span class="badge badge-danger">禁用</span>{% endif %}</div>
 				<div class="col-3 pt-1 pb-1 border-bottom">角色：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ user.get_role_display }}</div>
 				<div class="col-3 pt-1 pb-1 border-bottom">所属组：</div><div class="col-9 pt-1 pb-1 border-bottom">{% if user.groups.all %}{% for group in user.groups.all %}<a href="{% url 'user:group' group.id %}" class="btn btn-sm btn-success btn-flat">{{ group.group_name }}</a>&nbsp;&nbsp;{% endfor %}{% else %}{% endif %}</div>
 				{% count_user_hosts user.username as hosts_count %}

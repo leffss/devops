@@ -25,13 +25,18 @@ def login_event_log(user, event_type, detail, address, useragent):
 @post_required
 def session_close(request):
     pk = request.POST.get('id', None)
-    if not pk:
+    group = request.POST.get('group', None)
+    if not pk or not group:
         error_message = '不合法的请求参数!'
         return JsonResponse({"code": 400, "err": error_message})
     terminalsession = get_object_or_404(TerminalSession, pk=pk)
     try:
         channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.send)(terminalsession.name, {
+        # async_to_sync(channel_layer.send)(terminalsession.name, {
+        #     "type": "chat.message",
+        #     "text": '{"status":2, "message":"\\n\\rAdministrator forcibly interrupts your connection"}',
+        # })
+        async_to_sync(channel_layer.group_send)(group, {
             "type": "chat.message",
             "text": '{"status":2, "message":"\\n\\rAdministrator forcibly interrupts your connection"}',
         })

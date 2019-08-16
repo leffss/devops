@@ -61,6 +61,8 @@ sh start_docker.sh
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/33.PNG?raw=true)
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/34.PNG?raw=true)
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/35.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/36.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/37.JPG?raw=true)
 
 
 # TODO LISTS
@@ -93,7 +95,9 @@ sh start_docker.sh
 - [ ] 批量脚本
 - [x] webssh终端
 - [x] webtelnet终端
-- [x] 查看在线会话
+- [x] 查看在线会话列表
+- [x] 实时查看在线会话
+- [ ] 锁定实时在线会话
 - [x] 强制关闭在线会话
 - [ ] 文件上传
 - [ ] 文件下载

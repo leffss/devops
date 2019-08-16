@@ -49,6 +49,7 @@ class TerminalSession(models.Model):
         (6, 'ftp'),
     )
     name = models.CharField(max_length=512, verbose_name='会话名称')
+    group = models.CharField(default='chat_default', max_length=512, verbose_name='会话组')
     user = models.CharField(max_length=128, verbose_name='用户')
     host = models.GenericIPAddressField(verbose_name='主机')
     port = models.SmallIntegerField(default=22, verbose_name='端口')

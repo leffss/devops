@@ -2,6 +2,7 @@ import paramiko
 import threading
 from threading import Thread
 from .tools import get_key_obj
+from asgiref.sync import async_to_sync
 import socket
 import json
 import time
@@ -11,7 +12,8 @@ class SSH:
     def __init__(self, websocker, message):
         self.websocker = websocker
         self.message = message
-        self.cmd = ''
+        self.cmd = ''       # 多行命令
+        self.cmd_tmp = ''   # 一行命令
         self.res = ''
     
     # term 可以使用 ansi, linux, vt100, xterm, dumb，除了 dumb外其他都有颜色显示
@@ -41,7 +43,13 @@ class SSH:
                 self.message['status'] = 0
                 self.message['message'] = recv
                 message = json.dumps(self.message)
-                self.websocker.send(message)
+                if self.websocker.send_flag == 0:
+                    self.websocker.send(message)
+                elif self.websocker.send_flag == 1:
+                    async_to_sync(self.websocker.channel_layer.group_send)(self.websocker.group, {
+                        "type": "chat.message",
+                        "text": message,
+                    })
                 self.res += recv
             
             # 创建3个线程将服务器返回的数据发送到django websocket（1个线程都可以）
@@ -54,7 +62,13 @@ class SSH:
             self.cmd += self.message['message']
             self.res += self.message['message']
             message = json.dumps(self.message)
-            self.websocker.send(message)
+            if self.websocker.send_flag == 0:
+                self.websocker.send(message)
+            elif self.websocker.send_flag == 1:
+                async_to_sync(self.websocker.channel_layer.group_send)(self.websocker.group, {
+                    "type": "chat.message",
+                    "text": message,
+                })
             self.websocker.close(3001)
 
     def resize_pty(self, cols, rows):
@@ -71,9 +85,14 @@ class SSH:
     def django_to_ssh(self, data):
         try:
             self.channel.send(data)
-            if data == '\r':
+            if data == '\r':    # 记录命令
                 data = '\n'
-            self.cmd += data
+                if self.cmd_tmp.strip() != '':
+                    self.cmd_tmp += data
+                    self.cmd += self.cmd_tmp
+                    self.cmd_tmp = ''
+            else:
+                self.cmd_tmp += data
         except:
             self.close()
 
@@ -87,7 +106,13 @@ class SSH:
                 self.message['message'] = data
                 self.res += data
                 message = json.dumps(self.message)
-                self.websocker.send(message)
+                if self.websocker.send_flag == 0:
+                    self.websocker.send(message)
+                elif self.websocker.send_flag == 1:
+                    async_to_sync(self.websocker.channel_layer.group_send)(self.websocker.group, {
+                        "type": "chat.message",
+                        "text": message,
+                    })
         except:
             self.close()
 
@@ -95,7 +120,13 @@ class SSH:
         self.message['status'] = 1
         self.message['message'] = 'Connection closed...'
         message = json.dumps(self.message)
-        self.websocker.send(message)
+        if self.websocker.send_flag == 0:
+            self.websocker.send(message)
+        elif self.websocker.send_flag == 1:
+            async_to_sync(self.websocker.channel_layer.group_send)(self.websocker.group, {
+                "type": "chat.message",
+                "text": message,
+            })
         self.websocker.close()
         self.channel.close()
 

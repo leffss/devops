@@ -22,7 +22,7 @@
 	{% endblock navheader %}
 	
 		  {% block content %}
-          <div class="card">
+          <div class="card card-primary">
             <div class="card-header">
               <h3 class="card-title">主机编辑</h3>
 				<div class="card-tools">
@@ -93,7 +93,7 @@
                       <label class="custom-control-label" for="enabled">启用</label>
                     </div>
 				</div>
-				<div class="offset-2 col-10 pt-2"><button class="btn btn-default" type="reset">重置</button><button class="btn btn-success ml-2" onclick="changeuserprofile(this);">提交</button><span id="feed_error" class="ml-2" style="color:red;"></span></div>
+				<div class="offset-2 col-10 pt-2"><a class="btn btn-default" href="{% url 'server:hosts' %}">返回</a> <button class="btn btn-success ml-2" onclick="changeuserprofile(this);">提交</button><span id="feed_error" class="ml-2" style="color:red;"></span></div>
             </div>
             <!-- /.card-body -->
           </div>

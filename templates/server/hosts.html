@@ -21,10 +21,10 @@
 	{% endblock navheader %}
 	
 		  {% block content %}
-          <div class="card">
+          <div class="card card-primary card-outline">
             <div class="card-header">
               <h3 class="card-title">
-				主机列表{% if request.session.issuperuser %}<a href="{% url 'server:host_add' %}" class="btn btn-sm btn-outline-success ml-3 addsoft">新增 + </a>{% endif %}
+				主机列表{% if request.session.issuperuser %}<a href="{% url 'server:host_add' %}" class="btn btn-sm btn-outline-success ml-3 addsoft"><i class="fas fa-plus fa-sm"></i> 新增</a>{% endif %}
 			  </h3>
 				<div class="card-tools">
 				  <button type="button" class="btn btn-tool" data-widget="collapse">
@@ -59,12 +59,12 @@
                 <tbody>
 				{% for host in hosts %}
                 <tr id="host-{{ host.id }}">
-				  <td><a href="{% url 'server:host' host.id %}">{{ host.hostname }}</a></td>
+				  <td>{{ host.hostname }}</td>
 				  <td>{{ host.get_type_display }}</td>
 				  <td>{{ host.get_env_display }}</td>
 				  <td>{{ host.ip }}</td>
-				  <td>{% if host.enabled %}启用{% else %}<span style="color:red">禁用</span>{% endif %}</td>
-				  <td>{{ host.get_protocol_display }}</td>
+				  <td>{% if host.enabled %}<span class="badge badge-success">启用</span>{% else %}<span class="badge badge-danger">禁用</span>{% endif %}</td>
+				  <td><span class="badge badge-success">{{ host.get_protocol_display }}</span></td>
 				  <td>{{ host.port }}</td>
 				  <td>{{ host.release }}</td>
 				  {% if host.remote_user %}
@@ -73,7 +73,9 @@
 				  <td></td>
 				  {% endif %}
 				  <td>{{ host.create_time|date:"Y/m/d H:i:s" }}</td>
-				  <td><a href="{% url 'server:host' host.id %}">详细</a> {% if request.session.issuperuser %}<a href="{% url 'server:host_edit' host.id %}">编辑</a> <a href="javascript:void(0)" id="{{ host.id }}" title="{{ host.hostname }}" onclick="createdeletemodal(this);">删除</a>{% endif %}</td>
+				  <td><a href="{% url 'server:host' host.id %}" class="btn btn-primary btn-sm"><i class="fas fa-folder"></i> 详细</a>
+				  {% if request.session.issuperuser %}&nbsp;&nbsp;<a href="{% url 'server:host_edit' host.id %}" class="btn btn-info btn-sm"><i class="fas fa-pencil-alt"></i> 编辑</a>&nbsp;&nbsp;<a href="javascript:void(0)" id="{{ host.id }}" title="{{ host.hostname }}" onclick="createdeletemodal(this);" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> 删除</a>{% endif %}
+				  </td>
                 </tr>
 				{% endfor %}
                 </tbody>

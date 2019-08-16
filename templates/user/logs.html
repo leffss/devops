@@ -21,7 +21,7 @@
 	{% endblock navheader %}
 	
 		  {% block content %}
-          <div class="card">
+          <div class="card card-primary card-outline">
             <div class="card-header">
               <h3 class="card-title">用户日志</h3>
 				<div class="card-tools">
@@ -53,7 +53,7 @@
 				{% for log in logs %}
                 <tr>
 				  <td>{{ log.user | default:'' }}</td>
-				  <td>{{ log.get_event_type_display }}</td>
+				  <td><span class="badge badge-success">{{ log.get_event_type_display }}</span></td>
 				  <td>{{ log.detail }}</td>
 				  <td>{{ log.address }}</td>
 				  <td>{{ log.useragent | truncatechars_html:30 }}...</td>
