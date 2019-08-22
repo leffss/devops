@@ -95,6 +95,8 @@ sh start_docker.sh
 - [ ] 批量脚本
 - [x] webssh终端
 - [x] webtelnet终端
+- [ ] 网页调用crt,xshell等终端
+- [ ] websftp终端
 - [x] 查看在线会话列表
 - [x] 实时查看在线会话
 - [ ] 锁定实时在线会话
