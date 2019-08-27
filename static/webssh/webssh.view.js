@@ -31,7 +31,10 @@ function websocket() {
             cols: cols,
             rows: rows,
             useStyle: true,
-            cursorBlink: true
+            cursorBlink: true,
+			theme: {
+				background: '#008080',
+			},
         }
         ),
         protocol = (location.protocol === 'https:') ? 'wss://' : 'ws://',

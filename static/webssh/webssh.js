@@ -25,20 +25,32 @@ function websocket() {
     var cols = get_term_size().cols;
     var rows = get_term_size().rows;
     var connect_info = get_connect_info();
-
+	
+	// Terminal.applyAddon(zmodem);
+	
     var term = new Terminal(
         {
             cols: cols,
             rows: rows,
             useStyle: true,
-            cursorBlink: true
+            cursorBlink: true,
+			theme: {
+				background: '#008080',
+			},
         }
         ),
         protocol = (location.protocol === 'https:') ? 'wss://' : 'ws://',
         socketURL = protocol + location.hostname + ((location.port) ? (':' + location.port) : '') + '/webssh/?' + connect_info + '&width=' + cols + '&height=' + rows;
 
     var sock;
-    sock = new WebSocket(socketURL);
+	
+	try {
+		sock = new WebSocket(socketURL);
+	} catch (error) {
+		console.log(error.message);
+		alert(error.message);
+	}
+
 
     // 打开 websocket 连接, 打开 web 终端
     sock.addEventListener('open', function () {
@@ -56,7 +68,8 @@ function websocket() {
         var message = data.message;
         var status = data.status;
         if (status === 0) {
-            term.write(message)
+            term.write(message);
+			//console.log(message);
         } else if (status === 1 || status === 2 ) {
             //window.location.reload() 端口连接后刷新页面
 			//term.clear()

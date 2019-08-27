@@ -5,4 +5,5 @@ RUN cd /devops && pip install -i https://pypi.douban.com/simple -r requirements.
 RUN cd /devops && echo_supervisord_conf > /etc/supervisord.conf && cat deamon.ini >> /etc/supervisord.conf && \
 	sed -i 's/nodaemon=false/nodaemon=true/g' /etc/supervisord.conf
 EXPOSE 8000
+EXPOSE 2222
 ENTRYPOINT ["supervisord", "-c", "/etc/supervisord.conf"]

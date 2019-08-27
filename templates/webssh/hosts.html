@@ -60,7 +60,7 @@
 				  <td>{{ host.get_type_display }}</td>
 				  <td>{{ host.get_env_display }}</td>
 				  <td>{{ host.ip }}</td>
-				  <td><span class="badge badge-success">{{ host.get_protocol_display }}</span></td>
+				  <td><span class="badge badge-info">{{ host.get_protocol_display }}</span></td>
 				  <td>{{ host.port }}</td>
 				  <td>{{ host.release }}</td>
 				  {% if host.remote_user %}
@@ -72,18 +72,30 @@
 				  <td>
 					{% if host.remote_user and host.enabled %}
 					{% if host.get_protocol_display == 'ssh' %}
-					<form method="post" action="{% url 'webssh:terminal' %}" target="_blank">
+					<form method="post" action="{% url 'webssh:terminal' %}" target="_blank" style="display:inline;">
 					{% elif host.get_protocol_display == 'telnet' %}
-					<form method="post" action="{% url 'webtelnet:terminal' %}" target="_blank">
+					<form method="post" action="{% url 'webtelnet:terminal' %}" target="_blank" style="display:inline;">
 					{% else %}
-					<form method="post" action="#">
+					<form method="post" action="#" onsubmit="return false;" style="display:inline;">
 					{% endif %}
 						{% csrf_token %}
 						<input type="text" name="hostid" value="{{ host.id }}" hidden>
-						<button type="submit" class="btn btn-block btn-sm btn-success btn-flat"><i class="fas fa-network-wired"></i> 连接</button>
+						<button type="submit" class="btn btn-sm btn-success btn-flat"><i class="fas fa-terminal"></i> web终端</button>
 					</form>
 					{% else %}
-					<button class="btn btn-block btn-sm btn-secondary btn-flat disabled"><i class="fas fa-network-wired"></i> 连接</button>
+					<button class="btn btn-sm btn-secondary btn-flat disabled"><i class="fas fa-terminal"></i> web终端</button>
+					{% endif %}
+					&nbsp;&nbsp;
+					{% if host.remote_user and host.enabled %}
+						{% if host.get_protocol_display == 'ssh' %}
+							<form method="post" target="_blank" onsubmit="clishell(this);return false;" style="display:inline;">
+								{% csrf_token %}
+								<input type="text" name="hostid" value="{{ host.id }}" hidden>
+								<button type="submit" class="btn btn-sm btn-primary btn-flat"><i class="fas fa-network-wired"></i> 客户端终端</button>
+							</form>
+						{% endif %}
+					{% else %}
+						<button class="btn btn-sm btn-secondary btn-flat disabled"><i class="fas fa-network-wired"></i> 客户端终端</button>
 					{% endif %}
 					
 				  </td>
@@ -151,5 +163,31 @@ $("#datatables-lists").DataTable({
 	 stateSave: true,	// 保存最后一次分页信息、排序信息，当页面刷新，或者重新进入这个页面，恢复上次的状态。
 	 stateDuration: 86400,	// 本地储存(0~更大)还是session储存(-1) 
 });
+</script>
+
+
+<script>
+	function clishell(event){	// 创建clishell
+		var thisObj = $(event);	//js对象转jquery对象
+		var hostid = $(thisObj.find("input[name='hostid']")[0]).val();
+		csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
+		var url = "{% url 'webssh:terminal_cli' %}";
+		$.ajax({
+			url: url,
+			type: 'POST',
+			timeout: 3000,
+			async: false,
+			data: {
+				'csrfmiddlewaretoken': csrfmiddlewaretoken,
+				"hostid": hostid,
+			},
+			error: function(){
+				alert("创建客户端终端错误！请联系管理员");
+			},
+			success: function(ssh_url){
+				window.location.href=ssh_url;
+			}
+		});
+	};
 </script>
 {% endblock js %}

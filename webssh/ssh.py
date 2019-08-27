@@ -4,8 +4,11 @@ from threading import Thread
 from .tools import get_key_obj
 from asgiref.sync import async_to_sync
 import socket
+from django.conf import settings
 import json
 import time
+import traceback
+from util.tool import gen_rand_char
 
 
 class SSH:
@@ -15,10 +18,27 @@ class SSH:
         self.cmd = ''       # 多行命令
         self.cmd_tmp = ''   # 一行命令
         self.res = ''
+        self.tab_mode = False   # 使用tab命令补全时需要读取返回数据然后添加到当前输入命令后
+        self.history_mode = False
+        self.res_file = gen_rand_char(16) + '.txt'
+        self.start_time = time.time()
+        self.last_save_time = self.start_time
+        self.res_asciinema = []
+        self.res_asciinema.append(
+            json.dumps(
+                {
+                 "version": 2,
+                 "width": 250,  # 设置足够宽，以便播放时全屏不至于显示错乱
+                 "height": 40,
+                 "timestamp": int(self.start_time),
+                 "env": {"SHELL": "/bin/sh", "TERM": "linux"}
+                 }
+            )
+        )
     
     # term 可以使用 ansi, linux, vt100, xterm, dumb，除了 dumb外其他都有颜色显示
     def connect(self, host, user, password=None, ssh_key=None, port=22, timeout=30,
-                term='ansi', pty_width=80, pty_height=24):
+                term='linux', pty_width=80, pty_height=24):
         try:
             ssh_client = paramiko.SSHClient()
             ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -51,7 +71,10 @@ class SSH:
                         "text": message,
                     })
                 self.res += recv
-            
+
+                delay = round(time.time() - self.start_time, 6)
+                self.res_asciinema.append(json.dumps([delay, 'o', recv]))
+
             # 创建3个线程将服务器返回的数据发送到django websocket（1个线程都可以）
             Thread(target=self.websocket_to_django).start()
             # Thread(target=self.websocket_to_django).start()
@@ -61,6 +84,10 @@ class SSH:
             self.message['message'] = 'Connection faild...'
             self.cmd += self.message['message']
             self.res += self.message['message']
+
+            delay = round(time.time() - self.start_time, 6)
+            self.res_asciinema.append(json.dumps([delay, 'o', self.message['message']]))
+
             message = json.dumps(self.message)
             if self.websocker.send_flag == 0:
                 self.websocker.send(message)
@@ -90,9 +117,22 @@ class SSH:
                 if self.cmd_tmp.strip() != '':
                     self.cmd_tmp += data
                     self.cmd += self.cmd_tmp
+
+                    # print('-----------------------------------')
+                    # print(self.cmd_tmp)
+                    # print(self.cmd_tmp.encode())
+                    # print('-----------------------------------')
+                    
                     self.cmd_tmp = ''
+            elif data.encode() == b'\x07':
+                pass
             else:
-                self.cmd_tmp += data
+                if data == '\t' or data.encode() == b'\x1b':    # \x1b 点击2下esc键也可以补全
+                    self.tab_mode = True
+                elif data.encode() == b'\x1b[A' or data.encode() == b'\x1b[B':
+                    self.history_mode = True
+                else:
+                    self.cmd_tmp += data
         except:
             self.close()
 
@@ -105,6 +145,18 @@ class SSH:
                 self.message['status'] = 0
                 self.message['message'] = data
                 self.res += data
+
+                delay = round(time.time() - self.start_time, 6)
+                self.res_asciinema.append(json.dumps([delay, 'o', data]))
+                # 250条结果或者指定秒数就保存一次，这个任务可以优化为使用 celery
+                if len(self.res_asciinema) > 250 or int(time.time() - self.last_save_time) > 30:
+                    tmp = list(self.res_asciinema)
+                    self.res_asciinema = []
+                    self.last_save_time = time.time()
+                    with open(settings.TERMINAL_LOGS + '/' + self.res_file, 'a+') as f:
+                        for line in tmp:
+                            f.write('{}\n'.format(line))
+
                 message = json.dumps(self.message)
                 if self.websocker.send_flag == 0:
                     self.websocker.send(message)
@@ -113,6 +165,20 @@ class SSH:
                         "type": "chat.message",
                         "text": message,
                     })
+                if self.tab_mode:
+                    tmp = data.split(' ')
+                    # tab 只返回一个命令时匹配
+                    # print(tmp)
+                    if len(tmp) == 2 and tmp[1] == '' and tmp[0] != '':
+                        self.cmd_tmp = self.cmd_tmp + tmp[0].encode().replace(b'\x07', b'').decode()
+                    elif len(tmp) == 1 and tmp[0].encode() != b'\x07':  # \x07 蜂鸣声
+                        self.cmd_tmp = self.cmd_tmp + tmp[0].encode().replace(b'\x07', b'').decode()
+                    self.tab_mode = False
+                if self.history_mode:   # 不完善，只支持向上翻一个历史命令
+                    # print(data)
+                    if data.strip() != '':
+                        self.cmd_tmp = data
+                    self.history_mode = False
         except:
             self.close()
 

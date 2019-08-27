@@ -1,0 +1,51 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>{{ session.user }} - {{ session.username }}@{{ session.host }}:{{ session.port }} - {{ session.name }}</title>
+  <!-- Tell the browser to be responsive to screen width -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Theme style -->
+  <link rel="stylesheet" href="{% static 'adminlte/dist/css/adminlte.min.css' %}">
+  
+  <!-- Toastr -->
+  <link rel="stylesheet" href="{% static 'adminlte/plugins/toastr/toastr.min.css' %}">
+  
+  <!-- webssh -->
+  <link rel="stylesheet" href="{% static 'webssh/xterm.css' %}">
+  <!--link rel="stylesheet" href="{% static 'webssh/style.css' %}"-->
+
+</head>
+<body>
+
+<span id="group" hidden>{{ session.group }}</span>
+
+<div id="terminal"></div>
+
+<!-- jQuery -->
+<script src="{% static 'adminlte/plugins/jquery/jquery.min.js' %}"></script>
+<!-- Bootstrap 4 -->
+<script src="{% static 'adminlte/plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+
+<!-- FastClick -->
+<script src="{% static 'adminlte/plugins/fastclick/fastclick.js' %}"></script>
+<!-- AdminLTE App -->
+<script src="{% static 'adminlte/dist/js/adminlte.min.js' %}"></script>
+
+<!-- Toastr -->
+<script src="{% static 'adminlte/plugins/toastr/toastr.min.js' %}"></script>
+
+<!-- webssh -->
+<script src="{% static 'webssh/xterm.js' %}"></script>
+<script src="{% static 'webssh/webssh.clissh.view.js' %}"></script>
+
+<script>
+	websocket();
+</script>
+
+</body>
+</html>

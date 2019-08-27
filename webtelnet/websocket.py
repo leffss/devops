@@ -4,7 +4,7 @@ from django.conf import settings
 from django.http.request import QueryDict
 import django.utils.timezone as timezone
 from server.models import RemoteUserBindHost
-from webssh.models import TerminalLog, TerminalLogDetail
+from webssh.models import TerminalLog
 from django.db.models import Q
 import json
 import time
@@ -15,7 +15,7 @@ except BaseException:
     session_exipry_time = 60 * 30
 
 
-def terminal_log(user, hostname, ip, protocol, port, username, cmd, res, address, useragent, start_time):
+def terminal_log(user, hostname, ip, protocol, port, username, cmd, detail, address, useragent, start_time):
     event = TerminalLog()
     event.user = user
     event.hostname = hostname
@@ -24,15 +24,11 @@ def terminal_log(user, hostname, ip, protocol, port, username, cmd, res, address
     event.port = port
     event.username = username
     event.cmd = cmd
-    # event.res = res
+    event.detail = detail
     event.address = address
     event.useragent = useragent
     event.start_time = start_time
     event.save()
-    event_detail = TerminalLogDetail()
-    event_detail.terminallog = event
-    event_detail.res = res
-    event_detail.save()
     
 
 class WebTelnet(WebsocketConsumer):

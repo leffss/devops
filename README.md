@@ -10,6 +10,7 @@ pip install -r requirements.txt
 
 # 运行
 python3 manage.py runserver
+python3 manage.py proxy_sshd
 ```
 
 docker方式(Centos 7)
@@ -63,6 +64,8 @@ sh start_docker.sh
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/35.PNG?raw=true)
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/36.PNG?raw=true)
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/37.JPG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/38.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/39.PNG?raw=true)
 
 
 # TODO LISTS
@@ -95,7 +98,7 @@ sh start_docker.sh
 - [ ] 批量脚本
 - [x] webssh终端
 - [x] webtelnet终端
-- [ ] 网页调用crt,xshell等终端
+- [x] 网页调用securecrt,xshell,putty,winscp等终端(目前只支持windows)
 - [ ] websftp终端
 - [x] 查看在线会话列表
 - [x] 实时查看在线会话
@@ -106,6 +109,7 @@ sh start_docker.sh
 - [x] 用户日志审计
 - [x] 操作日志审计
 - [x] web终端日志审计
+- [x] web终端操作录像
 - [x] 所有界面表单数据验证(原生javascript正则表单式验证)
 - [ ] 搜索
 - [ ] 后台耗时任务使用 celery

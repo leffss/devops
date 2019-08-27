@@ -18,6 +18,9 @@
   <!-- webssh -->
   <link rel="stylesheet" href="{% static 'webssh/xterm.css' %}">
   <!--link rel="stylesheet" href="{% static 'webssh/style.css' %}"-->
+  
+  
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/rrweb@latest/dist/rrweb.min.css"/>
 
 </head>
 <body>
@@ -42,6 +45,41 @@
 <!-- webssh -->
 <script src="{% static 'webssh/xterm.js' %}"></script>
 <script src="{% static 'webssh/webssh.js' %}"></script>
+<script src="{% static 'webssh/addons/zmodem/zmodem.js' %}"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/rrweb@latest/dist/rrweb.min.js"></script>
+<script>
+
+	let events = [];
+	
+	rrweb.record({
+	  emit(event) {
+		// 将 event 存入 events 数组中
+		events.push(event);
+		// console.log(event);
+	  },
+	});
+	
+	// save 函数用于将 events 发送至后端存入，并重置 events 数组
+	function save() {
+	  const body = JSON.stringify({ events });
+	  console.log(body)
+	  //const replayer = new rrweb.Replayer(events);
+	  //console.log(events)
+	  //replayer.play();
+	  events = [];
+	  //fetch('http://YOUR_BACKEND_API', {
+		//method: 'POST',
+		//headers: {
+		//  'Content-Type': 'application/json',
+		//},
+		//body,
+	  //});
+	};
+	// 每 10 秒调用一次 save 方法，避免请求过多
+	setInterval(save, 20 * 1000);
+	
+</script>
 
 <script>
 	websocket();

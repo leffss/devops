@@ -2,6 +2,7 @@ import telnetlib
 from threading import Thread
 import json
 import time
+from util.tool import gen_rand_char
 
 
 class Telnet:
@@ -13,6 +14,7 @@ class Telnet:
         self.message = message
         self.cmd = ''       # 多行命令
         self.cmd_tmp = ''   # 一行命令
+        self.res_file = gen_rand_char(16) + '.txt'
         self.res = ''
         self.tn = telnetlib.Telnet()
 

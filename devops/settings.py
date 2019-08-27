@@ -15,9 +15,17 @@ import os
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TMP_DIR = os.path.join(BASE_DIR, 'tmp')
-
 if not os.path.isdir(TMP_DIR):
     os.makedirs(TMP_DIR)
+
+TERMINAL_LOGS = os.path.join(BASE_DIR, 'terminal_logs')
+if not os.path.isdir(TERMINAL_LOGS):
+    os.makedirs(TERMINAL_LOGS)
+
+MEDIA_ROOT = os.path.join(BASE_DIR, 'terminal_logs')
+if not os.path.isdir(MEDIA_ROOT):
+    os.makedirs(MEDIA_ROOT)
+MEDIA_URL = '/media/'
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
@@ -123,8 +131,6 @@ USE_L10N = True
 
 USE_TZ = False
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/2.2/howto/static-files/
 
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
@@ -137,8 +143,13 @@ SIMPLEUI_STATIC_OFFLINE = True
 # session 如果在此期间未做任何操作，则退出， django 本身要么设置固定时间，要么关闭浏览器失效
 CUSTOM_SESSION_EXIPRY_TIME = 60 * 30    # 30 分钟
 
-# celery 配置
-CELERY_BROKER_URL = 'redis://127.0.0.1:6379/0'
+redis_setting = {
+    'host': '127.0.0.1',
+    'port': 6379,
+}
+
+# celery 配置 redis
+CELERY_BROKER_URL = 'redis://{0}:{1}/0'.format(redis_setting['host'], redis_setting['port'])
 
 
 DEBUG_TOOLBAR_PANELS = [
@@ -162,12 +173,44 @@ INTERNAL_IPS = [
     # ...
 ]
 
-# channel_layers
+# channel_layers 使用 redis
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [("127.0.0.1", 6379)],
+            "hosts": [(redis_setting['host'], redis_setting['port'])],
         },
     },
 }
+
+# 缓存使用 redis
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://{0}:{1}'.format(redis_setting['host'], redis_setting['port']),
+        'OPTIONS': {
+            # 'DB': 10,
+            # 'PASSWORD': '123456',
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'PARSER_CLASS': 'redis.connection.HiredisParser',
+            'CONNECTION_POOL_CLASS': 'redis.BlockingConnectionPool',
+            'CONNECTION_POOL_CLASS_KWARGS': {
+                'max_connections': 250,
+                'timeout': 10,
+            },
+        },
+        'KEY_PREFIX': 'devops',
+    }
+}
+
+SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+SESSION_COOKIE_HTTPONLY = True
+
+
+# proxy_sshd 配置
+PROXY_SSHD = {
+    'listen_host': '0.0.0.0',
+    'listen_port': 2222,
+    'cons': 100,
+}
+

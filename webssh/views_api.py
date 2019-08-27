@@ -5,6 +5,7 @@ from user.models import LoginLog
 from util.tool import login_required, post_required, admin_required
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+from django.core.cache import cache
 import time
 import traceback
 # Create your views here.
@@ -38,8 +39,36 @@ def session_close(request):
         # })
         async_to_sync(channel_layer.group_send)(group, {
             "type": "chat.message",
-            "text": '{"status":2, "message":"\\n\\rAdministrator forcibly interrupts your connection"}',
+            "text": '{"status":2, "message":"\\n\\r系统管理员已强制中止了您的终端连接"}',
         })
+        try:
+            terminalsession.delete()
+        except BaseException:
+            pass
+        login_event_log(request.session.get('username'), 18, '会话 [{}] 强制停止成功'.format(terminalsession.name),
+                        request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
+        return JsonResponse({"code": 200, "err": ""})
+    except BaseException:
+        error_message = '未知错误!'
+        return JsonResponse({"code": 401, "err": error_message})
+
+
+@login_required
+@admin_required
+@post_required
+def session_clissh_close(request):
+    pk = request.POST.get('id', None)
+    name = request.POST.get('session', None)
+    if not pk or not name:
+        error_message = '不合法的请求参数!'
+        return JsonResponse({"code": 400, "err": error_message})
+    name = name.strip()
+    terminalsession = get_object_or_404(TerminalSession, pk=pk)
+    if terminalsession.name != name:
+        error_message = '不合法的请求参数!'
+        return JsonResponse({"code": 400, "err": error_message})
+    try:
+        cache.delete(name)
         try:
             terminalsession.delete()
         except BaseException:

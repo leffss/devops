@@ -8,3 +8,5 @@ celery==4.3.0
 redis
 eventlet
 django-debug-toolbar
+selectors2
+django-redis

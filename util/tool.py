@@ -5,6 +5,7 @@ from django.conf import settings
 from functools import wraps
 import hashlib
 import time
+import random
 
 
 try:
@@ -55,4 +56,9 @@ def admin_required(func):
             return JsonResponse({"code": 403, "err": "无权限"})
         return func(request, *args, **kwargs)
     return wrapper
+
+
+# 生成随机字符串
+def gen_rand_char(length=10, chars='0123456789zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA'):
+    return ''.join(random.sample(chars, length))
 

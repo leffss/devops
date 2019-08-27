@@ -10,6 +10,7 @@ class TerminalLog(models.Model):
     port = models.SmallIntegerField(default=22, verbose_name='端口')
     username = models.CharField(max_length=128, verbose_name="用户名")
     cmd = models.TextField('命令详情')
+    detail = models.CharField(max_length=128, default='result', verbose_name="结果详情(文件名)")
     address = models.GenericIPAddressField('IP地址', blank=True, null=True)
     useragent = models.CharField(max_length=512, blank=True, null=True, verbose_name='User_Agent')
     start_time = models.DateTimeField('会话开始时间')
@@ -24,21 +25,6 @@ class TerminalLog(models.Model):
         verbose_name_plural = '在线会话日志'
 
 
-class TerminalLogDetail(models.Model):
-    """
-    结果详情单独以一对一的关系表存储，提高查询速度
-    """
-    terminallog = models.OneToOneField('TerminalLog', blank=True, null=True, on_delete=models.PROTECT)
-    res = models.TextField('结果详情', default='未记录')
-
-    def __str__(self):
-        return '{0}'.format(self.terminallog.user)
-
-    class Meta:
-        verbose_name = '在线会话日志结果详情'
-        verbose_name_plural = '在线会话日志结果详情'
-
-
 class TerminalSession(models.Model):
     PROTOCOL_CHOICES = (    # 目前支持ssh, telnet
         (1, 'ssh'),
@@ -48,8 +34,19 @@ class TerminalSession(models.Model):
         (5, 'sftp'),
         (6, 'ftp'),
     )
+
+    TYPE_CHOICES = (
+        (1, 'webssh'),
+        (2, 'websftp'),
+        (3, 'clissh'),
+        (4, 'clisftp'),
+        (5, 'webtelnet'),
+        (6, 'clitelnet'),
+    )
+
     name = models.CharField(max_length=512, verbose_name='会话名称')
     group = models.CharField(default='chat_default', max_length=512, verbose_name='会话组')
+    type = models.SmallIntegerField(default=1, choices=TYPE_CHOICES, verbose_name='类型')
     user = models.CharField(max_length=128, verbose_name='用户')
     host = models.GenericIPAddressField(verbose_name='主机')
     port = models.SmallIntegerField(default=22, verbose_name='端口')

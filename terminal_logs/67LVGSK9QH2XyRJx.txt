@@ -1,0 +1,1 @@
+{"version": 2, "width": 250, "height": 40, "timestamp": 1566886955, "env": {"SHELL": "/bin/sh", "TERM": "linux"}}

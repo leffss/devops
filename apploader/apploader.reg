@@ -1,0 +1,10 @@
+Windows Registry Editor Version 5.00
+[HKEY_CLASSES_ROOT\apploader]
+"URL Protocol"="C:\\apploader.exe"
+@="apploader"
+[HKEY_CLASSES_ROOT\apploader\DefaultIcon]
+@="C:\\apploader.exe,1"
+[HKEY_CLASSES_ROOT\apploader\shell]
+[HKEY_CLASSES_ROOT\apploader\shell\open]
+[HKEY_CLASSES_ROOT\apploader\shell\open\command]
+@="\"C:\\apploader.exe\" \"%1\""

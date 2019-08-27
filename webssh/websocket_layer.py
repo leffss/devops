@@ -6,16 +6,16 @@ from django.utils.six import StringIO
 import django.utils.timezone as timezone
 from devops.settings import TMP_DIR
 from server.models import RemoteUserBindHost
-from webssh.models import TerminalLog, TerminalLogDetail, TerminalSession
+from webssh.models import TerminalLog, TerminalSession
 from django.db.models import Q
+from django.core.cache import cache
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 import os
 import json
-import re
 import time
 import traceback
-import random
+from util.tool import gen_rand_char
 
 try:
     session_exipry_time = settings.CUSTOM_SESSION_EXIPRY_TIME
@@ -23,7 +23,7 @@ except BaseException:
     session_exipry_time = 60 * 30
 
 
-def terminal_log(user, hostname, ip, protocol, port, username, cmd, res, address, useragent, start_time):
+def terminal_log(user, hostname, ip, protocol, port, username, cmd, detail, address, useragent, start_time):
     event = TerminalLog()
     event.user = user
     event.hostname = hostname
@@ -32,15 +32,11 @@ def terminal_log(user, hostname, ip, protocol, port, username, cmd, res, address
     event.port = port
     event.username = username
     event.cmd = cmd
-    # event.res = res
+    event.detail = detail
     event.address = address
     event.useragent = useragent
     event.start_time = start_time
     event.save()
-    event_detail = TerminalLogDetail()
-    event_detail.terminallog = event
-    event_detail.res = res
-    event_detail.save()
 
 
 class WebSSH(WebsocketConsumer):
@@ -60,7 +56,7 @@ class WebSSH(WebsocketConsumer):
         self.remote_host = None
         self.start_time = None
         self.send_flag = 0      # 0 发送自身通道，1 发送 group 通道，作用为当管理员查看会话时，进入 group 通道
-        self.group = 'session_' + ''.join(random.sample('zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA', 10))
+        self.group = 'session_' + gen_rand_char()
     
     def connect(self):
         """
@@ -188,6 +184,7 @@ class WebSSH(WebsocketConsumer):
             'username': user,
             'protocol': self.remote_host.protocol,
             'port': port,
+            'type': 1,  # 1 webssh
         }
         TerminalSession.objects.create(**data)
 
@@ -201,13 +198,15 @@ class WebSSH(WebsocketConsumer):
             pass
         finally:
             async_to_sync(self.channel_layer.group_discard)(self.group, self.channel_name)
+            try:
+                tmp = list(self.ssh.res_asciinema)
+                self.ssh.res_asciinema = []
+                with open(settings.TERMINAL_LOGS + '/' + self.ssh.res_file, 'a+') as f:
+                    for line in tmp:
+                        f.write('{}\n'.format(line))
+            except:
+                print(traceback.format_exc())
 
-            # 过滤点结果中的颜色字符
-            self.ssh.res = re.sub(r'(\[\d{2};\d{2}m|\[0m)', '', self.ssh.res)
-            # print('命令: ')
-            # print(self.ssh.cmd)
-            # print('结果: ')
-            # print(res)
             user_agent = None
             for i in self.scope['headers']:
                 if i[0].decode('utf-8') == 'user-agent':
@@ -222,7 +221,7 @@ class WebSSH(WebsocketConsumer):
                     self.remote_host.port,
                     self.remote_host.remote_user.username,
                     self.ssh.cmd,
-                    self.ssh.res,
+                    self.ssh.res_file,
                     self.scope['client'][0],
                     user_agent,
                     self.start_time,
@@ -349,6 +348,59 @@ class WebSSH_view(WebsocketConsumer):
                 self.send(data['text'])
             elif message['status'] == 5:    # 进入查看会话模式
                 self.send(data['text'])
+            else:
+                pass
+        except BaseException:
+            print(traceback.format_exc())
+
+
+class CliSSH_view(WebsocketConsumer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.message = {'status': 0, 'message': None}
+        self.session = None
+        self.group = None
+
+    def connect(self):
+        self.accept()
+        self.session = self.scope.get('session', None)
+        if not self.session.get('islogin', None):  # 未登录直接断开 websocket 连接
+            self.message['status'] = 2
+            self.message['message'] = 'You are not login in...'
+            message = json.dumps(self.message)
+            self.send(message)
+            self.close()
+        query_string = self.scope.get('query_string').decode()
+        args = QueryDict(query_string=query_string, encoding='utf-8')
+        self.group = args.get('group')
+        # 把自身加入 cliwebssh 的组中
+        async_to_sync(self.channel_layer.group_add)(self.group, self.channel_name)  # 加入组
+
+    def disconnect(self, close_code):
+        try:
+            # 退出组
+            async_to_sync(self.channel_layer.group_discard)(self.group, self.channel_name)
+        except:
+            pass
+
+    def receive(self, text_data=None, bytes_data=None):
+        pass
+
+    # 会话外使用 channels.layers 设置 type 为 chat.message 调用此函数
+    def chat_message(self, data):
+        try:
+            # message = json.loads(data['text'])
+            message = data['text']
+            if message['status'] == 0:
+                # self.send(data['text'])
+                self.send(json.dumps(data['text']))
+            elif message['status'] == 1 or message['status'] == 2:      # 会话关闭
+                # self.send(data['text'])
+                self.send(json.dumps(data['text']))
+                self.close()
+            elif message['status'] == 3:    # 测试客户端显示消息框
+                # self.send(data['text'])
+                self.send(json.dumps(data['text']))
             else:
                 pass
         except BaseException:

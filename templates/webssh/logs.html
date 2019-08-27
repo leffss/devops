@@ -1,6 +1,10 @@
 {% extends 'base.html' %}
 {% load static %}
 
+  {% block css %}
+  <link rel="stylesheet" href="{% static 'asciinema-player/asciinema-player.css' %}">
+  {% endblock css %}
+  
   {% block title %}
   <title>web终端日志</title>
   {% endblock title %}
@@ -52,6 +56,7 @@
 				  <th>User_Agent</th>
 				  <th>会话开始时间</th>
 				  <th>事件时间</th>
+				  <th>操作</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -68,6 +73,7 @@
 				  <td>{{ log.useragent | truncatechars_html:20 | default:'' }}...</td>
 				  <td>{{ log.start_time | date:"Y/m/d H:i:s" }}</td>
 				  <td>{{ log.create_time | date:"Y/m/d H:i:s" }}</td>
+				  <td><a href="javascript:void(0)" class="btn btn-primary btn-sm" id="{{ log.detail }}" info="{{ log.user }}-{{ log.hostname }}-{{ log.username }}-{{ log.ip }}-{{ log.port }}" onclick="viewthis(this);"><i class="fas fa-video"></i> 录像</a></td>
                 </tr>
 				{% endfor %}
                 </tbody>
@@ -84,6 +90,7 @@
 				  <th>User_Agent</th>
 				  <th>会话开始时间</th>
 				  <th>事件时间</th>
+				  <th>操作</th>
                 </tr>
                 </tfoot>
               </table>
@@ -91,6 +98,21 @@
             <!-- /.card-body -->
           </div>
           <!-- /.card --> 
+			
+		  	<!--查看录像框-->
+			<div id="modal-view" class="iziModal">
+					<div class="card-body">
+					  <div class="row">
+						  <div class="col-8"><h5 class="mb-3" id="view_info">查看录像</h5></div>
+						  <div class="col-4"><a href="javascript:void(0)" class="iziModal-button-close float-right" data-izimodal-close="" style="color:black;vertical-align:middle"><i class="fas fa-times fa-lg"></i></a></div>
+						  <div class="col-12" id="view_container"><asciinema-player src="/media/demo.txt" theme="monokai" title="demo" rows="30"></asciinema-player></div>
+						  <div class="col-12">
+							<div class="alert alert-info alert-dismissible mt-2 mb-0"><button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>提示：如无法看清某些操作，请尝试全屏查看。</div>
+						  </div>
+					  </div>
+					</div>
+			</div>
+		  
 		  {% endblock content %}
 
 {% block js %}
@@ -133,5 +155,30 @@ $("#datatables-lists").DataTable({
 	 stateSave: true,	// 保存最后一次分页信息、排序信息，当页面刷新，或者重新进入这个页面，恢复上次的状态。
 	 stateDuration: 86400,	// 本地储存(0~更大)还是session储存(-1) 
 });
+</script>
+
+<script src="{% static 'asciinema-player/asciinema-player.js' %}"></script>
+<script>	
+	viewthis = function(event) {
+		var thisObj = $(event);	//js对象转jquery对象
+		// var info = thisObj.attr('id').split("-")[0];
+		var info = thisObj.attr('info');
+		var file = thisObj.attr("id");
+		$("#view_info").text(info);
+		var res = '<asciinema-player src="/media/' + file + '" theme="monokai" title="' + info + '" rows="30"></asciinema-player>';
+		$("#view_container").html(res);
+		$("#modal-view").iziModal({
+			iconClass: 'icon-announcement',
+			width: 580,
+			overlayClose: false,	// 是否允许点击模态窗口的外部来关闭模态窗口。
+			closeOnEscape: false, 	// 是否允许通过点击ESC键来关闭模态窗口。
+		});
+		$('#modal-view').iziModal('open');
+	};
+	
+	$(document).on('closed', '#modal-view', function (e) {
+		$('#modal').iziModal('#modal-view');	//销毁模态窗口。
+	});
+
 </script>
 {% endblock js %}
