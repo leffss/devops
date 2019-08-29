@@ -6,6 +6,7 @@ from functools import wraps
 import hashlib
 import time
 import random
+from webssh.models import TerminalLog
 
 
 try:
@@ -61,4 +62,20 @@ def admin_required(func):
 # 生成随机字符串
 def gen_rand_char(length=10, chars='0123456789zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA'):
     return ''.join(random.sample(chars, length))
+
+
+def terminal_log(user, hostname, ip, protocol, port, username, cmd, detail, address, useragent, start_time):
+    event = TerminalLog()
+    event.user = user
+    event.hostname = hostname
+    event.ip = ip
+    event.protocol = protocol
+    event.port = port
+    event.username = username
+    event.cmd = cmd
+    event.detail = detail
+    event.address = address
+    event.useragent = useragent
+    event.start_time = start_time
+    event.save()
 

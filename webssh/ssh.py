@@ -24,17 +24,6 @@ class SSH:
         self.start_time = time.time()
         self.last_save_time = self.start_time
         self.res_asciinema = []
-        self.res_asciinema.append(
-            json.dumps(
-                {
-                 "version": 2,
-                 "width": 250,  # 设置足够宽，以便播放时全屏不至于显示错乱
-                 "height": 40,
-                 "timestamp": int(self.start_time),
-                 "env": {"SHELL": "/bin/sh", "TERM": "linux"}
-                 }
-            )
-        )
     
     # term 可以使用 ansi, linux, vt100, xterm, dumb，除了 dumb外其他都有颜色显示
     def connect(self, host, user, password=None, ssh_key=None, port=22, timeout=30,
@@ -57,6 +46,18 @@ class SSH:
             self.channel = transport.open_session()
             self.channel.get_pty(term=term, width=pty_width, height=pty_height)
             self.channel.invoke_shell()
+
+            self.res_asciinema.append(
+                json.dumps(
+                    {
+                     "version": 2,
+                     "width": 250,  # 设置足够宽，以便播放时全屏不至于显示错乱
+                     "height": 40,
+                     "timestamp": int(self.start_time),
+                     "env": {"SHELL": "/bin/sh", "TERM": "linux"}
+                     }
+                )
+            )
 
             for i in range(2):
                 recv = self.channel.recv(1024).decode('utf-8')
@@ -145,18 +146,6 @@ class SSH:
                 self.message['status'] = 0
                 self.message['message'] = data
                 self.res += data
-
-                delay = round(time.time() - self.start_time, 6)
-                self.res_asciinema.append(json.dumps([delay, 'o', data]))
-                # 250条结果或者指定秒数就保存一次，这个任务可以优化为使用 celery
-                if len(self.res_asciinema) > 250 or int(time.time() - self.last_save_time) > 30:
-                    tmp = list(self.res_asciinema)
-                    self.res_asciinema = []
-                    self.last_save_time = time.time()
-                    with open(settings.TERMINAL_LOGS + '/' + self.res_file, 'a+') as f:
-                        for line in tmp:
-                            f.write('{}\n'.format(line))
-
                 message = json.dumps(self.message)
                 if self.websocker.send_flag == 0:
                     self.websocker.send(message)
@@ -165,6 +154,17 @@ class SSH:
                         "type": "chat.message",
                         "text": message,
                     })
+
+                delay = round(time.time() - self.start_time, 6)
+                self.res_asciinema.append(json.dumps([delay, 'o', data]))
+                # 250条结果或者指定秒数就保存一次，这个任务可以优化为使用 celery
+                if len(self.res_asciinema) > 250 or int(time.time() - self.last_save_time) > 30:
+                    tmp = list(self.res_asciinema)
+                    self.res_asciinema = []
+                    self.last_save_time = time.time()
+                    with open(settings.MEDIA_ROOT + '/' + self.res_file, 'a+') as f:
+                        for line in tmp:
+                            f.write('{}\n'.format(line))
                 if self.tab_mode:
                     tmp = data.split(' ')
                     # tab 只返回一个命令时匹配

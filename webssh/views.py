@@ -59,7 +59,8 @@ def terminal_cli(request):
     link_xshell_ssh = '{scheme}://C:\\Program Files (x86)\\NetSarang\\Xmanager Enterprise 5\\Xshell.exe -newtab "{username}@{host}" -url ssh://{user}:{passwd}@{cmdb}:{port}'
     link_putty_ssh = '{scheme}://C:\\Users\\xx\\AppData\\Roaming\\TP4A\\Teleport-Assist\\tools\\putty\\putty.exe -l {user} -pw {passwd} {cmdb} -P {port}'
     link_winscp_sftp = '{scheme}://C:\\Users\\xx\\AppData\\Roaming\\TP4A\\Teleport-Assist\\tools\\winscp\\WinSCP.exe /sessionname="{username}@{host}" {user}:{passwd}@{cmdb}:{port}'
-    clissh = 'link_crt_ssh'
+
+    clissh = 'link_xshell_ssh'
 
     if clissh == 'link_crt_ssh':
         return HttpResponse(link_crt_ssh.format(

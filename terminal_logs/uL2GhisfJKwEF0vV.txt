@@ -1,0 +1,12 @@
+{"version": 2, "width": 250, "height": 40, "timestamp": 1567044417, "env": {"SHELL": "/bin/sh", "TERM": "linux"}}
+[0.51, "o", "Last login: Thu Aug 29 09:34:45 2019 from 192.168.223.1\r\r\n"]
+[0.521, "o", "[root@k8s2 ~]# "]
+[2.016, "o", "c"]
+[2.087, "o", "l"]
+[2.231, "o", "i"]
+[2.463, "o", "s"]
+[2.662, "o", "s"]
+[2.814, "o", "h"]
+[3.183, "o", "\r\n"]
+[3.184, "o", "-bash: clissh: command not found\r\n[root@k8s2 ~]# "]
+[3.407, "o", "\r\n[root@k8s2 ~]# "]

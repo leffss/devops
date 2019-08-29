@@ -11,32 +11,16 @@ from django.db.models import Q
 from django.core.cache import cache
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+from util.tool import gen_rand_char, terminal_log
 import os
 import json
 import time
 import traceback
-from util.tool import gen_rand_char
 
 try:
     session_exipry_time = settings.CUSTOM_SESSION_EXIPRY_TIME
 except BaseException:
     session_exipry_time = 60 * 30
-
-
-def terminal_log(user, hostname, ip, protocol, port, username, cmd, detail, address, useragent, start_time):
-    event = TerminalLog()
-    event.user = user
-    event.hostname = hostname
-    event.ip = ip
-    event.protocol = protocol
-    event.port = port
-    event.username = username
-    event.cmd = cmd
-    event.detail = detail
-    event.address = address
-    event.useragent = useragent
-    event.start_time = start_time
-    event.save()
 
 
 class WebSSH(WebsocketConsumer):
@@ -139,6 +123,7 @@ class WebSSH(WebsocketConsumer):
                     "text": message,
                 })
             self.close(3001)
+            
         host = self.remote_host.ip
         port = self.remote_host.port
         user = self.remote_host.remote_user.username
@@ -190,6 +175,7 @@ class WebSSH(WebsocketConsumer):
 
     def disconnect(self, close_code):
         try:
+            async_to_sync(self.channel_layer.group_discard)(self.group, self.channel_name)
             if close_code == 3001:
                 pass
             else:
@@ -197,11 +183,10 @@ class WebSSH(WebsocketConsumer):
         except:
             pass
         finally:
-            async_to_sync(self.channel_layer.group_discard)(self.group, self.channel_name)
             try:
                 tmp = list(self.ssh.res_asciinema)
                 self.ssh.res_asciinema = []
-                with open(settings.TERMINAL_LOGS + '/' + self.ssh.res_file, 'a+') as f:
+                with open(settings.MEDIA_ROOT + '/' + self.ssh.res_file, 'a+') as f:
                     for line in tmp:
                         f.write('{}\n'.format(line))
             except:
@@ -278,6 +263,8 @@ class WebSSH(WebsocketConsumer):
                 message = dict()
                 message['status'] = 5
                 message['message'] = self.ssh.res
+                # 这里有个小问题，如果多个管理员查看，前面加入的会收到多份res，
+                # 无伤大雅，后期优化
                 async_to_sync(channel_layer.group_send)(self.group, {
                     "type": "chat.message",
                     "text": json.dumps(message),

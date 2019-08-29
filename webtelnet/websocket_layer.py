@@ -6,31 +6,20 @@ import django.utils.timezone as timezone
 from server.models import RemoteUserBindHost
 from webssh.models import TerminalLog, TerminalSession
 from django.db.models import Q
+from django.core.cache import cache
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+import os
 import json
 import time
 import traceback
+from util.tool import gen_rand_char, terminal_log
 
 try:
     session_exipry_time = settings.CUSTOM_SESSION_EXIPRY_TIME
 except BaseException:
     session_exipry_time = 60 * 30
 
-
-def terminal_log(user, hostname, ip, protocol, port, username, cmd, detail, address, useragent, start_time):
-    event = TerminalLog()
-    event.user = user
-    event.hostname = hostname
-    event.ip = ip
-    event.protocol = protocol
-    event.port = port
-    event.username = username
-    event.cmd = cmd
-    event.detail = detail
-    event.address = address
-    event.useragent = useragent
-    event.start_time = start_time
-    event.save()
-    
 
 class WebTelnet(WebsocketConsumer):
     def __init__(self, *args, **kwargs):
@@ -48,6 +37,8 @@ class WebTelnet(WebsocketConsumer):
         self.session = None
         self.remote_host = None
         self.start_time = None
+        self.send_flag = 0      # 0 发送自身通道，1 发送 group 通道，作用为当管理员查看会话时，进入 group 通道
+        self.group = 'session_' + gen_rand_char()
     
     def connect(self):
         """
@@ -55,6 +46,7 @@ class WebTelnet(WebsocketConsumer):
         :return:
         """
         self.accept()
+        async_to_sync(self.channel_layer.group_add)(self.group, self.channel_name)  # 加入组
         self.start_time = timezone.now()
         self.session = self.scope.get('session', None)
         if not self.session.get('islogin', None):    # 未登录直接断开 websocket 连接
@@ -79,7 +71,13 @@ class WebTelnet(WebsocketConsumer):
                     self.message['status'] = 2
                     self.message['message'] = 'Host is not exist...'
                     message = json.dumps(self.message)
-                    self.send(message)
+                    if self.send_flag == 0:
+                        self.send(message)
+                    elif self.send_flag == 1:
+                        async_to_sync(self.channel_layer.group_send)(self.group, {
+                            "type": "chat.message",
+                            "text": message,
+                        })
                     self.close(3001)
             self.remote_host = RemoteUserBindHost.objects.get(id=hostid)
             if not self.remote_host.enabled:
@@ -87,7 +85,13 @@ class WebTelnet(WebsocketConsumer):
                     self.message['status'] = 2
                     self.message['message'] = 'Host is disabled...'
                     message = json.dumps(self.message)
-                    self.send(message)
+                    if self.send_flag == 0:
+                        self.send(message)
+                    elif self.send_flag == 1:
+                        async_to_sync(self.channel_layer.group_send)(self.group, {
+                            "type": "chat.message",
+                            "text": message,
+                        })
                     self.close(3001)
                 except BaseException:
                     pass
@@ -95,7 +99,13 @@ class WebTelnet(WebsocketConsumer):
             self.message['status'] = 2
             self.message['message'] = 'Host is not exist...'
             message = json.dumps(self.message)
-            self.send(message)
+            if self.send_flag == 0:
+                self.send(message)
+            elif self.send_flag == 1:
+                async_to_sync(self.channel_layer.group_send)(self.group, {
+                    "type": "chat.message",
+                    "text": message,
+                })
             self.close(3001)
         
         host = self.remote_host.ip
@@ -124,6 +134,7 @@ class WebTelnet(WebsocketConsumer):
 
         data = {
             'name': self.channel_name,
+            'group': self.group,
             'user': self.session.get('username'),
             'host': host,
             'username': user,
@@ -135,6 +146,7 @@ class WebTelnet(WebsocketConsumer):
 
     def disconnect(self, close_code):
         try:
+            async_to_sync(self.channel_layer.group_discard)(self.group, self.channel_name)
             if close_code == 3001:
                 pass
             else:
@@ -142,10 +154,15 @@ class WebTelnet(WebsocketConsumer):
         except:
             pass
         finally:
-            # print('命令: ')
-            # print(self.telnet.cmd)
-            # print('结果: ')
-            # print(self.telnet.res)
+            try:
+                tmp = list(self.telnet.res_asciinema)
+                self.telnet.res_asciinema = []
+                with open(settings.MEDIA_ROOT + '/' + self.telnet.res_file, 'a+') as f:
+                    for line in tmp:
+                        f.write('{}\n'.format(line))
+            except:
+                print(traceback.format_exc())
+                
             user_agent = None
             for i in self.scope['headers']:
                 if i[0].decode('utf-8') == 'user-agent':
@@ -165,7 +182,7 @@ class WebTelnet(WebsocketConsumer):
                     user_agent,
                     self.start_time,
                 )
-            TerminalSession.objects.filter(name=self.channel_name).delete()
+            TerminalSession.objects.filter(name=self.channel_name, group=self.group).delete()
 
     def receive(self, text_data=None, bytes_data=None):
         data = json.loads(text_data)
@@ -186,7 +203,13 @@ class WebTelnet(WebsocketConsumer):
             self.message['status'] = 2
             self.message['message'] = 'Your login is expired...'
             message = json.dumps(self.message)
-            self.send(message)
+            if self.send_flag == 0:
+                self.send(message)
+            elif self.send_flag == 1:
+                async_to_sync(self.channel_layer.group_send)(self.group, {
+                    "type": "chat.message",
+                    "text": message,
+                })
             self.close(3001)
         else:
             self.scope['session']['lasttime'] = now
@@ -196,13 +219,28 @@ class WebTelnet(WebsocketConsumer):
     def chat_message(self, data):
         try:
             message = json.loads(data['text'])
-            if message['status'] == 2:
+            if message['status'] == 0:
+                self.send(data['text'])
+            elif message['status'] == 1 or message['status'] == 2:      # 会话关闭
                 self.send(data['text'])
                 self.close()
-            elif message['status'] == 3:
+            elif message['status'] == 3:    # 测试客户端显示消息框
                 self.send(data['text'])
+            elif message['status'] == 4:    # 有管理员进入查看模式
+                self.send_flag = 1
+                channel_layer = get_channel_layer()
+                message = dict()
+                message['status'] = 5
+                message['message'] = self.telnet.res
+                # 这里有个小问题，如果多个管理员查看，前面加入的会收到多份res，
+                # 无伤大雅，后期优化
+                async_to_sync(channel_layer.group_send)(self.group, {
+                    "type": "chat.message",
+                    "text": json.dumps(message),
+                })
             else:
-                self.send(data['text'])
+                pass
         except BaseException:
             print(traceback.format_exc())
+
 

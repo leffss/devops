@@ -102,7 +102,7 @@
 					<button type="button" class="btn btn-block btn-secondary btn-flat" data-iziModal-close>取消</button>
 				</div>
 				<div class="col-6 p-3">
-					<a href="{% url 'user:logout' %}"><button type="button" class="btn btn-block btn-success btn-flat">退出</button></a>
+					<a href="{% url 'user:logout' %}"><button type="button" class="btn btn-block btn-success btn-flat">确定</button></a>
 				</div>
 			</div>
 		</div>
@@ -234,19 +234,14 @@
             </a>
             <ul class="nav nav-treeview">
               <li class="nav-item">
-                <a href="{% url 'server:hosts' %}" class="nav-link">
-                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;批量命令 - x</p>
-                </a>
-              </li>
-              <li class="nav-item">
                 <a href="{% url 'webssh:hosts' %}" class="nav-link">
-                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;web终端</p>
+                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;终端登陆</p>
                 </a>
               </li>
 			  {% if request.session.issuperuser %}
               <li class="nav-item">
                 <a href="{% url 'webssh:sessions' %}" class="nav-link">
-                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在线会话</p>
+                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在线终端</p>
                 </a>
               </li>
 			  {% endif %}
@@ -267,14 +262,9 @@
                   <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;操作日志</p>
                 </a>
               </li>
-			  <li class="nav-item">
-                <a href="{% url 'server:hosts' %}" class="nav-link">
-                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;批量命令日志 - x</p>
-                </a>
-              </li>
               <li class="nav-item">
                 <a href="{% url 'webssh:logs' %}" class="nav-link">
-                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;web终端日志</p>
+                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;终端日志</p>
                 </a>
               </li>
             </ul>

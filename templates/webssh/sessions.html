@@ -2,7 +2,7 @@
 {% load static %}
 
   {% block title %}
-  <title>在线会话</title>
+  <title>在线终端</title>
   {% endblock title %}
 
 	{% block navheader %}
@@ -12,7 +12,7 @@
           <div class="col-12">
             <ol class="breadcrumb">
               <li class="breadcrumb-item">作业中心</li>
-              <li class="breadcrumb-item active">在线会话</li>
+              <li class="breadcrumb-item active">在线终端</li>
             </ol>
           </div>
         </div>
@@ -23,7 +23,7 @@
 		  {% block content %}
           <div class="card card-primary card-outline">
             <div class="card-header">
-              <h3 class="card-title">在线会话</h3>
+              <h3 class="card-title">在线终端</h3>
 				<div class="card-tools">
 				  <button type="button" class="btn btn-tool" data-widget="collapse">
 					<i class="fas fa-minus"></i>
@@ -59,15 +59,39 @@
 				  <td>{{ session.id }}</td>
 				  <td>{{ session.name }}</td>
 				  <td>{{ session.user }}</td>
-				  <td><button class="btn btn-sm btn-info btn-flat">{{ session.get_type_display }}</button></td>
+				  <td>
+				  {% if session.get_type_display == 'webssh' %}
+					<span class="badge badge-success">{{ session.get_type_display }}</span>
+				  {% elif session.get_type_display == 'websftp' %}
+					<span class="badge badge-info">{{ session.get_type_display }}</span>
+				  {% elif session.get_type_display == 'webtelnet' %}
+					<span class="badge badge-primary">{{ session.get_type_display }}</span>
+				  {% elif session.get_type_display == 'clissh' %}
+					<span class="badge badge-warning">{{ session.get_type_display }}</span>
+				  {% elif session.get_type_display == 'clisftp' %}
+					<span class="badge badge-secondary">{{ session.get_type_display }}</span>
+				  {% else %}
+				    <span class="badge badge-danger">{{ session.get_type_display }}</span>
+				  {% endif %}
+				  </td>
 				  <td>{{ session.host }}</td>
 				  <td>{{ session.port }}</td>
 				  <td>{{ session.username }}</td>
-				  <td><button class="btn btn-sm btn-success btn-flat">{{ session.get_protocol_display }}</button></td>
+				  <td>
+				  {% if session.get_protocol_display == 'ssh' %}
+					<span class="badge badge-success">{{ session.get_protocol_display }}</span>
+				  {% elif session.get_protocol_display == 'sftp' %}
+					<span class="badge badge-info">{{ session.get_protocol_display }}</span>
+				  {% elif session.get_protocol_display == 'telnet' %}
+					<span class="badge badge-primary">{{ session.get_protocol_display }}</span>
+				  {% else %}
+				    <span class="badge badge-secondary">{{ session.get_protocol_display }}</span>
+				  {% endif %}
+				  </td>
 				  <td>{{ session.create_time | date:"Y/m/d H:i:s" }}</td>
 				  <td>
 					
-					{% if session.get_type_display == 'webssh' %}
+					{% if session.get_type_display == 'webssh' or session.get_type_display == 'webtelnet' %}
 						<form method="post" action="{% url 'webssh:terminal_view' %}" target="_blank" style="display:inline;">
 						{% csrf_token %}
 						<input type="text" name="sessionname" value="{{ session.name  }}" hidden>
@@ -83,7 +107,7 @@
 						</form>&nbsp;&nbsp;
 					{% endif %}
 					
-					{% if session.get_type_display == 'webssh' %}
+					{% if session.get_type_display == 'webssh' or session.get_type_display == 'webtelnet' %}
 						<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" group="{{ session.group }}" class="btn btn-sm btn-danger btn-flat" onclick="createdeletemodal(this);"><i class="far fa-times-circle"></i> 断开</a>
 					{% elif session.get_type_display == 'clissh' %}
 						<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" class="btn btn-sm btn-danger btn-flat" onclick="createdeletemodal_clissh(this);"><i class="far fa-times-circle"></i> 断开</a>

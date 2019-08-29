@@ -1,0 +1,5 @@
+{"version": 2, "width": 250, "height": 40, "timestamp": 1567044408, "env": {"SHELL": "/bin/sh", "TERM": "linux"}}
+[0.315, "o", "Last login: Thu Aug 29 10:06:38 2019 from ::ffff:192.168.223.1\r\r\n"]
+[0.357, "o", "[root@k8s1 ~]# "]
+[2.157, "o", "ssh"]
+[2.482, "o", "\r\nusage: ssh [-1246AaCfGgKkMNnqsTtVvXxYy] [-b bind_address] [-c cipher_spec]\r\n           [-D [bind_address:]port] [-E log_file] [-e escape_char]\r\n           [-F configfile] [-I pkcs11] [-i identity_file]\r\n           [-J [user@]host[:port]] [-L address] [-l login_name] [-m mac_spec]\r\n           [-O ctl_cmd] [-o option] [-p port] [-Q query_option] [-R address]\r\n           [-S ctl_path] [-W host:port] [-w local_tun[:remote_tun]]\r\n           [user@]hostname [command]\r\n[root@k8s1 ~]# "]

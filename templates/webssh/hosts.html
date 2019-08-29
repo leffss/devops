@@ -2,7 +2,7 @@
 {% load static %}
 
   {% block title %}
-  <title>web终端</title>
+  <title>终端登陆</title>
   {% endblock title %}
 
 	{% block navheader %}
@@ -12,7 +12,7 @@
           <div class="col-12">
             <ol class="breadcrumb">
               <li class="breadcrumb-item">作业中心</li>
-              <li class="breadcrumb-item active">web终端</li>
+              <li class="breadcrumb-item active">终端登陆</li>
             </ol>
           </div>
         </div>
@@ -23,7 +23,7 @@
 		  {% block content %}
           <div class="card card-primary card-outline">
             <div class="card-header">
-              <h3 class="card-title">web终端</h3>
+              <h3 class="card-title">终端登陆</h3>
 				<div class="card-tools">
 				  <button type="button" class="btn btn-tool" data-widget="collapse">
 					<i class="fas fa-minus"></i>
@@ -60,7 +60,17 @@
 				  <td>{{ host.get_type_display }}</td>
 				  <td>{{ host.get_env_display }}</td>
 				  <td>{{ host.ip }}</td>
-				  <td><span class="badge badge-info">{{ host.get_protocol_display }}</span></td>
+				  <td>
+				  {% if host.get_protocol_display == 'ssh' %}
+					<span class="badge badge-success">{{ host.get_protocol_display }}</span>
+				  {% elif host.get_protocol_display == 'sftp' %}
+					<span class="badge badge-info">{{ host.get_protocol_display }}</span>
+				  {% elif host.get_protocol_display == 'telnet' %}
+					<span class="badge badge-primary">{{ host.get_protocol_display }}</span>
+				  {% else %}
+				    <span class="badge badge-secondary">{{ host.get_protocol_display }}</span>
+				  {% endif %}
+				  </td>
 				  <td>{{ host.port }}</td>
 				  <td>{{ host.release }}</td>
 				  {% if host.remote_user %}
@@ -71,33 +81,37 @@
 				  <td>{{ host.create_time|date:"Y/m/d H:i:s" }}</td>
 				  <td>
 					{% if host.remote_user and host.enabled %}
-					{% if host.get_protocol_display == 'ssh' %}
-					<form method="post" action="{% url 'webssh:terminal' %}" target="_blank" style="display:inline;">
-					{% elif host.get_protocol_display == 'telnet' %}
-					<form method="post" action="{% url 'webtelnet:terminal' %}" target="_blank" style="display:inline;">
+						{% if host.get_protocol_display == 'ssh' %}
+						<form method="post" action="{% url 'webssh:terminal' %}" target="_blank" style="display:inline;">
+						{% elif host.get_protocol_display == 'telnet' %}
+						<form method="post" action="{% url 'webtelnet:terminal' %}" target="_blank" style="display:inline;">
+						{% else %}
+						<form method="post" action="#" onsubmit="return false;" style="display:inline;">
+						{% endif %}
+							{% csrf_token %}
+							<input type="text" name="hostid" value="{{ host.id }}" hidden>
+							<button type="submit" class="btn btn-sm btn-success btn-flat"><i class="fas fa-terminal"></i> web终端</button>
+						</form>
 					{% else %}
-					<form method="post" action="#" onsubmit="return false;" style="display:inline;">
+					<button class="btn btn-sm btn-success btn-flat disabled"><i class="fas fa-terminal"></i> web终端</button>
 					{% endif %}
-						{% csrf_token %}
-						<input type="text" name="hostid" value="{{ host.id }}" hidden>
-						<button type="submit" class="btn btn-sm btn-success btn-flat"><i class="fas fa-terminal"></i> web终端</button>
-					</form>
-					{% else %}
-					<button class="btn btn-sm btn-secondary btn-flat disabled"><i class="fas fa-terminal"></i> web终端</button>
-					{% endif %}
+					
 					&nbsp;&nbsp;
 					{% if host.remote_user and host.enabled %}
 						{% if host.get_protocol_display == 'ssh' %}
 							<form method="post" target="_blank" onsubmit="clishell(this);return false;" style="display:inline;">
 								{% csrf_token %}
 								<input type="text" name="hostid" value="{{ host.id }}" hidden>
-								<button type="submit" class="btn btn-sm btn-primary btn-flat"><i class="fas fa-network-wired"></i> 客户端终端</button>
+								<button type="submit" class="btn btn-sm btn-primary btn-flat"><i class="fas fa-network-wired"></i> 客户端ssh</button>
 							</form>
+							&nbsp;&nbsp;
+							<button type="submit" class="btn btn-sm btn-info btn-flat"><i class="fas fa-network-wired"></i> 客户端sftp</button>
 						{% endif %}
 					{% else %}
-						<button class="btn btn-sm btn-secondary btn-flat disabled"><i class="fas fa-network-wired"></i> 客户端终端</button>
+						<button class="btn btn-sm btn-primary btn-flat disabled"><i class="fas fa-network-wired"></i> 客户端ssh</button>
+						&nbsp;&nbsp;
+						<button class="btn btn-sm btn-info btn-flat disabled"><i class="fas fa-network-wired"></i> 客户端sftp</button>
 					{% endif %}
-					
 				  </td>
                 </tr>
 				{% endfor %}

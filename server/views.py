@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404
 from util.tool import login_required, admin_required
 from .models import RemoteUserBindHost, RemoteUser
 from user.models import User, Group
+from webssh.models import TerminalSession
 from django.db.models import Q
 # Create your views here.
 
@@ -11,6 +12,7 @@ def index(request):
     host_count = RemoteUserBindHost.objects.all().count()
     user_count = User.objects.all().count()
     group_count = Group.objects.all().count()
+    session_count = TerminalSession.objects.all().count()
     return render(request, 'server/index.html', locals())
 
 

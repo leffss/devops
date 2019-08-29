@@ -18,10 +18,6 @@ TMP_DIR = os.path.join(BASE_DIR, 'tmp')
 if not os.path.isdir(TMP_DIR):
     os.makedirs(TMP_DIR)
 
-TERMINAL_LOGS = os.path.join(BASE_DIR, 'terminal_logs')
-if not os.path.isdir(TERMINAL_LOGS):
-    os.makedirs(TERMINAL_LOGS)
-
 MEDIA_ROOT = os.path.join(BASE_DIR, 'terminal_logs')
 if not os.path.isdir(MEDIA_ROOT):
     os.makedirs(MEDIA_ROOT)

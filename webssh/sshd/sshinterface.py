@@ -11,7 +11,7 @@ from django.core.cache import cache
 import django.utils.timezone as timezone
 from server.models import RemoteUserBindHost
 from webssh.models import TerminalLog, TerminalSession
-from util.tool import gen_rand_char
+from util.tool import gen_rand_char, terminal_log
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from django.conf import settings
@@ -22,22 +22,6 @@ paramiko.util.log_to_file('./paramiko.log')
 
 # ssh_client ===>>          proxy_ssh             ==>> ssh_server
 # ssh_client ===>> (proxy_server -> proxy_client) ==>> ssh_server
-
-
-def terminal_log(user, hostname, ip, protocol, port, username, cmd, detail, address, useragent, start_time):
-    event = TerminalLog()
-    event.user = user
-    event.hostname = hostname
-    event.ip = ip
-    event.protocol = protocol
-    event.port = port
-    event.username = username
-    event.cmd = cmd
-    event.detail = detail
-    event.address = address
-    event.useragent = useragent
-    event.start_time = start_time
-    event.save()
 
 
 def transport_keepalive(transport):
@@ -73,22 +57,10 @@ class ServerInterface(paramiko.ServerInterface):
         self.log_start_time = timezone.now()
         self.last_save_time = self.start_time
         self.res_asciinema = []
-        self.res_asciinema.append(
-            json.dumps(
-                {
-                 "version": 2,
-                 "width": 250,  # 设置足够宽，以便播放时全屏不至于显示错乱
-                 "height": 40,
-                 "timestamp": int(self.start_time),
-                 "env": {"SHELL": "/bin/sh", "TERM": "linux"}
-                 }
-            )
-        )
 
     def close_ssh_self(self, sleep_time=5):
         try:
             while 1:
-                time.sleep(sleep_time)   # 每次循环暂停5秒，以免对 redis 造成压力
                 if not cache.get('{}_{}_ssh_session'.format(self.http_user, self.password), False):
                     if not self.closed:
                         try:
@@ -112,6 +84,7 @@ class ServerInterface(paramiko.ServerInterface):
                     except:
                         pass
                     break
+                time.sleep(sleep_time)  # 每次循环暂停一定时间，以免对 redis 造成压力
         except:
             pass
 
@@ -144,6 +117,18 @@ class ServerInterface(paramiko.ServerInterface):
             t = threading.Thread(target=self.close_ssh_self)
             t.daemon = True
             t.start()
+
+            self.res_asciinema.append(
+                json.dumps(
+                    {
+                        "version": 2,
+                        "width": 250,  # 设置足够宽，以便播放时全屏不至于显示错乱
+                        "height": 40,
+                        "timestamp": int(self.start_time),
+                        "env": {"SHELL": "/bin/sh", "TERM": "linux"}
+                    }
+                )
+            )
             
             try:
                 self.client = self.chan_cli.transport.remote_version
@@ -153,9 +138,7 @@ class ServerInterface(paramiko.ServerInterface):
                 self.client_addr = self.chan_cli.transport.sock.getpeername()[0]
             except:
                 self.client_addr = '1.0.0.0'
-            
         except BaseException:
-            print(traceback.format_exc())
             self.close()
 
     def bridge(self):
@@ -188,6 +171,23 @@ class ServerInterface(paramiko.ServerInterface):
                             except:
                                 pass
                             self.chan_cli.send(recv_message)
+
+                            data = recv_message.decode('utf-8')
+                            if self.tab_mode:
+                                tmp = data.split(' ')
+                                # tab 只返回一个命令时匹配
+                                # print(tmp)
+                                if len(tmp) == 2 and tmp[1] == '' and tmp[0] != '':
+                                    self.cmd_tmp = self.cmd_tmp + tmp[0].encode().replace(b'\x07', b'').decode()
+                                elif len(tmp) == 1 and tmp[0].encode() != b'\x07':  # \x07 蜂鸣声
+                                    self.cmd_tmp = self.cmd_tmp + tmp[0].encode().replace(b'\x07', b'').decode()
+                                self.tab_mode = False
+                            if self.history_mode:  # 不完善，只支持向上翻一个历史命令
+                                # print(data)
+                                if data.strip() != '':
+                                    self.cmd_tmp = data
+                                self.history_mode = False
+
                             # 记录操作录像
                             try:
                                 """
@@ -200,7 +200,7 @@ class ServerInterface(paramiko.ServerInterface):
                                     tmp = list(self.res_asciinema)
                                     self.res_asciinema = []
                                     self.last_save_time = time.time()
-                                    with open(settings.TERMINAL_LOGS + '/' + self.res_file, 'a+') as f:
+                                    with open(settings.MEDIA_ROOT + '/' + self.res_file, 'a+') as f:
                                         for line in tmp:
                                             f.write('{}\n'.format(line))
                             except BaseException:
@@ -216,12 +216,35 @@ class ServerInterface(paramiko.ServerInterface):
                             break
                         else:
                             self.chan_ser.send(send_message)
+                            data = send_message.decode('utf-8')
+                            if data == '\r':  # 记录命令
+                                data = '\n'
+                                if self.cmd_tmp.strip() != '':
+                                    self.cmd_tmp += data
+                                    self.cmd += self.cmd_tmp
+
+                                    # print('-----------------------------------')
+                                    # print(self.cmd_tmp)
+                                    # print(self.cmd_tmp.encode())
+                                    # print('-----------------------------------')
+
+                                    self.cmd_tmp = ''
+                            elif data.encode() == b'\x07':
+                                pass
+                            else:
+                                if data == '\t' or data.encode() == b'\x1b':  # \x1b 点击2下esc键也可以补全
+                                    self.tab_mode = True
+                                elif data.encode() == b'\x1b[A' or data.encode() == b'\x1b[B':
+                                    self.history_mode = True
+                                else:
+                                    self.cmd_tmp += data
+
                     except socket.timeout:
                         pass
                     except socket.error:
                         break
 
-    def close(self):
+    def close(self, terminal_type='ssh'):
         # 关闭ssh终端，必须分开 try 关闭，否则当强制关闭一方时，另一方连接可能被挂起
         try:
             self.chan_cli.transport.close()
@@ -242,8 +265,7 @@ class ServerInterface(paramiko.ServerInterface):
                     'ssh',
                     self.ssh_args[1],
                     self.ssh_args[2],
-                    # self.ssh.cmd,
-                    '',
+                    self.cmd,
                     self.res_file,
                     self.client_addr,    # 客户端 ip
                     self.client,
@@ -255,14 +277,16 @@ class ServerInterface(paramiko.ServerInterface):
         try:
             tmp = list(self.res_asciinema)
             self.res_asciinema = []
-            with open(settings.TERMINAL_LOGS + '/' + self.res_file, 'a+') as f:
+            with open(settings.MEDIA_ROOT + '/' + self.res_file, 'a+') as f:
                 for line in tmp:
                     f.write('{}\n'.format(line))
         except:
             pass
 
         try:
-            TerminalSession.objects.filter(name='{}_{}_ssh_session'.format(self.http_user, self.password)).delete()
+            TerminalSession.objects.filter(
+                name='{}_{}_{}_session'.format(self.http_user, self.password, terminal_type)
+            ).delete()
         except:
             pass
 
@@ -280,7 +304,8 @@ class ServerInterface(paramiko.ServerInterface):
             pass
 
         try:
-            cache.delete('{}_{}_ssh_session'.format(self.http_user, self.password))
+            if terminal_type != 'N':
+                cache.delete('{}_{}_{}_session'.format(self.http_user, self.password, terminal_type))
         except:
             pass
 
@@ -365,10 +390,10 @@ class ServerInterface(paramiko.ServerInterface):
                 except:
                     pass
                 finally:
-                    self.close()    # 超过随机密码使用次数限制直接断开连接
+                    self.close(terminal_type='N')    # 超过随机密码使用次数限制直接断开连接
             return True
         except BaseException:
-            self.close()
+            self.close(terminal_type='N')
 
     def check_channel_subsystem_request(self, channel, name):
         # SFTP子系统
@@ -399,10 +424,10 @@ class ServerInterface(paramiko.ServerInterface):
                 except:
                     pass
                 finally:
-                    self.close()  # 超过随机密码使用次数限制直接断开连接
+                    self.close(terminal_type='N')  # 超过随机密码使用次数限制直接断开连接
             return super(ServerInterface, self).check_channel_subsystem_request(channel, name)
         except BaseException:
-            self.close()
+            self.close(terminal_type='N')
 
     def check_channel_window_change_request(self, channel, width, height,
                                             pixelwidth, pixelheight):

@@ -6,7 +6,7 @@
   {% endblock css %}
   
   {% block title %}
-  <title>web终端日志</title>
+  <title>终端日志</title>
   {% endblock title %}
 
 	{% block navheader %}
@@ -16,7 +16,7 @@
           <div class="col-12">
             <ol class="breadcrumb">
               <li class="breadcrumb-item">日志审计</li>
-              <li class="breadcrumb-item active">web终端日志</li>
+              <li class="breadcrumb-item active">终端日志</li>
             </ol>
           </div>
         </div>
@@ -27,14 +27,11 @@
 		  {% block content %}
           <div class="card card-primary card-outline">
             <div class="card-header">
-              <h3 class="card-title">web终端日志</h3>
+              <h3 class="card-title">终端日志</h3>
 				<div class="card-tools">
 				  <button type="button" class="btn btn-tool" data-widget="collapse">
 					<i class="fas fa-minus"></i>
 				  </button>
-				  <button type="button" class="btn btn-tool" data-widget="maximize">
-				  <i class="fas fa-expand"></i>
-                  </button>
 				  <button type="button" class="btn btn-tool" data-widget="remove">
 					<i class="fas fa-times"></i>
 				  </button>
@@ -51,11 +48,11 @@
 				  <th>协议</th>
 				  <th>端口</th>
 				  <th>用户名</th>
-				  <th>命令详情</th>
+				  <th>命令</th>
 				  <th>IP地址</th>
-				  <th>User_Agent</th>
-				  <th>会话开始时间</th>
-				  <th>事件时间</th>
+				  <th>客户端</th>
+				  <th>开始时间</th>
+				  <th>结束时间</th>
 				  <th>操作</th>
                 </tr>
                 </thead>
@@ -65,15 +62,30 @@
 				  <td>{{ log.user | default:'' }}</td>
 				  <td>{{ log.hostname }}</td>
 				  <td>{{ log.ip }}</td>
-				  <td><span class="badge badge-success">{{ log.protocol }}</span></td>
+				  <td>
+				  {% if log.protocol == 'ssh' %}
+					<span class="badge badge-success">{{ log.protocol }}</span>
+				  {% elif log.protocol == 'sftp' %}
+					<span class="badge badge-info">{{ log.protocol }}</span>
+				  {% elif log.protocol == 'telnet' %}
+					<span class="badge badge-primary">{{ log.protocol }}</span>
+				  {% else %}
+				    <span class="badge badge-secondary">{{ log.protocol }}</span>
+				  {% endif %}
+				  </td>
 				  <td>{{ log.port }}</td>
 				  <td>{{ log.username }}</td>
-				  <td>{{ log.cmd | linebreaksbr | truncatechars_html:15 | default:'' }}<br>...</td>
+				  <td>{{ log.cmd | linebreaksbr | truncatechars_html:10 | default:'' }}<br>...</td>
 				  <td>{{ log.address | default:'' }}</td>
-				  <td>{{ log.useragent | truncatechars_html:20 | default:'' }}...</td>
+				  <td>{{ log.useragent | truncatechars_html:25 | default:'' }}...</td>
 				  <td>{{ log.start_time | date:"Y/m/d H:i:s" }}</td>
 				  <td>{{ log.create_time | date:"Y/m/d H:i:s" }}</td>
-				  <td><a href="javascript:void(0)" class="btn btn-primary btn-sm" id="{{ log.detail }}" info="{{ log.user }}-{{ log.hostname }}-{{ log.username }}-{{ log.ip }}-{{ log.port }}" onclick="viewthis(this);"><i class="fas fa-video"></i> 录像</a></td>
+				  <td>
+				  <a href="javascript:void(0)" class="btn btn-primary btn-sm" info="{{ log.user }}-{{ log.hostname }}-{{ log.username }}@{{ log.ip }}:{{ log.port }}" onclick="viewthiscmd(this);"><cmd hidden>{{ log.cmd | linebreaksbr }}</cmd><i class="fas fa-folder"></i> 命令详情</a>&nbsp;&nbsp;
+				  {% if log.protocol == 'ssh' or log.protocol == 'telnet' %}
+				  <a href="javascript:void(0)" class="btn btn-info btn-sm" id="{{ log.detail }}" info="{{ log.user }}-{{ log.hostname }}-{{ log.username }}@{{ log.ip }}:{{ log.port }}" onclick="viewthis(this);"><i class="fas fa-video"></i> 录像</a>
+				  {% endif %}
+				  </td>
                 </tr>
 				{% endfor %}
                 </tbody>
@@ -85,11 +97,11 @@
 				  <th>协议</th>
 				  <th>端口</th>
 				  <th>用户名</th>
-				  <th>命令详情</th>
+				  <th>命令</th>
 				  <th>IP地址</th>
-				  <th>User_Agent</th>
-				  <th>会话开始时间</th>
-				  <th>事件时间</th>
+				  <th>客户端</th>
+				  <th>开始时间</th>
+				  <th>结束时间</th>
 				  <th>操作</th>
                 </tr>
                 </tfoot>
@@ -98,19 +110,33 @@
             <!-- /.card-body -->
           </div>
           <!-- /.card --> 
+		  
+		  	<!--查看命令详情框-->
+			<div id="modal-view-cmd" class="iziModal">
+				<div class="card-body">
+				  <div class="row">
+					  <div class="col-10"><h5 class="mb-3" id="view_cmd_info">命令</h5></div>
+					  <div class="col-2"><a href="javascript:void(0)" class="iziModal-button-close float-right" data-izimodal-close="" style="color:black;vertical-align:middle"><i class="fas fa-times fa-lg"></i></a></div>
+					  <div class="col-12" id="view_cmd_container">demo</div>
+					  <div class="col-12">
+						<div class="alert alert-info alert-dismissible mt-2 mb-0"><button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>提示：如存在特殊字符，请尝试查看录像。</div>
+					  </div>
+				  </div>
+				</div>
+			</div>
 			
 		  	<!--查看录像框-->
 			<div id="modal-view" class="iziModal">
-					<div class="card-body">
-					  <div class="row">
-						  <div class="col-8"><h5 class="mb-3" id="view_info">查看录像</h5></div>
-						  <div class="col-4"><a href="javascript:void(0)" class="iziModal-button-close float-right" data-izimodal-close="" style="color:black;vertical-align:middle"><i class="fas fa-times fa-lg"></i></a></div>
-						  <div class="col-12" id="view_container"><asciinema-player src="/media/demo.txt" theme="monokai" title="demo" rows="30"></asciinema-player></div>
-						  <div class="col-12">
-							<div class="alert alert-info alert-dismissible mt-2 mb-0"><button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>提示：如无法看清某些操作，请尝试全屏查看。</div>
-						  </div>
+				<div class="card-body">
+				  <div class="row">
+					  <div class="col-10"><h5 class="mb-3" id="view_info">录像</h5></div>
+					  <div class="col-2"><a href="javascript:void(0)" class="iziModal-button-close float-right" data-izimodal-close="" style="color:black;vertical-align:middle"><i class="fas fa-times fa-lg"></i></a></div>
+					  <div class="col-12" id="view_container"><asciinema-player src="/media/demo.txt" theme="monokai" title="demo" rows="30"></asciinema-player></div>
+					  <div class="col-12">
+						<div class="alert alert-info alert-dismissible mt-2 mb-0"><button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>提示：如无法看清某些操作，请尝试全屏查看。</div>
 					  </div>
-					</div>
+				  </div>
+				</div>
 			</div>
 		  
 		  {% endblock content %}
@@ -158,14 +184,35 @@ $("#datatables-lists").DataTable({
 </script>
 
 <script src="{% static 'asciinema-player/asciinema-player.js' %}"></script>
-<script>	
+<script>
+
+	viewthiscmd = function(event) {
+		var thisObj = $(event);	//js对象转jquery对象
+		var info = thisObj.attr('info');
+		var cmd = thisObj.find('cmd').html();
+		$("#view_cmd_info").text("命令详情：" + info);
+		$("#view_cmd_container").html(cmd);
+		$("#modal-view-cmd").iziModal({
+			iconClass: 'icon-announcement',
+			width: 580,
+			overlayClose: false,	// 是否允许点击模态窗口的外部来关闭模态窗口。
+			closeOnEscape: false, 	// 是否允许通过点击ESC键来关闭模态窗口。
+		});
+		$('#modal-view-cmd').iziModal('open');
+	};
+	
+	$(document).on('closed', '#modal-view-cmd', function (e) {
+		$('#modal-view-cmd').iziModal('destroy');	//销毁模态窗口。
+	});
+	
+	
 	viewthis = function(event) {
 		var thisObj = $(event);	//js对象转jquery对象
 		// var info = thisObj.attr('id').split("-")[0];
 		var info = thisObj.attr('info');
 		var file = thisObj.attr("id");
-		$("#view_info").text(info);
-		var res = '<asciinema-player src="/media/' + file + '" theme="monokai" title="' + info + '" rows="30"></asciinema-player>';
+		$("#view_info").text("录像：" + info);
+		var res = '<asciinema-player src="/media/' + file + '" theme="monokai" title="' + info + '" rows="30" idle-time-limit="1"></asciinema-player>';
 		$("#view_container").html(res);
 		$("#modal-view").iziModal({
 			iconClass: 'icon-announcement',
@@ -177,7 +224,7 @@ $("#datatables-lists").DataTable({
 	};
 	
 	$(document).on('closed', '#modal-view', function (e) {
-		$('#modal').iziModal('#modal-view');	//销毁模态窗口。
+		$('#modal-view').iziModal('destroy');	//销毁模态窗口。
 	});
 
 </script>
