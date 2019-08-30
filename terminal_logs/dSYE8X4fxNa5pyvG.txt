@@ -1,3 +1,0 @@
-{"version": 2, "width": 250, "height": 40, "timestamp": 1566886898, "env": {"SHELL": "/bin/sh", "TERM": "linux"}}
-[0.411041, "o", "Last login: Tue Aug 27 14:06:55 2019 from 192.168.223.1\r\r\n"]
-[0.413041, "o", "\u001b]0;root@k8s2:~\u0007\u001b[?1034h[root@k8s2 ~]# "]

@@ -3,11 +3,15 @@ import os
 import socket
 import threading
 import paramiko
+from paramiko.common import WARNING
 from webssh.sshd.sftpinterface import SFTPInterface
 from webssh.sshd.sshinterface import ServerInterface
+import logging
 import warnings
 warnings.filterwarnings("ignore")
-paramiko.util.log_to_file('./paramiko.log')
+paramiko.util.log_to_file('./paramiko.log', level=WARNING)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 class SSHServer:
@@ -26,14 +30,13 @@ class SSHServer:
         return paramiko.RSAKey(filename=host_key_path)
 
     def run(self):
-        print('Starting ssh server at {}:{}'.format(self.listen_host, self.listen_port))
+        logger.info('启动 ssh_proxy 服务 @ {}:{}'.format(self.listen_host, self.listen_port))
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind((self.listen_host, self.listen_port))
         sock.listen(self.cons)
 
         while 1:
-            # import ipdb; ipdb.set_trace()
             client, addr = sock.accept()  # 阻塞等待客户端连接
             t = threading.Thread(target=self.handle_connection, args=(client, addr))
             t.daemon = True
@@ -47,12 +50,10 @@ class SSHServer:
         transport.set_subsystem_handler(
             'sftp', paramiko.SFTPServer, SFTPInterface
         )
-        # print('client socket:', addr)
+        logger.info('客户端连接: {}'.format(addr))
         proxy_ssh = ServerInterface()
 
-        # import ipdb; ipdb.set_trace()
         transport.start_server(server=proxy_ssh)  # SSH时输密码 或 SFTP时调用子系统开启SFTP
-        # print('start Transport.start_server')
 
         while transport.is_active():
             chan_cli = transport.accept()

@@ -1,4 +1,0 @@
-{"version": 2, "width": 250, "height": 40, "timestamp": 1567044397, "env": {"SHELL": "/bin/sh", "TERM": "linux"}}
-[3.879, "o", "\r\n[root@k8s1 ~]# "]
-[5.317, "o", "telnet"]
-[5.628, "o", "\r\n-bash: telnet: command not found\r\n[root@k8s1 ~]# "]

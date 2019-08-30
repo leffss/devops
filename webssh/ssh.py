@@ -9,6 +9,8 @@ import json
 import time
 import traceback
 from util.tool import gen_rand_char
+from .tasks import celery_save_res_asciinema
+import platform
 
 
 class SSH:
@@ -157,14 +159,20 @@ class SSH:
 
                 delay = round(time.time() - self.start_time, 6)
                 self.res_asciinema.append(json.dumps([delay, 'o', data]))
-                # 250条结果或者指定秒数就保存一次，这个任务可以优化为使用 celery
+
+                # 250条结果或者指定秒数就保存一次
                 if len(self.res_asciinema) > 250 or int(time.time() - self.last_save_time) > 30:
                     tmp = list(self.res_asciinema)
                     self.res_asciinema = []
                     self.last_save_time = time.time()
-                    with open(settings.MEDIA_ROOT + '/' + self.res_file, 'a+') as f:
-                        for line in tmp:
-                            f.write('{}\n'.format(line))
+                    # windows无法正常支持celery任务
+                    if platform.system().lower() == 'linux':
+                        celery_save_res_asciinema.delay(settings.MEDIA_ROOT + '/' + self.res_file, tmp)
+                    else:
+                        with open(settings.MEDIA_ROOT + '/' + self.res_file, 'a+') as f:
+                            for line in tmp:
+                                f.write('{}\n'.format(line))
+
                 if self.tab_mode:
                     tmp = data.split(' ')
                     # tab 只返回一个命令时匹配

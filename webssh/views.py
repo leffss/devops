@@ -55,10 +55,12 @@ def terminal_cli(request):
     # link = '{scheme}://{user}:{passwd}@{cmdb}:{port}\\" \\"-newtab\\" \\"{username}/{host}\\"'
     host = RemoteUserBindHost.objects.get(pk=host_id)
 
-    link_crt_ssh = '{scheme}://C:\\Program Files\\VanDyke Software\\Clients\\SecureCRT.exe /T /N "{username}@{host}" /SSH2 /L {user} /PASSWORD {passwd} {cmdb} /P {port}'
-    link_xshell_ssh = '{scheme}://C:\\Program Files (x86)\\NetSarang\\Xmanager Enterprise 5\\Xshell.exe -newtab "{username}@{host}" -url ssh://{user}:{passwd}@{cmdb}:{port}'
-    link_putty_ssh = '{scheme}://C:\\Users\\xx\\AppData\\Roaming\\TP4A\\Teleport-Assist\\tools\\putty\\putty.exe -l {user} -pw {passwd} {cmdb} -P {port}'
-    link_winscp_sftp = '{scheme}://C:\\Users\\xx\\AppData\\Roaming\\TP4A\\Teleport-Assist\\tools\\winscp\\WinSCP.exe /sessionname="{username}@{host}" {user}:{passwd}@{cmdb}:{port}'
+    link_crt_ssh = '{scheme}://C:\\Program Files\\VanDyke Software\\Clients\\SecureCRT.exe /T /N "{username}@{host}" \
+    /SSH2 /L {user} /PASSWORD {passwd} {cmdb} /P {port}'
+    link_xshell_ssh = '{scheme}://C:\\Program Files (x86)\\NetSarang\\Xmanager Enterprise 5\\Xshell.exe -newtab \
+    "{username}@{host}" -url ssh://{user}:{passwd}@{cmdb}:{port}'
+    link_putty_ssh = '{scheme}://C:\\Users\\xx\\AppData\\Roaming\\TP4A\\Teleport-Assist\\tools\\putty\\putty.exe \
+    -l {user} -pw {passwd} {cmdb} -P {port}'
 
     clissh = 'link_xshell_ssh'
 
@@ -82,16 +84,6 @@ def terminal_cli(request):
             host=host.ip,  # xshell标签显示连接的主机(后端SSH实际主机)
             username=host.remote_user.username,  # xshell标签显示连接的用户(后端SSH实际用户)
         ))
-    elif clissh == 'link_winscp_sftp':
-        return HttpResponse(link_winscp_sftp.format(
-            scheme='apploader',
-            cmdb=request.META['HTTP_HOST'].split(':')[0],
-            port=settings.PROXY_SSHD.get('listen_port', 2222),
-            user=username,
-            passwd=password,
-            host=host.ip,
-            username=host.remote_user.username,
-        ))
     elif clissh in ('link_putty_ssh'):
         return HttpResponse(link_putty_ssh.format(
             scheme='apploader',
@@ -102,6 +94,32 @@ def terminal_cli(request):
             host=host.ip,
             username=host.remote_user.username,
         ))
+
+
+@login_required
+@post_required
+def terminal_cli_sftp(request):
+    host_id = request.POST.get('hostid', None)
+    username = request.session.get('username')
+    password = gen_rand_char(16)    # 生成随机密码
+    terminal_type = 'ssh'
+    key = '%s_%s_%s' % (terminal_type, username, password)
+    key_sftp = '%s_%s_%s_sftp_count' % (terminal_type, username, password)
+    cache.set(key, host_id, timeout=60 * 60 * 24)  # 写入 redis 缓存以便 proxy_sshd 读取
+    # 用于限制随机密码sftp登陆次数
+    cache.set(key_sftp, 1, timeout=60 * 60 * 24)  # 写入 redis 缓存以便 proxy_sshd 读取
+    host = RemoteUserBindHost.objects.get(pk=host_id)
+    link_winscp_sftp = '{scheme}://C:\\Users\\xx\\AppData\\Roaming\\TP4A\\Teleport-Assist\\tools\\winscp\\WinSCP.exe \
+    /sessionname="{username}@{host}" {user}:{passwd}@{cmdb}:{port}'
+    return HttpResponse(link_winscp_sftp.format(
+        scheme='apploader',
+        cmdb=request.META['HTTP_HOST'].split(':')[0],
+        port=settings.PROXY_SSHD.get('listen_port', 2222),
+        user=username,
+        passwd=password,
+        host=host.ip,
+        username=host.remote_user.username,
+    ))
 
 
 @login_required

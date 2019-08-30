@@ -6,6 +6,8 @@ from util.tool import gen_rand_char
 from django.conf import settings
 from asgiref.sync import async_to_sync
 import traceback
+from webssh.tasks import celery_save_res_asciinema
+import platform
 
 
 class Telnet:
@@ -140,9 +142,14 @@ class Telnet:
                     tmp = list(self.res_asciinema)
                     self.res_asciinema = []
                     self.last_save_time = time.time()
-                    with open(settings.MEDIA_ROOT + '/' + self.res_file, 'a+') as f:
-                        for line in tmp:
-                            f.write('{}\n'.format(line))
+                    # windows无法正常支持celery任务
+                    if platform.system().lower() == 'linux':
+                        celery_save_res_asciinema.delay(settings.MEDIA_ROOT + '/' + self.res_file, tmp)
+                    else:
+                        with open(settings.MEDIA_ROOT + '/' + self.res_file, 'a+') as f:
+                            for line in tmp:
+                                f.write('{}\n'.format(line))
+
                 if self.tab_mode:
                     tmp = data.split(' ')
                     # tab 只返回一个命令时匹配

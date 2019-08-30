@@ -26,6 +26,45 @@ sh start_docker.sh
 账号： admin     密码：123456
 
 
+# 升级日志
+### ver1.7.2
+新增客户端连接sftp；
+linux平台下使用celery任务保存终端会话日志与录像(windows不支持celery)；
+
+### ver1.7.1
+优化界面；
+修复客户端SSH连接部分BUG；
+
+### ver1.7.0
+新增浏览器调用securecrt,xshell,putty等客户端终端；
+新增会话录像审计；
+
+### ver1.6.0 
+新增实时查看在线终端会话；
+
+### ver1.5.0 
+新增全站表单验证(原生javascript正则表达式验证)；
+
+### ver1.4.0 
+新增在线终端会话列表查看；
+新增强制停止在线终端会话功能；
+
+### ver1.3.0 
+完善新增主机，新增主机账号等功能；
+
+
+### ver1.2.0 
+完善功能；
+新增 docker 方式部署；
+尝试加入 celery 4.3.0 实现异步任务；
+
+### ver1.1.0 
+新增ssh和telnet协议连接远程主机；
+
+### ver1.0.0 
+初始版本
+
+
 # 效果
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/1.PNG?raw=true)
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/2.PNG?raw=true)

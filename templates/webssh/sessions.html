@@ -49,6 +49,8 @@
 				  <th>端口</th>
 				  <th>账号</th>
 				  <th>协议</th>
+				  <th>客户端IP</th>
+				  <th>客户端</th>
 				  <th>会话开始时间</th>
 				  <th>操作</th>
                 </tr>
@@ -88,6 +90,10 @@
 				    <span class="badge badge-secondary">{{ session.get_protocol_display }}</span>
 				  {% endif %}
 				  </td>
+				  
+				  <td>{{ session.address | default:'' }}</td>
+				  <td>{{ session.useragent | truncatechars_html:25 | default:'' }}...</td>
+				  
 				  <td>{{ session.create_time | date:"Y/m/d H:i:s" }}</td>
 				  <td>
 					
@@ -109,7 +115,7 @@
 					
 					{% if session.get_type_display == 'webssh' or session.get_type_display == 'webtelnet' %}
 						<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" group="{{ session.group }}" class="btn btn-sm btn-danger btn-flat" onclick="createdeletemodal(this);"><i class="far fa-times-circle"></i> 断开</a>
-					{% elif session.get_type_display == 'clissh' %}
+					{% elif session.get_type_display == 'clissh' or session.get_type_display == 'clisftp' %}
 						<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" class="btn btn-sm btn-danger btn-flat" onclick="createdeletemodal_clissh(this);"><i class="far fa-times-circle"></i> 断开</a>
 					{% endif %}
 				  </td>
@@ -126,6 +132,8 @@
 				  <th>端口</th>
 				  <th>账号</th>
 				  <th>协议</th>
+				  <th>客户端IP</th>
+				  <th>客户端</th>
 				  <th>会话开始时间</th>
 				  <th>操作</th>
                 </tr>
@@ -158,7 +166,7 @@
 			"sInfoPostFix": "",
 			"sSearch": "搜索:",
 			"sUrl": "",
-			"sEmptyTable": "表中数据为空",
+			"sEmptyTable": "无数据",
 			"sLoadingRecords": "载入中...",
 			"sInfoThousands": ",",
 			"oPaginate": {
@@ -276,7 +284,7 @@
 						"sInfoPostFix": "",
 						"sSearch": "搜索:",
 						"sUrl": "",
-						"sEmptyTable": "表中数据为空",
+						"sEmptyTable": "无数据",
 						"sLoadingRecords": "载入中...",
 						"sInfoThousands": ",",
 						"oPaginate": {
@@ -402,7 +410,7 @@
 						"sInfoPostFix": "",
 						"sSearch": "搜索:",
 						"sUrl": "",
-						"sEmptyTable": "表中数据为空",
+						"sEmptyTable": "无数据",
 						"sLoadingRecords": "载入中...",
 						"sInfoThousands": ",",
 						"oPaginate": {

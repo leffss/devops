@@ -6,7 +6,7 @@ from django.utils.six import StringIO
 import django.utils.timezone as timezone
 from devops.settings import TMP_DIR
 from server.models import RemoteUserBindHost
-from webssh.models import TerminalLog, TerminalSession
+from webssh.models import TerminalSession
 from django.db.models import Q
 from django.core.cache import cache
 from channels.layers import get_channel_layer
@@ -16,6 +16,8 @@ import os
 import json
 import time
 import traceback
+from .tasks import celery_save_res_asciinema, celery_save_terminal_log
+import platform
 
 try:
     session_exipry_time = settings.CUSTOM_SESSION_EXIPRY_TIME
@@ -161,6 +163,12 @@ class WebSSH(WebsocketConsumer):
                         self.remote_host.remote_user.superpassword,
                         0.3,
                     )
+
+        user_agent = None
+        for i in self.scope['headers']:
+            if i[0].decode('utf-8') == 'user-agent':
+                user_agent = i[1].decode('utf-8')
+                break
         data = {
             'name': self.channel_name,
             'group': self.group,
@@ -170,6 +178,8 @@ class WebSSH(WebsocketConsumer):
             'protocol': self.remote_host.protocol,
             'port': port,
             'type': 1,  # 1 webssh
+            'address': self.scope['client'][0],
+            'useragent': user_agent,
         }
         TerminalSession.objects.create(**data)
 
@@ -184,13 +194,17 @@ class WebSSH(WebsocketConsumer):
             pass
         finally:
             try:
-                tmp = list(self.ssh.res_asciinema)
-                self.ssh.res_asciinema = []
-                with open(settings.MEDIA_ROOT + '/' + self.ssh.res_file, 'a+') as f:
-                    for line in tmp:
-                        f.write('{}\n'.format(line))
+                if self.ssh.cmd:
+                    tmp = list(self.ssh.res_asciinema)
+                    self.ssh.res_asciinema = []
+                    if platform.system().lower() == 'linux':
+                        celery_save_res_asciinema.delay(settings.MEDIA_ROOT + '/' + self.ssh.res_file, tmp)
+                    else:
+                        with open(settings.MEDIA_ROOT + '/' + self.ssh.res_file, 'a+') as f:
+                            for line in tmp:
+                                f.write('{}\n'.format(line))
             except:
-                print(traceback.format_exc())
+                pass
 
             user_agent = None
             for i in self.scope['headers']:
@@ -198,19 +212,34 @@ class WebSSH(WebsocketConsumer):
                     user_agent = i[1].decode('utf-8')
                     break
             if self.ssh.cmd:
-                terminal_log(
-                    self.session.get('username'),
-                    self.remote_host.hostname,
-                    self.remote_host.ip,
-                    self.remote_host.get_protocol_display(),
-                    self.remote_host.port,
-                    self.remote_host.remote_user.username,
-                    self.ssh.cmd,
-                    self.ssh.res_file,
-                    self.scope['client'][0],
-                    user_agent,
-                    self.start_time,
-                )
+                if platform.system().lower() == 'linux':
+                    celery_save_terminal_log.delay(
+                        self.session.get('username'),
+                        self.remote_host.hostname,
+                        self.remote_host.ip,
+                        self.remote_host.get_protocol_display(),
+                        self.remote_host.port,
+                        self.remote_host.remote_user.username,
+                        self.ssh.cmd,
+                        self.ssh.res_file,
+                        self.scope['client'][0],
+                        user_agent,
+                        self.start_time,
+                    )
+                else:
+                    terminal_log(
+                        self.session.get('username'),
+                        self.remote_host.hostname,
+                        self.remote_host.ip,
+                        self.remote_host.get_protocol_display(),
+                        self.remote_host.port,
+                        self.remote_host.remote_user.username,
+                        self.ssh.cmd,
+                        self.ssh.res_file,
+                        self.scope['client'][0],
+                        user_agent,
+                        self.start_time,
+                    )
             TerminalSession.objects.filter(name=self.channel_name, group=self.group).delete()
 
     def receive(self, text_data=None, bytes_data=None):

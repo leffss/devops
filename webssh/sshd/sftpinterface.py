@@ -4,14 +4,22 @@
 import errno
 import os
 import paramiko
+from paramiko.common import WARNING
 from .sshinterface import transport_keepalive
 import traceback
 import threading
+from django.core.cache import cache
+from webssh.models import TerminalSession
 import time
+import logging
+import platform
 import warnings
 warnings.filterwarnings("ignore")
-paramiko.util.log_to_file('./paramiko.log')
+paramiko.util.log_to_file('./paramiko.log', level=WARNING)
 from util.tool import gen_rand_char, terminal_log
+from ..tasks import celery_save_terminal_log
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 # ssh_client ===>>          proxy_ssh             ==>> ssh_server
 # ssh_client ===>> (proxy_server -> proxy_client) ==>> ssh_server
 
@@ -35,6 +43,23 @@ class SFTPInterface(paramiko.SFTPServerInterface):
             self.client_addr = self.proxy_ssh.chan_cli.transport.sock.getpeername()[0]
         except:
             self.client_addr = '1.0.0.0'
+
+        data = {
+            'name': '{}_{}_sftp_session'.format(self.proxy_ssh.http_user, self.proxy_ssh.password),
+            'group': self.proxy_ssh.group,
+            'user': self.proxy_ssh.http_user,
+            'host': self.proxy_ssh.ssh_args[0],
+            'username': self.proxy_ssh.ssh_args[2],
+            'protocol': 5,  # 5 sftp
+            'port': self.proxy_ssh.ssh_args[1],
+            'type': 4,  # 4 clisftp
+            'address': self.client_addr,
+            'useragent': self._client,
+        }
+        TerminalSession.objects.create(**data)
+
+        # 设置连接到redis，使管理员可强制关闭软件终端 会话最大有效时间 30 天
+        cache.set('{}_{}_sftp_session'.format(self.proxy_ssh.http_user, self.proxy_ssh.password), True, timeout=60 * 60 * 24 * 30)
 
         t = threading.Thread(target=self.check_backend)
         t.daemon = True
@@ -62,6 +87,9 @@ class SFTPInterface(paramiko.SFTPServerInterface):
             while 1:
                 if self.sftp_closed:
                     break
+                if not cache.get('{}_{}_sftp_session'.format(self.proxy_ssh.http_user, self.proxy_ssh.password), False):
+                    self.session_ended()
+                    break
                 try:
                     self.transport.getpeername()
                 except:
@@ -74,29 +102,59 @@ class SFTPInterface(paramiko.SFTPServerInterface):
     def session_ended(self):
         try:
             if self.cmd:
-                terminal_log(
-                    self.proxy_ssh.http_user,
-                    self.proxy_ssh.hostname,
-                    self.proxy_ssh.ssh_args[0],
-                    'sftp',
-                    self.proxy_ssh.ssh_args[1],
-                    self.proxy_ssh.ssh_args[2],
-                    self.cmd,
-                    # self.res_file,
-                    'nothing',
-                    self.client_addr,    # 客户端 ip
-                    self._client,
-                    self.proxy_ssh.log_start_time,
-                )
+                tmp = self.cmd
                 self.cmd = ''
+                if platform.system().lower() == 'linux':
+                    celery_save_terminal_log.delay(
+                        self.proxy_ssh.http_user,
+                        self.proxy_ssh.hostname,
+                        self.proxy_ssh.ssh_args[0],
+                        'sftp',
+                        self.proxy_ssh.ssh_args[1],
+                        self.proxy_ssh.ssh_args[2],
+                        tmp,
+                        # self.res_file,
+                        'nothing',
+                        self.client_addr,  # 客户端 ip
+                        self._client,
+                        self.proxy_ssh.log_start_time,
+                    )
+                else:
+                    terminal_log(
+                        self.proxy_ssh.http_user,
+                        self.proxy_ssh.hostname,
+                        self.proxy_ssh.ssh_args[0],
+                        'sftp',
+                        self.proxy_ssh.ssh_args[1],
+                        self.proxy_ssh.ssh_args[2],
+                        tmp,
+                        # self.res_file,
+                        'nothing',
+                        self.client_addr,    # 客户端 ip
+                        self._client,
+                        self.proxy_ssh.log_start_time,
+                    )
         except:
             pass
+
+        try:
+            TerminalSession.objects.filter(
+                name='{}_{}_{}_session'.format(self.proxy_ssh.http_user, self.proxy_ssh.password, 'sftp')
+            ).delete()
+        except:
+            pass
+
+        try:
+            cache.delete('{}_{}_sftp_session'.format(self.proxy_ssh.http_user, self.proxy_ssh.password))
+        except:
+            pass
+
         try:
             self.proxy_ssh.chan_cli.transport.close()
         except:
             pass
         try:
-            print('SFTP断开: %s@%s' % (self.transport.get_username(), self.transport.getpeername()[0]))
+            logger.info('后端主机SFTP断开: %s@%s' % (self.transport.get_username(), self.transport.getpeername()[0]))
             super(SFTPInterface, self).session_ended()
             self.client.close()
             self.transport.close()

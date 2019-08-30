@@ -1,0 +1,63 @@
+ERR [20190830-11:17:23.958] thr=1   paramiko.transport: Unknown exception: 'NoneType' object is not subscriptable
+ERR [20190830-11:17:23.959] thr=1   paramiko.transport: Traceback (most recent call last):
+ERR [20190830-11:17:23.959] thr=1   paramiko.transport:   File "E:\python37_project\devops\webssh\sshd\sshinterface.py", line 439, in check_channel_subsystem_request
+ERR [20190830-11:17:23.960] thr=1   paramiko.transport:     self.close(terminal_type='N')  # 超过随机密码使用次数限制直接断开连接
+ERR [20190830-11:17:23.960] thr=1   paramiko.transport:   File "E:\python37_project\devops\webssh\sshd\sshinterface.py", line 325, in close
+ERR [20190830-11:17:23.960] thr=1   paramiko.transport:     print('SSH ({0[2]}@{0[0]}) end..................'.format(self.ssh_args))
+ERR [20190830-11:17:23.960] thr=1   paramiko.transport: TypeError: 'NoneType' object is not subscriptable
+ERR [20190830-11:17:23.960] thr=1   paramiko.transport: 
+ERR [20190830-11:17:23.960] thr=1   paramiko.transport: During handling of the above exception, another exception occurred:
+ERR [20190830-11:17:23.960] thr=1   paramiko.transport: 
+ERR [20190830-11:17:23.960] thr=1   paramiko.transport: Traceback (most recent call last):
+ERR [20190830-11:17:23.960] thr=1   paramiko.transport:   File "C:\Program Files\Python37\lib\site-packages\paramiko\transport.py", line 1938, in run
+ERR [20190830-11:17:23.960] thr=1   paramiko.transport:     self._channel_handler_table[ptype](chan, m)
+ERR [20190830-11:17:23.960] thr=1   paramiko.transport:   File "C:\Program Files\Python37\lib\site-packages\paramiko\channel.py", line 1094, in _handle_request
+ERR [20190830-11:17:23.960] thr=1   paramiko.transport:     ok = server.check_channel_subsystem_request(self, name)
+ERR [20190830-11:17:23.960] thr=1   paramiko.transport:   File "E:\python37_project\devops\webssh\sshd\sshinterface.py", line 442, in check_channel_subsystem_request
+ERR [20190830-11:17:23.960] thr=1   paramiko.transport:     self.close(terminal_type='N')
+ERR [20190830-11:17:23.960] thr=1   paramiko.transport:   File "E:\python37_project\devops\webssh\sshd\sshinterface.py", line 325, in close
+ERR [20190830-11:17:23.960] thr=1   paramiko.transport:     print('SSH ({0[2]}@{0[0]}) end..................'.format(self.ssh_args))
+ERR [20190830-11:17:23.960] thr=1   paramiko.transport: TypeError: 'NoneType' object is not subscriptable
+ERR [20190830-11:17:23.960] thr=1   paramiko.transport: 
+ERR [20190830-11:17:25.647] thr=2   paramiko.transport: Unknown exception: 'NoneType' object is not subscriptable
+ERR [20190830-11:17:25.647] thr=2   paramiko.transport: Traceback (most recent call last):
+ERR [20190830-11:17:25.647] thr=2   paramiko.transport:   File "E:\python37_project\devops\webssh\sshd\sshinterface.py", line 439, in check_channel_subsystem_request
+ERR [20190830-11:17:25.647] thr=2   paramiko.transport:     self.close(terminal_type='N')  # 超过随机密码使用次数限制直接断开连接
+ERR [20190830-11:17:25.647] thr=2   paramiko.transport:   File "E:\python37_project\devops\webssh\sshd\sshinterface.py", line 325, in close
+ERR [20190830-11:17:25.647] thr=2   paramiko.transport:     print('SSH ({0[2]}@{0[0]}) end..................'.format(self.ssh_args))
+ERR [20190830-11:17:25.647] thr=2   paramiko.transport: TypeError: 'NoneType' object is not subscriptable
+ERR [20190830-11:17:25.648] thr=2   paramiko.transport: 
+ERR [20190830-11:17:25.648] thr=2   paramiko.transport: During handling of the above exception, another exception occurred:
+ERR [20190830-11:17:25.648] thr=2   paramiko.transport: 
+ERR [20190830-11:17:25.648] thr=2   paramiko.transport: Traceback (most recent call last):
+ERR [20190830-11:17:25.648] thr=2   paramiko.transport:   File "C:\Program Files\Python37\lib\site-packages\paramiko\transport.py", line 1938, in run
+ERR [20190830-11:17:25.648] thr=2   paramiko.transport:     self._channel_handler_table[ptype](chan, m)
+ERR [20190830-11:17:25.648] thr=2   paramiko.transport:   File "C:\Program Files\Python37\lib\site-packages\paramiko\channel.py", line 1094, in _handle_request
+ERR [20190830-11:17:25.648] thr=2   paramiko.transport:     ok = server.check_channel_subsystem_request(self, name)
+ERR [20190830-11:17:25.648] thr=2   paramiko.transport:   File "E:\python37_project\devops\webssh\sshd\sshinterface.py", line 442, in check_channel_subsystem_request
+ERR [20190830-11:17:25.648] thr=2   paramiko.transport:     self.close(terminal_type='N')
+ERR [20190830-11:17:25.648] thr=2   paramiko.transport:   File "E:\python37_project\devops\webssh\sshd\sshinterface.py", line 325, in close
+ERR [20190830-11:17:25.648] thr=2   paramiko.transport:     print('SSH ({0[2]}@{0[0]}) end..................'.format(self.ssh_args))
+ERR [20190830-11:17:25.648] thr=2   paramiko.transport: TypeError: 'NoneType' object is not subscriptable
+ERR [20190830-11:17:25.648] thr=2   paramiko.transport: 
+ERR [20190830-11:17:25.823] thr=3   paramiko.transport: Unknown exception: 'NoneType' object is not subscriptable
+ERR [20190830-11:17:25.823] thr=3   paramiko.transport: Traceback (most recent call last):
+ERR [20190830-11:17:25.824] thr=3   paramiko.transport:   File "E:\python37_project\devops\webssh\sshd\sshinterface.py", line 439, in check_channel_subsystem_request
+ERR [20190830-11:17:25.824] thr=3   paramiko.transport:     self.close(terminal_type='N')  # 超过随机密码使用次数限制直接断开连接
+ERR [20190830-11:17:25.824] thr=3   paramiko.transport:   File "E:\python37_project\devops\webssh\sshd\sshinterface.py", line 325, in close
+ERR [20190830-11:17:25.824] thr=3   paramiko.transport:     print('SSH ({0[2]}@{0[0]}) end..................'.format(self.ssh_args))
+ERR [20190830-11:17:25.824] thr=3   paramiko.transport: TypeError: 'NoneType' object is not subscriptable
+ERR [20190830-11:17:25.824] thr=3   paramiko.transport: 
+ERR [20190830-11:17:25.824] thr=3   paramiko.transport: During handling of the above exception, another exception occurred:
+ERR [20190830-11:17:25.824] thr=3   paramiko.transport: 
+ERR [20190830-11:17:25.824] thr=3   paramiko.transport: Traceback (most recent call last):
+ERR [20190830-11:17:25.824] thr=3   paramiko.transport:   File "C:\Program Files\Python37\lib\site-packages\paramiko\transport.py", line 1938, in run
+ERR [20190830-11:17:25.824] thr=3   paramiko.transport:     self._channel_handler_table[ptype](chan, m)
+ERR [20190830-11:17:25.824] thr=3   paramiko.transport:   File "C:\Program Files\Python37\lib\site-packages\paramiko\channel.py", line 1094, in _handle_request
+ERR [20190830-11:17:25.824] thr=3   paramiko.transport:     ok = server.check_channel_subsystem_request(self, name)
+ERR [20190830-11:17:25.824] thr=3   paramiko.transport:   File "E:\python37_project\devops\webssh\sshd\sshinterface.py", line 442, in check_channel_subsystem_request
+ERR [20190830-11:17:25.824] thr=3   paramiko.transport:     self.close(terminal_type='N')
+ERR [20190830-11:17:25.824] thr=3   paramiko.transport:   File "E:\python37_project\devops\webssh\sshd\sshinterface.py", line 325, in close
+ERR [20190830-11:17:25.824] thr=3   paramiko.transport:     print('SSH ({0[2]}@{0[0]}) end..................'.format(self.ssh_args))
+ERR [20190830-11:17:25.824] thr=3   paramiko.transport: TypeError: 'NoneType' object is not subscriptable
+ERR [20190830-11:17:25.824] thr=3   paramiko.transport: 

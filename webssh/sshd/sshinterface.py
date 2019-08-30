@@ -4,22 +4,27 @@
 import threading
 import socket
 import paramiko
+from paramiko.common import WARNING
 import selectors2 as selectors  # 基于 select 封装的多路复用 IO 库
 import time
 import json
 from django.core.cache import cache
 import django.utils.timezone as timezone
 from server.models import RemoteUserBindHost
-from webssh.models import TerminalLog, TerminalSession
+from webssh.models import TerminalSession
 from util.tool import gen_rand_char, terminal_log
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from django.conf import settings
 import traceback
+from ..tasks import celery_save_res_asciinema, celery_save_terminal_log
+import platform
+import logging
 import warnings
 warnings.filterwarnings("ignore")
-paramiko.util.log_to_file('./paramiko.log')
-
+paramiko.util.log_to_file('./paramiko.log', level=WARNING)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 # ssh_client ===>>          proxy_ssh             ==>> ssh_server
 # ssh_client ===>> (proxy_server -> proxy_client) ==>> ssh_server
 
@@ -95,11 +100,19 @@ class ServerInterface(paramiko.ServerInterface):
         proxy_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         try:
-            print("*** Connecting SSH (%s@%s) ...." % (self.ssh_args[2], self.ssh_args[0]))
+            logger.info("连接后端主机 (%s@%s) ...." % (self.ssh_args[2], self.ssh_args[0]))
             proxy_client.connect(*self.ssh_args)
             self.chan_ser = proxy_client.invoke_shell(*self.tty_args)
-            print("*** Connecting SSH ok")
+            logger.info("连接后端主机 (%s@%s) ok" % (self.ssh_args[2], self.ssh_args[0]))
 
+            try:
+                self.client = self.chan_cli.transport.remote_version
+            except:
+                self.client = 'clissh'
+            try:
+                self.client_addr = self.chan_cli.transport.sock.getpeername()[0]
+            except:
+                self.client_addr = '1.0.0.0'
             data = {
                 'name': '{}_{}_ssh_session'.format(self.http_user, self.password),
                 'group': self.group,
@@ -109,6 +122,8 @@ class ServerInterface(paramiko.ServerInterface):
                 'protocol': 1,      # 1 ssh
                 'port': self.ssh_args[1],
                 'type': 3,      # 3 clissh
+                'address': self.client_addr,
+                'useragent': self.client,
             }
             TerminalSession.objects.create(**data)
 
@@ -129,15 +144,6 @@ class ServerInterface(paramiko.ServerInterface):
                     }
                 )
             )
-            
-            try:
-                self.client = self.chan_cli.transport.remote_version
-            except:
-                self.client = 'clissh'
-            try:
-                self.client_addr = self.chan_cli.transport.sock.getpeername()[0]
-            except:
-                self.client_addr = '1.0.0.0'
         except BaseException:
             self.close()
 
@@ -195,14 +201,19 @@ class ServerInterface(paramiko.ServerInterface):
                                 """
                                 delay = round(time.time() - self.start_time, 6)
                                 self.res_asciinema.append(json.dumps([delay, 'o', recv_message.decode('utf-8')]))
+
                                 # 250条结果或者指定秒数就保存一次，这个任务可以优化为使用 celery
                                 if len(self.res_asciinema) > 250 or int(time.time() - self.last_save_time) > 30:
                                     tmp = list(self.res_asciinema)
                                     self.res_asciinema = []
                                     self.last_save_time = time.time()
-                                    with open(settings.MEDIA_ROOT + '/' + self.res_file, 'a+') as f:
-                                        for line in tmp:
-                                            f.write('{}\n'.format(line))
+                                    if platform.system().lower() == 'linux':
+                                        celery_save_res_asciinema.delay(settings.MEDIA_ROOT + '/' + self.res_file, tmp)
+                                    else:
+                                        with open(settings.MEDIA_ROOT + '/' + self.res_file, 'a+') as f:
+                                            for line in tmp:
+                                                f.write('{}\n'.format(line))
+
                             except BaseException:
                                 pass
                     except socket.timeout:
@@ -211,8 +222,8 @@ class ServerInterface(paramiko.ServerInterface):
                     try:
                         send_message = self.chan_cli.recv(1024)
                         if len(send_message) == 0:
-                            print("\r\n客户端断开了连接....\r\n")
-                            time.sleep(1)
+                            logger.info('客户端断开了连接 {}....'.format(self.client_addr))
+                            # time.sleep(1)
                             break
                         else:
                             self.chan_ser.send(send_message)
@@ -257,29 +268,48 @@ class ServerInterface(paramiko.ServerInterface):
             pass
 
         try:
-            if self.res_asciinema:                  
-                terminal_log(
-                    self.http_user,
-                    self.hostname,
-                    self.ssh_args[0],
-                    'ssh',
-                    self.ssh_args[1],
-                    self.ssh_args[2],
-                    self.cmd,
-                    self.res_file,
-                    self.client_addr,    # 客户端 ip
-                    self.client,
-                    self.log_start_time,
-                )
+            if self.cmd:
+                if platform.system().lower() == 'linux':
+                    celery_save_terminal_log.delay(
+                        self.http_user,
+                        self.hostname,
+                        self.ssh_args[0],
+                        'ssh',
+                        self.ssh_args[1],
+                        self.ssh_args[2],
+                        self.cmd,
+                        self.res_file,
+                        self.client_addr,  # 客户端 ip
+                        self.client,
+                        self.log_start_time,
+                    )
+                else:
+                    terminal_log(
+                        self.http_user,
+                        self.hostname,
+                        self.ssh_args[0],
+                        'ssh',
+                        self.ssh_args[1],
+                        self.ssh_args[2],
+                        self.cmd,
+                        self.res_file,
+                        self.client_addr,    # 客户端 ip
+                        self.client,
+                        self.log_start_time,
+                    )
         except:
             pass
 
         try:
-            tmp = list(self.res_asciinema)
-            self.res_asciinema = []
-            with open(settings.MEDIA_ROOT + '/' + self.res_file, 'a+') as f:
-                for line in tmp:
-                    f.write('{}\n'.format(line))
+            if self.cmd:
+                tmp = list(self.res_asciinema)
+                self.res_asciinema = []
+                if platform.system().lower() == 'linux':
+                    celery_save_res_asciinema.delay(settings.MEDIA_ROOT + '/' + self.res_file, tmp)
+                else:
+                    with open(settings.MEDIA_ROOT + '/' + self.res_file, 'a+') as f:
+                        for line in tmp:
+                            f.write('{}\n'.format(line))
         except:
             pass
 
@@ -310,7 +340,7 @@ class ServerInterface(paramiko.ServerInterface):
             pass
 
         if not self.closed:
-            print('SSH ({0[2]}@{0[0]}) end..................'.format(self.ssh_args))
+            logger.info("后端主机 (%s@%s) 会话结束" % (self.ssh_args[2], self.ssh_args[0]))
             self.closed = True
 
     def set_ssh_args(self, hostid):

@@ -4,7 +4,6 @@ from util.tool import login_required, admin_required, post_required
 from .models import RemoteUser, RemoteUserBindHost
 from user.models import User, LoginLog
 from .forms import ChangeUserForm, AddUserForm, ChangeHostForm, AddHostForm
-from .tasks import test_celery
 import traceback
 # Create your views here.
 
@@ -18,14 +17,7 @@ def login_event_log(user, event_type, detail, address, useragent):
     event.useragent = useragent
     event.save()
 
-    
-@login_required
-def test(request):
-    result = test_celery.delay()
-    print(result)
-    return HttpResponse('test celery!!!')
 
-    
 @login_required
 @admin_required
 @post_required
