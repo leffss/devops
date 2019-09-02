@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'user',
     'webssh',
     'webtelnet',
+    'webguacamole',
     # 'debug_toolbar',
 ]
 
@@ -210,3 +211,9 @@ PROXY_SSHD = {
     'cons': 100,
 }
 
+# guacd 配置
+GUACD = {
+    'host': '192.168.223.111',
+    'port': 4822,
+    'timeout': 15,
+}

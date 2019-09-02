@@ -1,0 +1,118 @@
+{% load staticfiles %}
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>{{ host.hostname }} - {{ host.ip }} - {{ host.remote_user.username }}</title>
+  <!-- Tell the browser to be responsive to screen width -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Theme style -->
+  <link rel="stylesheet" href="{% static 'adminlte/dist/css/adminlte.min.css' %}">
+  
+  <!-- Toastr -->
+  <link rel="stylesheet" href="{% static 'adminlte/plugins/toastr/toastr.min.css' %}">
+  
+    <style>
+        #dpi {
+            height: 1in;
+            width: 1in;
+            position: absolute;
+            left: -100%;
+            top: -100%;
+
+        }
+    </style>
+</head>
+<body>
+
+<span id="hostid" hidden>{{ host.id }}</span>
+
+<!-- 用于获取屏幕dpi-->
+<div id='dpi'></div>
+
+<!-- Display -->
+<div id="display"></div>
+
+<!-- jQuery -->
+<script src="{% static 'adminlte/plugins/jquery/jquery.min.js' %}"></script>
+<!-- Bootstrap 4 -->
+<script src="{% static 'adminlte/plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+
+<!-- FastClick -->
+<script src="{% static 'adminlte/plugins/fastclick/fastclick.js' %}"></script>
+<!-- AdminLTE App -->
+<script src="{% static 'adminlte/dist/js/adminlte.min.js' %}"></script>
+
+<!-- Toastr -->
+<script src="{% static 'adminlte/plugins/toastr/toastr.min.js' %}"></script>
+
+<script src="{% static 'guacamole/js/all.min.js' %}"></script>
+<!-- Init -->
+<script type="text/javascript">
+
+    // Get display div from document
+    var display = document.getElementById("display");
+
+    //http://guacamole.apache.org/doc/guacamole-common-js/Guacamole.WebSocketTunnel.html
+    var protocol = (location.protocol === 'https:') ? 'wss://' : 'ws://';
+    var ws_path = protocol + location.hostname + ((location.port) ? (':' + location.port) : '') + '/webguacamole/';
+    var guac = new Guacamole.Client(
+        new Guacamole.WebSocketTunnel(ws_path)
+    );
+
+
+    // Add client to display div
+    display.appendChild(guac.getDisplay().getElement());
+
+    // Error handler
+    guac.onerror = function (error) {
+        console.log(error);
+    };
+	
+	var hostid = $.trim($('#hostid').text());
+    var width = $(window).width() - 20;	// - 20像素防止滚动条挡住桌面内容
+    var height = $(window).height();
+    var dpi = getDPI();
+
+    // Connect
+    guac.connect(`hostid=${hostid}&width=${width}&height=${height}&dpi=${dpi}`);
+
+    // Disconnect on close
+    window.onunload = function () {
+        guac.disconnect();
+    };
+
+    // Mouse
+    var mouse = new Guacamole.Mouse(guac.getDisplay().getElement());
+
+    mouse.onmousedown =
+        mouse.onmouseup =
+            mouse.onmousemove = function (mouseState) {
+                guac.sendMouseState(mouseState);
+            };
+
+    // Keyboard
+    var keyboard = new Guacamole.Keyboard(document);
+
+    keyboard.onkeydown = function (keysym) {
+        guac.sendKeyEvent(1, keysym);
+    };
+
+    keyboard.onkeyup = function (keysym) {
+        guac.sendKeyEvent(0, keysym);
+    };
+
+    function getDPI() {
+        return jQuery('#dpi').height();
+    }
+
+    window.onbeforeunload = function (e) {
+        return '确定离开此页吗？';
+    }
+
+</script>
+</body>
+</html>

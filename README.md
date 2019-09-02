@@ -3,7 +3,18 @@
 
 
 # 安装
-原始方式
+首先其他依赖服务(docker方式)
+**redis**
+```
+docker run --name redis-server -p 6379:6379 -d redis:latest
+```
+**guacd**
+```
+docker run --name guacd -p 4822:4822 -d guacamole/guacd
+```
+
+然后部署 devops
+**原始方式**
 ```
 # 安装相关库
 pip install -r requirements.txt
@@ -13,13 +24,12 @@ python3 manage.py runserver
 python3 manage.py proxy_sshd
 ```
 
-docker方式(Centos 7)
+**docker方式(Centos 7)**
 ```
 sh start_docker.sh
 ```
 
-- 注意，celery 与 channel_layers 依赖 redis 服务，默认使用 redis 服务：地址 127.0.0.1 ，端口 6379
-- redis 相关配置见项目配置文件：settings.py
+- 其他依赖服务相关配置见项目配置文件：settings.py
 - windows 对 celery 兼容很差，无法正常使用，所以请使用 linux 部署，推荐 Centos 7 系列
 
 访问首页：http://127.0.0.1:8000
@@ -27,6 +37,9 @@ sh start_docker.sh
 
 
 # 升级日志
+### ver1.7.3
+新增webguacamole，支持RDP、VNC协议连接主机，并支持录像回放；
+
 ### ver1.7.2
 新增客户端连接sftp；
 linux平台下使用celery任务保存终端会话日志与录像(windows不支持celery)；
@@ -77,6 +90,8 @@ linux平台下使用celery任务保存终端会话日志与录像(windows不支�
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/9.PNG?raw=true)
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/10.PNG?raw=true)
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/11.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/12.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/13.PNG?raw=true)
 
 
 # TODO LISTS
@@ -109,6 +124,7 @@ linux平台下使用celery任务保存终端会话日志与录像(windows不支�
 - [ ] 批量脚本
 - [x] webssh终端
 - [x] webtelnet终端
+- [x] webguacamole支持RDP、VNC
 - [x] 网页调用securecrt,xshell,putty,winscp等终端(目前只支持windows)
 - [ ] websftp终端
 - [x] 查看在线会话列表

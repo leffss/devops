@@ -3,6 +3,7 @@
 
   {% block css %}
   <link rel="stylesheet" href="{% static 'asciinema-player/asciinema-player.css' %}">
+  <link rel="stylesheet" href="{% static 'guacamole/css/playback.css' %}">
   {% endblock css %}
   
   {% block title %}
@@ -81,9 +82,13 @@
 				  <td>{{ log.start_time | date:"Y/m/d H:i:s" }}</td>
 				  <td>{{ log.create_time | date:"Y/m/d H:i:s" }}</td>
 				  <td>
-				  <a href="javascript:void(0)" class="btn btn-primary btn-sm" info="{{ log.user }}-{{ log.hostname }}-{{ log.username }}@{{ log.ip }}:{{ log.port }}" type="{{ log.protocol }}" onclick="viewthiscmd(this);"><cmd hidden>{{ log.cmd | linebreaksbr }}</cmd><i class="fas fa-folder"></i> 命令详情</a>&nbsp;&nbsp;
 				  {% if log.protocol == 'ssh' or log.protocol == 'telnet' %}
-				  <a href="javascript:void(0)" class="btn btn-info btn-sm" id="{{ log.detail }}" info="{{ log.user }}-{{ log.hostname }}-{{ log.username }}@{{ log.ip }}:{{ log.port }}" onclick="viewthis(this);"><i class="fas fa-video"></i> 录像</a>
+					  <a href="javascript:void(0)" class="btn btn-primary btn-sm" info="{{ log.user }}-{{ log.hostname }}-{{ log.username }}@{{ log.ip }}:{{ log.port }}" type="{{ log.protocol }}" onclick="viewcmd(this);"><cmd hidden>{{ log.cmd | linebreaksbr }}</cmd><i class="fas fa-folder"></i> 命令详情</a>&nbsp;&nbsp;
+					  <a href="javascript:void(0)" class="btn btn-info btn-sm" id="{{ log.detail }}" info="{{ log.user }}-{{ log.hostname }}-{{ log.username }}@{{ log.ip }}:{{ log.port }}" onclick="viewsshvideo(this);"><i class="fas fa-video"></i> 录像</a>
+				  {% elif log.protocol == 'sftp' %}
+					  <a href="javascript:void(0)" class="btn btn-primary btn-sm" info="{{ log.user }}-{{ log.hostname }}-{{ log.username }}@{{ log.ip }}:{{ log.port }}" type="{{ log.protocol }}" onclick="viewcmd(this);"><cmd hidden>{{ log.cmd | linebreaksbr }}</cmd><i class="fas fa-folder"></i> 命令详情</a>&nbsp;&nbsp;
+				  {% elif log.protocol == 'rdp' or log.protocol == 'vnc' %}
+					  <a href="javascript:void(0)" class="btn btn-info btn-sm" id="{{ log.detail }}" info="{{ log.user }}-{{ log.hostname }}-{{ log.username }}@{{ log.ip }}:{{ log.port }}" onclick="viewrdpvideo(this);"><i class="fas fa-video"></i> 录像</a>
 				  {% endif %}
 				  </td>
                 </tr>
@@ -189,9 +194,14 @@ $("#datatables-lists").DataTable({
 </script>
 
 <script src="{% static 'asciinema-player/asciinema-player.js' %}"></script>
+
+<!-- Guacamole JavaScript API -->
+<script src="{% static 'guacamole/js/all.min.js' %}"></script>
+<script src="{% static 'guacamole/js/playback.js' %}"></script>
+
 <script>
 
-	viewthiscmd = function(event) {
+	viewcmd = function(event) {
 		var thisObj = $(event);	//js对象转jquery对象
 		var info = thisObj.attr('info');
 		var type = thisObj.attr('type');
@@ -215,7 +225,7 @@ $("#datatables-lists").DataTable({
 	});
 	
 	
-	viewthis = function(event) {
+	viewsshvideo = function(event) {
 		var thisObj = $(event);	//js对象转jquery对象
 		// var info = thisObj.attr('id').split("-")[0];
 		var info = thisObj.attr('info');
@@ -230,6 +240,33 @@ $("#datatables-lists").DataTable({
 			closeOnEscape: false, 	// 是否允许通过点击ESC键来关闭模态窗口。
 		});
 		$('#modal-view').iziModal('open');
+	};
+	
+	$(document).on('closed', '#modal-view', function (e) {
+		$('#modal-view').iziModal('destroy');	//销毁模态窗口。
+	});
+
+
+	viewrdpvideo = function(event) {
+		var thisObj = $(event);	//js对象转jquery对象
+		// var info = thisObj.attr('id').split("-")[0];
+		var info = thisObj.attr('info');
+		var file = thisObj.attr("id");
+		$("#view_info").text("录像：" + info);
+		var res = '<div class="player"><div id="display"></div><div class="controls"><button id="play-pause">Play</button><label for="position-slider"></label><input id="position-slider" type="range"><span id="position">00:00</span><span>/</span><span id="duration">00:00</span></div></div>';
+		$("#view_container").html(res);
+		$("#modal-view").iziModal({
+			iconClass: 'icon-announcement',
+			width: 1320,
+			overlayClose: false,	// 是否允许点击模态窗口的外部来关闭模态窗口。
+			closeOnEscape: false, 	// 是否允许通过点击ESC键来关闭模态窗口。
+		});
+		$('#modal-view').iziModal('open');
+		
+		$(function () {
+			$('.player').css({'width': 1280})
+		});
+		initExamplePlayer('/media/' + file);
 	};
 	
 	$(document).on('closed', '#modal-view', function (e) {

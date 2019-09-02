@@ -29,7 +29,7 @@ class Telnet:
         
         self.tn = telnetlib.Telnet()
 
-    def connect(self, host, user, password, port=23, timeout=30, wait_time=1.5, user_pre=b"ogin:", password_pre=b"assword:"):
+    def connect(self, host, user, password, port=23, timeout=30, wait_time=5, user_pre=b"ogin:", password_pre=b"assword:"):
         """
         是因为telnet本身是弱协议，也就是说它并没有明确定义用户如何登陆，何时输入用户名或者密码，不同的telnet服务有着各自不同的实现方式。
         比如说，有些telnet服务会显示 Login: 来提示用户输入用户名，而另一些则用 username: 进行提示，还有的用 login: 进行提示。

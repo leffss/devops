@@ -260,9 +260,7 @@ class WebTelnet(WebsocketConsumer):
                 message = dict()
                 message['status'] = 5
                 message['message'] = self.telnet.res
-                # 这里有个小问题，如果多个管理员查看，前面加入的会收到多份res，
-                # 无伤大雅，后期优化
-                async_to_sync(channel_layer.group_send)(self.group, {
+                async_to_sync(channel_layer.send)(json.loads(data['text'])['message'], {
                     "type": "chat.message",
                     "text": json.dumps(message),
                 })

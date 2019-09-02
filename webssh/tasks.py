@@ -3,10 +3,15 @@ from webssh.models import TerminalLog
 
 
 @app.task(ignore_result=True)
-def celery_save_res_asciinema(res_file, res_asciinema):
+def celery_save_res_asciinema(res_file, res_asciinema, enter=True):
+    if enter:
         with open(res_file, 'a+') as f:
             for line in res_asciinema:
                 f.write('{}\n'.format(line))
+    else:
+        with open(res_file, 'a+') as f:
+            for line in res_asciinema:
+                f.write('{}'.format(line))
 
 
 @app.task(ignore_result=True)

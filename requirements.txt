@@ -10,3 +10,4 @@ eventlet
 django-debug-toolbar
 selectors2
 django-redis
+pyguacamole==0.8

@@ -9,8 +9,8 @@ class TerminalLog(models.Model):
     protocol = models.CharField(max_length=64, default='ssh', verbose_name="协议")
     port = models.SmallIntegerField(default=22, verbose_name='端口')
     username = models.CharField(max_length=128, verbose_name="用户名")
-    cmd = models.TextField('命令详情')
-    detail = models.CharField(max_length=128, default='result', verbose_name="结果详情(文件名)")
+    cmd = models.TextField('命令详情', blank=True, null=True)
+    detail = models.CharField(max_length=128, blank=True, null=True, verbose_name="结果详情(文件名)")
     address = models.GenericIPAddressField('IP地址', blank=True, null=True)
     useragent = models.CharField(max_length=512, blank=True, null=True, verbose_name='User_Agent')
     start_time = models.DateTimeField('会话开始时间')
@@ -42,6 +42,8 @@ class TerminalSession(models.Model):
         (4, 'clisftp'),
         (5, 'webtelnet'),
         (6, 'clitelnet'),
+        (7, 'webrdp'),
+        (8, 'webvnc'),
     )
 
     name = models.CharField(max_length=512, verbose_name='会话名称')

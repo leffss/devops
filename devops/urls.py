@@ -37,7 +37,9 @@ urlpatterns = [
     path('api/webssh/', include('webssh.urls_api', namespace='webssh_api')),
     
     path('webtelnet/', include('webtelnet.urls', namespace='webtelnet')),
-    
+
+    path('webguacamole/', include('webguacamole.urls', namespace='webguacamole')),
+
 ]
 
 if settings.DEBUG:
