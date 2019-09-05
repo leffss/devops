@@ -15,10 +15,11 @@ function get_term_size() {
 
     var windows_width = $(window).width();
     var windows_height = $(window).height();
+	var headers_height = $("#headers").height();
 
     return {
         cols: Math.floor(windows_width / init_width),
-        rows: Math.floor(windows_height / init_height),
+        rows: Math.floor((windows_height - headers_height) / init_height),
     }
 }
 
@@ -28,7 +29,8 @@ function websocket() {
     var rows = get_term_size().rows;
     var connect_info = get_connect_info();
 
-    var term = new Terminal(
+    //var term = new Terminal(
+	term = new Terminal(
         {
             cols: cols,
             rows: rows,
@@ -42,7 +44,7 @@ function websocket() {
         protocol = (location.protocol === 'https:') ? 'wss://' : 'ws://',
         socketURL = protocol + location.hostname + ((location.port) ? (':' + location.port) : '') + '/webtelnet/?' + connect_info;
 
-    var sock;
+    //var sock;
     sock = new WebSocket(socketURL);
 
     // 打开 websocket 连接, 打开 web 终端
@@ -76,17 +78,27 @@ function websocket() {
 			//term.dispose()
 			//$('#django-webssh-terminal').addClass('hide');
 			//$('#form').removeClass('hide');
-        } else if (status === 3 ) {
+        } else if (status === 3 ) {		// 锁定会话
 			console.log(message);
 			toastr.options.closeButton = true;
 			toastr.options.showMethod = 'slideDown';
 			toastr.options.hideMethod = 'fadeOut';
 			toastr.options.closeMethod = 'fadeOut';
 			toastr.options.timeOut = 0;	
-			toastr.options.extendedTimeOut = 0;	
+			toastr.options.extendedTimeOut = 3000;	
 			toastr.options.progressBar = true;
 			toastr.options.positionClass = 'toast-top-right'; 
 			toastr.warning(message);
+		} else if (status === 6 ) {		// 解锁会话
+			toastr.options.closeButton = true;
+			toastr.options.showMethod = 'slideDown';
+			toastr.options.hideMethod = 'fadeOut';
+			toastr.options.closeMethod = 'fadeOut';
+			toastr.options.timeOut = 0;	
+			toastr.options.extendedTimeOut = 3000;	
+			toastr.options.progressBar = true;
+			toastr.options.positionClass = 'toast-top-right'; 
+			toastr.success(message);
 		};
     });
 

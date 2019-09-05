@@ -42,14 +42,11 @@
                 <thead>
                 <tr>
 				  <th>名称</th>
-				  <th>类型</th>
-				  <th>环境</th>
 				  <th>IP</th>
 				  <th>协议</th>
 				  <th>端口</th>
 				  <th>系统</th>
 				  <th>用户名</th>
-				  <th>添加时间</th>
 				  <th>操作</th>
                 </tr>
                 </thead>
@@ -57,8 +54,6 @@
 				{% for host in hosts %}
                 <tr>
 				  <td>{{ host.hostname }}</td>
-				  <td>{{ host.get_type_display }}</td>
-				  <td>{{ host.get_env_display }}</td>
 				  <td>{{ host.ip }}</td>
 				  <td>
 				  {% if host.get_protocol_display == 'ssh' %}
@@ -78,37 +73,36 @@
 				  {% else %}
 				  <td></td>
 				  {% endif %}
-				  <td>{{ host.create_time|date:"Y/m/d H:i:s" }}</td>
 				  <td>
 					{% if host.get_protocol_display == 'ssh' %}
 						{% if host.remote_user and host.enabled %}
 							<form method="post" action="{% url 'webssh:terminal' %}" target="_blank" style="display:inline;">
 								{% csrf_token %}
 								<input type="text" name="hostid" value="{{ host.id }}" hidden>
-								<button type="submit" class="btn btn-sm btn-success btn-flat"><i class="fas fa-terminal"></i> web终端</button>
+								<button type="submit" class="btn btn-sm btn-success btn-flat mb-1"><i class="fas fa-terminal"></i> web终端</button>
 							</form>
 						{% else %}
-							<button class="btn btn-sm btn-success btn-flat disabled"><i class="fas fa-terminal"></i> web终端</button>
+							<button class="btn btn-sm btn-success btn-flat disabled mb-1"><i class="fas fa-terminal"></i> web终端</button>
 						{% endif %}
 					{% elif host.get_protocol_display == 'telnet' %}
 						{% if host.remote_user and host.enabled %}
 							<form method="post" action="{% url 'webtelnet:terminal' %}" target="_blank" style="display:inline;">
 								{% csrf_token %}
 								<input type="text" name="hostid" value="{{ host.id }}" hidden>
-								<button type="submit" class="btn btn-sm btn-success btn-flat"><i class="fas fa-terminal"></i> web终端</button>
+								<button type="submit" class="btn btn-sm btn-success btn-flat mb-1"><i class="fas fa-terminal"></i> web终端</button>
 							</form>
 						{% else %}
-							<button class="btn btn-sm btn-success btn-flat disabled"><i class="fas fa-terminal"></i> web终端</button>
+							<button class="btn btn-sm btn-success btn-flat disabled mb-1"><i class="fas fa-terminal"></i> web终端</button>
 						{% endif %}
 					{% elif host.get_protocol_display == 'rdp' or host.get_protocol_display == 'vnc' %}
 						{% if host.remote_user and host.enabled %}
 							<form method="post" action="{% url 'webguacamole:terminal' %}" target="_blank" style="display:inline;">
 								{% csrf_token %}
 								<input type="text" name="hostid" value="{{ host.id }}" hidden>
-								<button type="submit" class="btn btn-sm btn-success btn-flat"><i class="fas fa-desktop"></i> web桌面</button>
+								<button type="submit" class="btn btn-sm btn-success btn-flat mb-1"><i class="fas fa-desktop"></i> web桌面</button>
 							</form>
 						{% else %}
-							<button class="btn btn-sm btn-success btn-flat disabled"><i class="fas fa-desktop"></i> web桌面</button>
+							<button class="btn btn-sm btn-success btn-flat disabled mb-1"><i class="fas fa-desktop"></i> web桌面</button>
 						{% endif %}
 					{% endif %}
 					
@@ -118,17 +112,17 @@
 						{% if host.remote_user and host.enabled %}
 							<form method="post" target="_blank" onsubmit="clishell(this);return false;" style="display:inline;">
 								<input type="text" name="hostid" value="{{ host.id }}" hidden>
-								<button type="submit" class="btn btn-sm btn-primary btn-flat"><i class="fas fa-network-wired"></i> 客户端ssh</button>
+								<button type="submit" class="btn btn-sm btn-primary btn-flat mb-1"><i class="fas fa-network-wired"></i> 客户端ssh</button>
 							</form>
 							&nbsp;&nbsp;
 							<form method="post" target="_blank" onsubmit="clisftpshell(this);return false;" style="display:inline;">
 								<input type="text" name="hostid" value="{{ host.id }}" hidden>
-								<button type="submit" class="btn btn-sm btn-info btn-flat"><i class="fas fa-network-wired"></i> 客户端sftp</button>
+								<button type="submit" class="btn btn-sm btn-info btn-flat mb-1"><i class="fas fa-network-wired"></i> 客户端sftp</button>
 							</form>
 						{% else %}
-							<button class="btn btn-sm btn-primary btn-flat disabled"><i class="fas fa-network-wired"></i> 客户端ssh</button>
+							<button class="btn btn-sm btn-primary btn-flat disabled mb-1"><i class="fas fa-network-wired"></i> 客户端ssh</button>
 							&nbsp;&nbsp;
-							<button class="btn btn-sm btn-info btn-flat disabled"><i class="fas fa-network-wired"></i> 客户端sftp</button>
+							<button class="btn btn-sm btn-info btn-flat disabled mb-1"><i class="fas fa-network-wired"></i> 客户端sftp</button>
 						{% endif %}
 					{% endif %}
 				  </td>
@@ -138,14 +132,11 @@
                 <tfoot>
                 <tr>
 				  <th>名称</th>
-				  <th>类型</th>
-				  <th>环境</th>
 				  <th>IP</th>
 				  <th>协议</th>
 				  <th>端口</th>
 				  <th>系统</th>
 				  <th>用户名</th>
-				  <th>添加时间</th>
 				  <th>操作</th>
                 </tr>
                 </tfoot>

@@ -47,7 +47,10 @@ def terminal_cli(request):
     key = '%s_%s_%s' % (terminal_type, username, password)
     key_ssh = '%s_%s_%s_ssh_count' % (terminal_type, username, password)
     key_sftp = '%s_%s_%s_sftp_count' % (terminal_type, username, password)
-    cache.set(key, host_id, timeout=60 * 60 * 24)  # 写入 redis 缓存以便 proxy_sshd 读取
+
+    # cache.set(key, host_id, timeout=60 * 60 * 24)  # 写入 redis 缓存以便 proxy_sshd 读取
+    cache.set(key, {'host_id': host_id, 'issuperuser': request.session['issuperuser']}, timeout=60 * 60 * 24)
+
     # 用于限制随机密码ssh和sftp登陆次数
     cache.set(key_ssh, 1, timeout=60 * 60 * 24)  # 写入 redis 缓存以便 proxy_sshd 读取
     cache.set(key_sftp, 1, timeout=60 * 60 * 24)  # 写入 redis 缓存以便 proxy_sshd 读取
@@ -105,7 +108,10 @@ def terminal_cli_sftp(request):
     terminal_type = 'ssh'
     key = '%s_%s_%s' % (terminal_type, username, password)
     key_sftp = '%s_%s_%s_sftp_count' % (terminal_type, username, password)
-    cache.set(key, host_id, timeout=60 * 60 * 24)  # 写入 redis 缓存以便 proxy_sshd 读取
+
+    # cache.set(key, host_id, timeout=60 * 60 * 24)  # 写入 redis 缓存以便 proxy_sshd 读取
+    cache.set(key, {'host_id': host_id, 'issuperuser': request.session['issuperuser']}, timeout=60 * 60 * 24)
+
     # 用于限制随机密码sftp登陆次数
     cache.set(key_sftp, 1, timeout=60 * 60 * 24)  # 写入 redis 缓存以便 proxy_sshd 读取
     host = RemoteUserBindHost.objects.get(pk=host_id)

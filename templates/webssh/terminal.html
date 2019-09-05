@@ -5,9 +5,12 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>{{ host.hostname }} - {{ host.ip }} - {{ host.remote_user.username }}</title>
+  <title>会话 - {{ host.hostname }} - {{ host.remote_user.username }}@{{ host.ip }}</title>
   <!-- Tell the browser to be responsive to screen width -->
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Font Awesome -->
+  <link href="https://cdn.bootcss.com/font-awesome/5.10.0-11/css/all.min.css" rel="stylesheet">
 
   <!-- Theme style -->
   <link rel="stylesheet" href="{% static 'adminlte/dist/css/adminlte.min.css' %}">
@@ -19,6 +22,8 @@
   <link rel="stylesheet" href="{% static 'webssh/xterm.css' %}">
   <!--link rel="stylesheet" href="{% static 'webssh/style.css' %}"-->
   
+  <!-- 弹出窗口插件 -->
+  <link rel="stylesheet" href="{% static 'css/iziModal.min.css' %}">
   
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/rrweb@latest/dist/rrweb.min.css"/>
 
@@ -27,7 +32,35 @@
 
 <span id="hostid" hidden>{{ host.id }}</span>
 
-<div id="terminal"></div>
+<div class="container-fluid" id="headers" style="background-color: #E3F2FD">
+	<div class="row">
+		<div class="col-12 mt-2">
+			<h5>
+			主机：{{ host.hostname }}&nbsp;&nbsp;协议：{{ host.get_protocol_display }}&nbsp;&nbsp;连接：{{ host.remote_user.username }}@{{ host.ip }}:{{ host.port }}
+			<a href="javascript:void(0)" class="btn btn-sm btn-danger btn-flat ml-2 session-close"><i class="far fa-times-circle"></i> 断开</a>
+			</h5>
+		</div>
+	</div>
+</div>
+
+<div class="mt-1" id="terminal"></div>
+
+<!-- 断开连接 -->
+<div id="modal-close" class="iziModal">
+	<div class="container-fluid">
+		<div class="row">
+			<div class="col-12 p-3">
+				<h4 class="text-center mt-3">确定要断开当前连接吗？</h4>
+			</div>
+			<div class="col-6 p-3">
+				<button type="button" class="btn btn-block btn-secondary btn-flat" data-iziModal-close>取消</button>
+			</div>
+			<div class="col-6 p-3">
+				<a href="javascript:void(0)"><button type="button" class="btn btn-block btn-success btn-flat" onclick="close_session();" data-iziModal-close>确定</button></a>
+			</div>
+		</div>
+	</div>
+</div>
 
 <!-- jQuery -->
 <script src="{% static 'adminlte/plugins/jquery/jquery.min.js' %}"></script>
@@ -42,47 +75,33 @@
 <!-- Toastr -->
 <script src="{% static 'adminlte/plugins/toastr/toastr.min.js' %}"></script>
 
+<!-- 弹出框插件 -->
+<script src="{% static 'js/iziModal.min.js' %}"></script>
+
 <!-- webssh -->
 <script src="{% static 'webssh/xterm.js' %}"></script>
 <script src="{% static 'webssh/webssh.js' %}"></script>
 <script src="{% static 'webssh/addons/zmodem/zmodem.js' %}"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/rrweb@latest/dist/rrweb.min.js"></script>
-<script>
-
-	let events = [];
-	
-	rrweb.record({
-	  emit(event) {
-		// 将 event 存入 events 数组中
-		events.push(event);
-		// console.log(event);
-	  },
-	});
-	
-	// save 函数用于将 events 发送至后端存入，并重置 events 数组
-	function save() {
-	  const body = JSON.stringify({ events });
-	  console.log(body)
-	  //const replayer = new rrweb.Replayer(events);
-	  //console.log(events)
-	  //replayer.play();
-	  events = [];
-	  //fetch('http://YOUR_BACKEND_API', {
-		//method: 'POST',
-		//headers: {
-		//  'Content-Type': 'application/json',
-		//},
-		//body,
-	  //});
-	};
-	// 每 10 秒调用一次 save 方法，避免请求过多
-	setInterval(save, 20 * 1000);
-	
-</script>
-
 <script>
 	websocket();
+	
+	$("#modal-close").iziModal({
+		iconClass: 'icon-announcement',
+		width: 450,
+	});
+	$(document).on('click', '.session-close', function (event) {
+		event.preventDefault();
+		$('#modal-close').iziModal('open');
+	});
+	
+	close_session = function () {
+		sock.close();
+		term.write('连接已关闭...\n\r');
+		$(".session-close").attr("hidden", true);
+		$("body").removeAttr("onbeforeunload"); //删除刷新关闭提示属性
+	};
+	
 </script>
 
 </body>

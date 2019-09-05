@@ -39,13 +39,67 @@ def session_close(request):
         # })
         async_to_sync(channel_layer.group_send)(group, {
             "type": "chat.message",
-            "text": '{"status":2, "message":"\\n\\r系统管理员已强制中止了您的终端连接"}',
+            "text": '{"status":2, "message":"\\n\\r当前会话已被管理员关闭"}',
         })
         try:
             terminalsession.delete()
         except BaseException:
             pass
         login_event_log(request.session.get('username'), 18, '会话 [{}] 强制停止成功'.format(terminalsession.name),
+                        request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
+        return JsonResponse({"code": 200, "err": ""})
+    except BaseException:
+        error_message = '未知错误!'
+        return JsonResponse({"code": 401, "err": error_message})
+
+
+@login_required
+@admin_required
+@post_required
+def session_lock(request):
+    pk = request.POST.get('id', None)
+    if not pk:
+        error_message = '不合法的请求参数!'
+        return JsonResponse({"code": 400, "err": error_message})
+    terminalsession = get_object_or_404(TerminalSession, pk=pk)
+    try:
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.send)(terminalsession.name, {
+            "type": "lock.message",
+            "text": request.session.get('username'),
+        })
+        try:
+            TerminalSession.objects.filter(pk=pk).update(locked=True)
+        except BaseException:
+            pass
+        login_event_log(request.session.get('username'), 19, '会话 [{}] 锁定成功'.format(terminalsession.name),
+                        request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
+        return JsonResponse({"code": 200, "err": ""})
+    except BaseException:
+        error_message = '未知错误!'
+        return JsonResponse({"code": 401, "err": error_message})
+
+
+@login_required
+@admin_required
+@post_required
+def session_unlock(request):
+    pk = request.POST.get('id', None)
+    if not pk:
+        error_message = '不合法的请求参数!'
+        return JsonResponse({"code": 400, "err": error_message})
+    terminalsession = get_object_or_404(TerminalSession, pk=pk)
+    try:
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.send)(terminalsession.name, {
+            "type": "unlock.message",
+            "text": request.session.get('username'),
+        })
+        try:
+            TerminalSession.objects.filter(pk=pk).update(locked=False)
+        except BaseException:
+            pass
+        login_event_log(request.session.get('username'), 20, '会话 [{}] 解锁成功'.format(terminalsession.name),
                         request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
         return JsonResponse({"code": 200, "err": ""})
     except BaseException:
@@ -102,6 +156,54 @@ def session_clissh_close(request):
         except BaseException:
             pass
         login_event_log(request.session.get('username'), 18, '会话 [{}] 强制停止成功'.format(terminalsession.name),
+                        request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
+        return JsonResponse({"code": 200, "err": ""})
+    except BaseException:
+        error_message = '未知错误!'
+        return JsonResponse({"code": 401, "err": error_message})
+
+
+@login_required
+@admin_required
+@post_required
+def session_clissh_lock(request):
+    pk = request.POST.get('id', None)
+    if not pk:
+        error_message = '不合法的请求参数!'
+        return JsonResponse({"code": 400, "err": error_message})
+    terminalsession = get_object_or_404(TerminalSession, pk=pk)
+    try:
+        # 锁定会话
+        cache.set(terminalsession.name + '_lock', True, timeout=60 * 60 * 24 * 30)
+        try:
+            TerminalSession.objects.filter(pk=pk).update(locked=True)
+        except BaseException:
+            pass
+        login_event_log(request.session.get('username'), 19, '会话 [{}] 锁定成功'.format(terminalsession.name),
+                        request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
+        return JsonResponse({"code": 200, "err": ""})
+    except BaseException:
+        error_message = '未知错误!'
+        return JsonResponse({"code": 401, "err": error_message})
+
+
+@login_required
+@admin_required
+@post_required
+def session_clissh_unlock(request):
+    pk = request.POST.get('id', None)
+    if not pk:
+        error_message = '不合法的请求参数!'
+        return JsonResponse({"code": 400, "err": error_message})
+    terminalsession = get_object_or_404(TerminalSession, pk=pk)
+    try:
+        # 解锁会话
+        cache.delete(terminalsession.name + '_lock')
+        try:
+            TerminalSession.objects.filter(pk=pk).update(locked=False)
+        except BaseException:
+            pass
+        login_event_log(request.session.get('username'), 20, '会话 [{}] 解锁成功'.format(terminalsession.name),
                         request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
         return JsonResponse({"code": 200, "err": ""})
     except BaseException:

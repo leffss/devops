@@ -23,7 +23,7 @@ import logging
 import warnings
 warnings.filterwarnings("ignore")
 paramiko.util.log_to_file('./paramiko.log', level=WARNING)
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s] - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 # ssh_client ===>>          proxy_ssh             ==>> ssh_server
 # ssh_client ===>> (proxy_server -> proxy_client) ==>> ssh_server
@@ -62,14 +62,20 @@ class ServerInterface(paramiko.ServerInterface):
         self.log_start_time = timezone.now()
         self.last_save_time = self.start_time
         self.res_asciinema = []
+        self.width = 80
+        self.height = 40
+        self.user_role = False      # False 普通用户  True 管理员
+        self.superusername = None
+        self.superpassword = None
+        self.lock = False  # 锁定会话
 
-    def close_ssh_self(self, sleep_time=5):
+    def close_ssh_self(self, sleep_time=3):
         try:
             while 1:
                 if not cache.get('{}_{}_ssh_session'.format(self.http_user, self.password), False):
                     if not self.closed:
                         try:
-                            self.chan_cli.send('\n\r系统管理员已强制中止了您的终端连接\r\n')
+                            self.chan_cli.send('\n\r\033[31m当前会话已被管理员关闭\033[0m\r\n')
                         except:
                             pass
                         try:
@@ -80,7 +86,7 @@ class ServerInterface(paramiko.ServerInterface):
                         # 发送数据给查看会话的 websocket 链接
                         message = dict()
                         message['status'] = 2
-                        message['message'] = '\n\r系统管理员已强制中止了您的终端连接\r\n'
+                        message['message'] = '\n\r\033[31m当前会话已被管理员关闭\033[0m\r\n'
                         channel_layer = get_channel_layer()
                         async_to_sync(channel_layer.group_send)(self.group, {
                             "type": "chat.message",
@@ -89,6 +95,7 @@ class ServerInterface(paramiko.ServerInterface):
                     except:
                         pass
                     break
+                self.lock = cache.get('{}_{}_ssh_session_lock'.format(self.http_user, self.password), False)
                 time.sleep(sleep_time)  # 每次循环暂停一定时间，以免对 redis 造成压力
         except:
             pass
@@ -103,6 +110,10 @@ class ServerInterface(paramiko.ServerInterface):
             logger.info("连接后端主机 (%s@%s) ...." % (self.ssh_args[2], self.ssh_args[0]))
             proxy_client.connect(*self.ssh_args)
             self.chan_ser = proxy_client.invoke_shell(*self.tty_args)
+            if self.superusername:     # 登陆后超级管理员 su 跳转
+                if self.user_role:
+                    self.su_root(self.superusername, self.superpassword)
+                    logger.info("后端主机 (%s@%s) 跳转到用户 %s" % (self.ssh_args[2], self.ssh_args[0], self.superusername))
             logger.info("连接后端主机 (%s@%s) ok" % (self.ssh_args[2], self.ssh_args[0]))
 
             try:
@@ -129,6 +140,7 @@ class ServerInterface(paramiko.ServerInterface):
 
             # 设置连接到redis，使管理员可强制关闭软件终端 会话最大有效时间 30 天
             cache.set('{}_{}_ssh_session'.format(self.http_user, self.password), True, timeout=60 * 60 * 24 * 30)
+
             t = threading.Thread(target=self.close_ssh_self)
             t.daemon = True
             t.start()
@@ -147,6 +159,17 @@ class ServerInterface(paramiko.ServerInterface):
         except BaseException:
             self.close()
 
+    def su_root(self, superuser, superpassword, wait_time=1):
+        try:
+            su = 'su - {0}\n'.format(superuser)
+            self.cmd += su
+            self.cmd_tmp = ''
+            self.chan_ser.send(su)
+            time.sleep(wait_time)
+            self.chan_ser.send('{}\n'.format(superpassword))
+        except:
+            self.close()
+
     def bridge(self):
         # 桥接 客户终端 和 代理服务终端 交互
         # transport_keepalive(self.chan_ser.transport)
@@ -160,7 +183,7 @@ class ServerInterface(paramiko.ServerInterface):
                     try:
                         recv_message = self.chan_ser.recv(1024)
                         if len(recv_message) == 0:
-                            self.chan_cli.send("\r\n服务端已断开连接....\r\n")
+                            self.chan_cli.send("\r\n\033[31m服务端已断开连接....\033[0m\r\n")
                             time.sleep(1)
                             break
                         else:
@@ -226,29 +249,39 @@ class ServerInterface(paramiko.ServerInterface):
                             # time.sleep(1)
                             break
                         else:
-                            self.chan_ser.send(send_message)
-                            data = send_message.decode('utf-8')
-                            if data == '\r':  # 记录命令
-                                data = '\n'
-                                if self.cmd_tmp.strip() != '':
-                                    self.cmd_tmp += data
-                                    self.cmd += self.cmd_tmp
+                            if not self.lock:
+                                self.chan_ser.send(send_message)
+                                data = send_message.decode('utf-8')
+                                if data == '\r':  # 记录命令
+                                    data = '\n'
+                                    if self.cmd_tmp.strip() != '':
+                                        self.cmd_tmp += data
+                                        self.cmd += self.cmd_tmp
 
-                                    # print('-----------------------------------')
-                                    # print(self.cmd_tmp)
-                                    # print(self.cmd_tmp.encode())
-                                    # print('-----------------------------------')
+                                        # print('-----------------------------------')
+                                        # print(self.cmd_tmp)
+                                        # print(self.cmd_tmp.encode())
+                                        # print('-----------------------------------')
 
-                                    self.cmd_tmp = ''
-                            elif data.encode() == b'\x07':
-                                pass
-                            else:
-                                if data == '\t' or data.encode() == b'\x1b':  # \x1b 点击2下esc键也可以补全
-                                    self.tab_mode = True
-                                elif data.encode() == b'\x1b[A' or data.encode() == b'\x1b[B':
-                                    self.history_mode = True
+                                        self.cmd_tmp = ''
+                                elif data.encode() == b'\x07':
+                                    pass
                                 else:
-                                    self.cmd_tmp += data
+                                    if data == '\t' or data.encode() == b'\x1b':  # \x1b 点击2下esc键也可以补全
+                                        self.tab_mode = True
+                                    elif data.encode() == b'\x1b[A' or data.encode() == b'\x1b[B':
+                                        self.history_mode = True
+                                    else:
+                                        self.cmd_tmp += data
+                            else:
+                                # 红色提示文字
+                                self.chan_cli.send("\r\n\033[31m当前会话已被管理员锁定\033[0m\r\n")
+                                self.check_channel_window_change_request(
+                                    self.chan_cli, self.width - 1, self.height, 0, 0
+                                )
+                                self.check_channel_window_change_request(
+                                    self.chan_cli, self.width + 1, self.height, 0, 0
+                                )
 
                     except socket.timeout:
                         pass
@@ -334,8 +367,9 @@ class ServerInterface(paramiko.ServerInterface):
             pass
 
         try:
-            if terminal_type != 'N':
+            if terminal_type != 'N':    # 重复登陆时可能会调用close，这时不能删除这些 key，否则会把当前正常会话也关闭掉
                 cache.delete('{}_{}_{}_session'.format(self.http_user, self.password, terminal_type))
+                cache.delete('{}_{}_{}_session_lock'.format(self.http_user, self.password, terminal_type))
         except:
             pass
 
@@ -347,6 +381,8 @@ class ServerInterface(paramiko.ServerInterface):
         # 准备proxy_client ==>> ssh_server连接参数，用于后续SSH、SFTP
         remote_host = RemoteUserBindHost.objects.get(id=hostid)
         self.hostname = remote_host.hostname
+        self.superusername = remote_host.remote_user.superusername
+        self.superpassword = remote_host.remote_user.superpassword
         host = remote_host.ip
         port = remote_host.port
         user = remote_host.remote_user.username
@@ -394,6 +430,8 @@ class ServerInterface(paramiko.ServerInterface):
     def check_channel_pty_request(
         self, channel, term, width, height, pixelwidth, pixelheight, modes
     ):
+        self.width = width
+        self.height = height
         key = 'ssh_%s_%s' % (self.http_user, self.password)
         key_ssh = 'ssh_%s_%s_ssh_count' % (self.http_user, self.password)
         key_sftp = 'ssh_%s_%s_sftp_count' % (self.http_user, self.password)
@@ -401,7 +439,10 @@ class ServerInterface(paramiko.ServerInterface):
             ssh_count = cache.get(key_ssh, 0)
             sftp_count = cache.get(key_sftp, 0)
             if ssh_count > 0:
-                hostid = cache.get(key)
+                # hostid = cache.get(key)
+                hostinfo = cache.get(key)
+                hostid = hostinfo['host_id']
+                self.user_role = hostinfo['issuperuser']
                 cache.set(key_ssh, ssh_count - 1, timeout=60 * 60 * 24)
                 if hostid:
                     # cache.delete(key)
@@ -435,7 +476,10 @@ class ServerInterface(paramiko.ServerInterface):
             ssh_count = cache.get(key_ssh, 0)
             sftp_count = cache.get(key_sftp, 0)
             if sftp_count > 0:
-                hostid = cache.get(key)
+                # hostid = cache.get(key)
+                hostinfo = cache.get(key)
+                hostid = hostinfo['host_id']
+                self.user_role = hostinfo['issuperuser']
                 cache.set(key_sftp, sftp_count - 1, timeout=60 * 60 * 24)
                 if hostid:
                     # cache.delete(key)
@@ -463,8 +507,10 @@ class ServerInterface(paramiko.ServerInterface):
                                             pixelwidth, pixelheight):
         try:
             self.chan_ser.resize_pty(width=width, height=height)    # 必须 try 错误，否则在打开 xshell 后关闭，再连接会出错
+            self.width = width
+            self.height = height
         except BaseException:
-            pass
+            return False
         return True
 
     def check_channel_direct_tcpip_request(self, chan_id, origin, destination):

@@ -18,7 +18,7 @@ warnings.filterwarnings("ignore")
 paramiko.util.log_to_file('./paramiko.log', level=WARNING)
 from util.tool import gen_rand_char, terminal_log
 from ..tasks import celery_save_terminal_log
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s] - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 # ssh_client ===>>          proxy_ssh             ==>> ssh_server
 # ssh_client ===>> (proxy_server -> proxy_client) ==>> ssh_server
@@ -82,7 +82,7 @@ class SFTPInterface(paramiko.SFTPServerInterface):
         # ssh_proxy_client = paramiko.SFTPClient.from_transport(t)
         return ssh_proxy_client, t
 
-    def check_backend(self, sleep_time=5):  # 检测后端sftp服务器是否已断开连接
+    def check_backend(self, sleep_time=3):  # 检测是否被管理员断开或者后端sftp服务器是否已断开连接
         try:
             while 1:
                 if self.sftp_closed:

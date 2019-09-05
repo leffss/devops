@@ -5,15 +5,23 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>{{ host.hostname }} - {{ host.ip }} - {{ host.remote_user.username }}</title>
+  <title>会话 - {{ host.hostname }} - {{ host.remote_user.username }}@{{ host.ip }}</title>
   <!-- Tell the browser to be responsive to screen width -->
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
+  <!-- Font Awesome -->
+  <link href="https://cdn.bootcss.com/font-awesome/5.10.0-11/css/all.min.css" rel="stylesheet">
+  
   <!-- Theme style -->
   <link rel="stylesheet" href="{% static 'adminlte/dist/css/adminlte.min.css' %}">
   
   <!-- Toastr -->
   <link rel="stylesheet" href="{% static 'adminlte/plugins/toastr/toastr.min.css' %}">
+  
+  <!-- 弹出窗口插件 -->
+  <link rel="stylesheet" href="{% static 'css/iziModal.min.css' %}">
+  
+  <link rel="stylesheet" href="{% static 'guacamole/css/guacamole.css' %}">
   
     <style>
         #dpi {
@@ -33,8 +41,39 @@
 <!-- 用于获取屏幕dpi-->
 <div id='dpi'></div>
 
+<div class="container-fluid" id="headers" style="background-color: #E3F2FD">
+	<div class="row">
+		<div class="col-12 mt-2">
+			<h5>
+			主机：{{ host.hostname }}&nbsp;&nbsp;协议：{{ host.get_protocol_display }}&nbsp;&nbsp;连接：{{ host.remote_user.username }}@{{ host.ip }}:{{ host.port }}
+			<a href="javascript:void(0)" class="btn btn-sm btn-danger btn-flat ml-2 session-close"><i class="far fa-times-circle"></i> 断开</a>
+			</h5>
+		</div>
+	</div>
+</div>
+
 <!-- Display -->
-<div id="display"></div>
+<div class="mt-1" id="display"></div>
+
+<!-- 断开连接 -->
+<div id="modal-close" class="iziModal">
+	<div class="container-fluid">
+		<div class="row">
+			<div class="col-12 p-3">
+				<h4 class="text-center mt-3">确定要断开当前连接吗？</h4>
+			</div>
+			<div class="col-6 p-3">
+				<button type="button" class="btn btn-block btn-secondary btn-flat" data-iziModal-close>取消</button>
+			</div>
+			<div class="col-6 p-3">
+				<a href="javascript:void(0)"><button type="button" class="btn btn-block btn-success btn-flat" onclick="close_session();" data-iziModal-close>确定</button></a>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- 剪切板 -->
+<button id="clipboard" data-clipboard-text="" hidden></button>
 
 <!-- jQuery -->
 <script src="{% static 'adminlte/plugins/jquery/jquery.min.js' %}"></script>
@@ -43,13 +82,20 @@
 
 <!-- FastClick -->
 <script src="{% static 'adminlte/plugins/fastclick/fastclick.js' %}"></script>
+
 <!-- AdminLTE App -->
 <script src="{% static 'adminlte/dist/js/adminlte.min.js' %}"></script>
 
 <!-- Toastr -->
 <script src="{% static 'adminlte/plugins/toastr/toastr.min.js' %}"></script>
 
-<script src="{% static 'guacamole/js/all.min.js' %}"></script>
+<!-- 弹出框插件 -->
+<script src="{% static 'js/iziModal.min.js' %}"></script>
+
+<script src="{% static 'guacamole/js/all.js' %}"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+
 <!-- Init -->
 <script type="text/javascript">
 
@@ -59,22 +105,18 @@
     //http://guacamole.apache.org/doc/guacamole-common-js/Guacamole.WebSocketTunnel.html
     var protocol = (location.protocol === 'https:') ? 'wss://' : 'ws://';
     var ws_path = protocol + location.hostname + ((location.port) ? (':' + location.port) : '') + '/webguacamole/';
-    var guac = new Guacamole.Client(
+	
+    //var guac = new Guacamole.Client(
+	guac = new Guacamole.Client(
         new Guacamole.WebSocketTunnel(ws_path)
     );
-
 
     // Add client to display div
     display.appendChild(guac.getDisplay().getElement());
 
-    // Error handler
-    guac.onerror = function (error) {
-        console.log(error);
-    };
-	
 	var hostid = $.trim($('#hostid').text());
     var width = $(window).width() - 20;	// - 20像素防止滚动条挡住桌面内容
-    var height = $(window).height();
+    var height = $(window).height() - $("#headers").height() - 10;
     var dpi = getDPI();
 
     // Connect
@@ -83,6 +125,42 @@
     // Disconnect on close
     window.onunload = function () {
         guac.disconnect();
+    };
+	
+	// 监听远程主机剪切板变化并复制到本机剪切板
+	guac.onclipboard = function (stream, mimetype) {
+		if (/^text\//.test(mimetype)) {
+			var stringReader = new Guacamole.StringReader(stream);
+			var res = "";
+			stringReader.ontext = function ontext(text) {
+                res += text;
+            };
+			stringReader.onend = function() {
+				console.log(res);
+				if (res.length <= 65535) {
+					$("#clipboard").attr("data-clipboard-text", res);
+					var clipboard = new ClipboardJS('#clipboard');
+					$('#clipboard').click();
+					clipboard.destroy();
+				};
+            };
+		};
+	};
+	
+	//将内容传送到往堡垒机，data 是获取到的内容，怎么自动获取本机剪切板内容暂时未实现
+    function setClipboard(data) {
+        var stream = client.createClipboardStream("text/plain");
+        var writer = new Guacamole.StringWriter(stream);
+        for (var i=0; i<data.length; i += 4096){
+            writer.sendText(data.substring(i, i + 4096));
+        }
+        writer.sendEnd();
+    }
+	
+    // Error handler
+    guac.onerror = function (error) {
+        console.log(error);
+		$("body").removeAttr("onbeforeunload"); //删除刷新关闭提示属性
     };
 
     // Mouse
@@ -109,9 +187,41 @@
         return jQuery('#dpi').height();
     }
 
-    window.onbeforeunload = function (e) {
-        return '确定离开此页吗？';
-    }
+	function checkwindow() {
+		event.returnValue=false;
+	}
+
+    //window.onbeforeunload = function (e) {
+    //    return '确定离开此页吗？';
+    //}
+	
+	$("body").attr("onbeforeunload",'checkwindow()'); //增加刷新关闭提示属性
+	
+	
+	$("#modal-close").iziModal({
+		iconClass: 'icon-announcement',
+		width: 450,
+	});
+	$(document).on('click', '.session-close', function (event) {
+		event.preventDefault();
+		$('#modal-close').iziModal('open');
+	});
+	
+	close_session = function () {
+		guac.disconnect();
+		toastr.options.closeButton = true;
+		toastr.options.showMethod = 'slideDown';
+		toastr.options.hideMethod = 'fadeOut';
+		toastr.options.closeMethod = 'fadeOut';
+		toastr.options.timeOut = 0;	
+		toastr.options.extendedTimeOut = 3000;
+		toastr.options.progressBar = true;
+		toastr.options.positionClass = 'toast-top-right'; 
+		toastr.error("连接已关闭");
+		$(".session-close").attr("hidden", true);
+		$("body").removeAttr("onbeforeunload"); //删除刷新关闭提示属性
+		$("#display").css("cursor", "auto");	// 还原鼠标默认样式
+	};
 
 </script>
 </body>

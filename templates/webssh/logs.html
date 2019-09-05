@@ -83,12 +83,12 @@
 				  <td>{{ log.create_time | date:"Y/m/d H:i:s" }}</td>
 				  <td>
 				  {% if log.protocol == 'ssh' or log.protocol == 'telnet' %}
-					  <a href="javascript:void(0)" class="btn btn-primary btn-sm" info="{{ log.user }}-{{ log.hostname }}-{{ log.username }}@{{ log.ip }}:{{ log.port }}" type="{{ log.protocol }}" onclick="viewcmd(this);"><cmd hidden>{{ log.cmd | linebreaksbr }}</cmd><i class="fas fa-folder"></i> 命令详情</a>&nbsp;&nbsp;
-					  <a href="javascript:void(0)" class="btn btn-info btn-sm" id="{{ log.detail }}" info="{{ log.user }}-{{ log.hostname }}-{{ log.username }}@{{ log.ip }}:{{ log.port }}" onclick="viewsshvideo(this);"><i class="fas fa-video"></i> 录像</a>
+					  <a href="javascript:void(0)" class="btn btn-primary btn-sm mb-1" info="{{ log.user }}-{{ log.hostname }}-{{ log.username }}@{{ log.ip }}:{{ log.port }}" type="{{ log.protocol }}" onclick="viewcmd(this);"><cmd hidden>{{ log.cmd | linebreaksbr }}</cmd><i class="fas fa-folder"></i> 命令详情</a>&nbsp;&nbsp;
+					  <a href="javascript:void(0)" class="btn btn-info btn-sm mb-1" id="{{ log.detail }}" info="{{ log.user }}-{{ log.hostname }}-{{ log.username }}@{{ log.ip }}:{{ log.port }}" onclick="viewsshvideo(this);"><i class="fas fa-video"></i> 录像</a>
 				  {% elif log.protocol == 'sftp' %}
-					  <a href="javascript:void(0)" class="btn btn-primary btn-sm" info="{{ log.user }}-{{ log.hostname }}-{{ log.username }}@{{ log.ip }}:{{ log.port }}" type="{{ log.protocol }}" onclick="viewcmd(this);"><cmd hidden>{{ log.cmd | linebreaksbr }}</cmd><i class="fas fa-folder"></i> 命令详情</a>&nbsp;&nbsp;
+					  <a href="javascript:void(0)" class="btn btn-primary btn-sm mb-1" info="{{ log.user }}-{{ log.hostname }}-{{ log.username }}@{{ log.ip }}:{{ log.port }}" type="{{ log.protocol }}" onclick="viewcmd(this);"><cmd hidden>{{ log.cmd | linebreaksbr }}</cmd><i class="fas fa-folder"></i> 命令详情</a>&nbsp;&nbsp;
 				  {% elif log.protocol == 'rdp' or log.protocol == 'vnc' %}
-					  <a href="javascript:void(0)" class="btn btn-info btn-sm" id="{{ log.detail }}" info="{{ log.user }}-{{ log.hostname }}-{{ log.username }}@{{ log.ip }}:{{ log.port }}" onclick="viewrdpvideo(this);"><i class="fas fa-video"></i> 录像</a>
+					  <a href="javascript:void(0)" class="btn btn-info btn-sm mb-1" id="{{ log.detail }}" info="{{ log.user }}-{{ log.hostname }}-{{ log.username }}@{{ log.ip }}:{{ log.port }}" onclick="viewrdpvideo(this);"><i class="fas fa-video"></i> 录像</a>
 				  {% endif %}
 				  </td>
                 </tr>
@@ -253,7 +253,7 @@ $("#datatables-lists").DataTable({
 		var info = thisObj.attr('info');
 		var file = thisObj.attr("id");
 		$("#view_info").text("录像：" + info);
-		var res = '<div class="player"><div id="display"></div><div class="controls"><button id="play-pause">Play</button><label for="position-slider"></label><input id="position-slider" type="range"><span id="position">00:00</span><span>/</span><span id="duration">00:00</span></div></div>';
+		var res = '<div class="player"><div id="display"></div><div class="controls"><button id="play-pause">播放</button><label for="position-slider"></label><input id="position-slider" type="range"><span id="position">00:00</span><span>/</span><span id="duration">00:00</span></div></div>';
 		$("#view_container").html(res);
 		$("#modal-view").iziModal({
 			iconClass: 'icon-announcement',

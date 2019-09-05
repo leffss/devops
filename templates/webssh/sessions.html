@@ -45,9 +45,7 @@
 				  <th>会话名称</th>
 				  <th>用户</th>
 				  <th>类型</th>
-				  <th>主机</th>
-				  <th>端口</th>
-				  <th>账号</th>
+				  <th>连接</th>
 				  <th>协议</th>
 				  <th>客户端IP</th>
 				  <th>客户端</th>
@@ -76,9 +74,7 @@
 				    <span class="badge badge-danger">{{ session.get_type_display }}</span>
 				  {% endif %}
 				  </td>
-				  <td>{{ session.host }}</td>
-				  <td>{{ session.port }}</td>
-				  <td>{{ session.username }}</td>
+				  <td>{{ session.username }}@{{ session.host }}:{{ session.port }}</td>
 				  <td>
 				  {% if session.get_protocol_display == 'ssh' %}
 					<span class="badge badge-success">{{ session.get_protocol_display }}</span>
@@ -93,33 +89,44 @@
 				  
 				  <td>{{ session.address | default:'' }}</td>
 				  <td>{{ session.useragent | truncatechars_html:25 | default:'' }}...</td>
-				  
 				  <td>{{ session.create_time | date:"Y/m/d H:i:s" }}</td>
+				  
 				  <td>
-					
 					{% if session.get_type_display == 'webssh' or session.get_type_display == 'webtelnet' %}
 						<form method="post" action="{% url 'webssh:terminal_view' %}" target="_blank" style="display:inline;">
 						{% csrf_token %}
 						<input type="text" name="sessionname" value="{{ session.name  }}" hidden>
 						<input type="text" name="group" value="{{ session.group  }}" hidden>
-						<button type="submit" class="btn btn-sm btn-success btn-flat"><i class="fas fa-folder"></i> 查看</button>
+						<button type="submit" class="btn btn-sm btn-success btn-flat mb-1"><i class="far fa-eye"></i> 查看</button>
 						</form>&nbsp;&nbsp;
 					{% elif session.get_type_display == 'clissh' %}
 						<form method="post" action="{% url 'webssh:terminal_clissh_view' %}" target="_blank" style="display:inline;">
 						{% csrf_token %}
 						<input type="text" name="sessionname" value="{{ session.name  }}" hidden>
 						<input type="text" name="group" value="{{ session.group  }}" hidden>
-						<button type="submit" class="btn btn-sm btn-success btn-flat"><i class="fas fa-folder"></i> 查看</button>
+						<button type="submit" class="btn btn-sm btn-success btn-flat mb-1"><i class="far fa-eye"></i> 查看</button>
 						</form>&nbsp;&nbsp;
 					{% endif %}
 					
 					{% if session.get_type_display == 'webssh' or session.get_type_display == 'webtelnet' %}
-						<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" group="{{ session.group }}" class="btn btn-sm btn-danger btn-flat" onclick="createdeletemodal(this);"><i class="far fa-times-circle"></i> 断开</a>
+						<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" group="{{ session.group }}" class="btn btn-sm btn-danger btn-flat mb-1" onclick="createdeletemodal(this);"><i class="far fa-times-circle"></i> 断开</a>
+						&nbsp;&nbsp;
 					{% elif session.get_type_display == 'clissh' or session.get_type_display == 'clisftp' %}
-						<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" class="btn btn-sm btn-danger btn-flat" onclick="createdeletemodal_clissh(this);"><i class="far fa-times-circle"></i> 断开</a>
+						<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" class="btn btn-sm btn-danger btn-flat mb-1" onclick="createdeletemodal_clissh(this);"><i class="far fa-times-circle"></i> 断开</a>
+						&nbsp;&nbsp;
 					{% elif session.get_type_display == 'webrdp' or session.get_type_display == 'webvnc' %}
-						<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" group="{{ session.group }}" class="btn btn-sm btn-danger btn-flat" onclick="createdeletemodal_rdp(this);"><i class="far fa-times-circle"></i> 断开</a>
+						<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" group="{{ session.group }}" class="btn btn-sm btn-danger btn-flat mb-1" onclick="createdeletemodal_rdp(this);"><i class="far fa-times-circle"></i> 断开</a>
+						&nbsp;&nbsp;
 					{% endif %}
+					
+					{% if session.get_type_display == 'webssh' or session.get_type_display == 'webtelnet' or session.get_type_display == 'webrdp' or session.get_type_display == 'webvnc' or session.get_type_display == 'clissh' %}
+						{% if session.locked %}
+						<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" type="{{ session.get_type_display }}" class="btn btn-sm btn-primary btn-flat mb-1" onclick="createunlockmodal(this);"><i class="fas fa-lock-open"></i> 解锁</a>
+						{% else %}
+						<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" type="{{ session.get_type_display }}" class="btn btn-sm btn-primary btn-flat mb-1" onclick="createlockmodal(this);"><i class="fas fa-lock"></i> 锁定</a>
+						{% endif %}
+					{% endif %}
+					
 				  </td>
                 </tr>
 				{% endfor %}
@@ -130,9 +137,7 @@
 				  <th>会话名称</th>
 				  <th>用户</th>
 				  <th>类型</th>
-				  <th>主机</th>
-				  <th>端口</th>
-				  <th>账号</th>
+				  <th>连接</th>
 				  <th>协议</th>
 				  <th>客户端IP</th>
 				  <th>客户端</th>
@@ -201,7 +206,7 @@
 		var session_group = thisObj.attr("group");
 		// 生成弹出框，使用 \ 换行
 		$("#modal-container").html('<div id="modal-delete-' + session_id + '" class="iziModal"><div class="container-fluid"><div class="row">\
-									<div class="col-12 p-3"><h5 class="text-center mt-3">确定要强制关闭会话 "' + session_name + '" 吗？</h5></div><div class="col-6 p-3">\
+									<div class="col-12 p-3"><h5 class="text-center mt-3">确定要强制断开会话 "' + session_name + '" 吗？</h5></div><div class="col-6 p-3">\
 									<button type="button" class="btn btn-block btn-secondary btn-flat" data-iziModal-close>取消</button></div><div class="col-6 p-3">\
 									<a href="javascript:void(0)"><button type="button" class="btn btn-block btn-success btn-flat" id="' + session_id + '-yes" title="\
 									' + session_name + '" group="' + session_group + '" onclick="deletethis(this);">确定</button></a></div></div></div></div>');
@@ -575,6 +580,195 @@
 		};
 	}
 	// 关闭rdp&vnc会话 - end
+	
+	
+	// 锁定 webterminal 会话 - start
+	createlockmodal = function (event) {
+		var thisObj = $(event);	//js对象转jquery对象
+		var session_id = thisObj.attr('id');
+		var session_name = thisObj.attr("title");
+		var type = thisObj.attr("type");
+		// 生成弹出框，使用 \ 换行
+		$("#modal-container").html('<div id="modal-lock-' + session_id + '" class="iziModal"><div class="container-fluid"><div class="row">\
+									<div class="col-12 p-3"><h5 class="text-center mt-3">确定要锁定会话 "' + session_name + '" 吗？</h5></div><div class="col-6 p-3">\
+									<button type="button" class="btn btn-block btn-secondary btn-flat" data-iziModal-close>取消</button></div><div class="col-6 p-3">\
+									<a href="javascript:void(0)"><button type="button" class="btn btn-block btn-success btn-flat" id="' + session_id + '-yes" title="\
+									' + session_name + '" type1="' + type + '" onclick="lockthis(this);">确定</button></a></div></div></div></div>');
+		
+		// 初始化弹出框
+		$("#modal-lock-" + session_id).iziModal({
+			iconClass: 'icon-announcement',
+			width: 450,
+			//padding: 10,
+			overlayClose: false,	// 是否允许点击模态窗口的外部来关闭模态窗口。
+			closeOnEscape: false, 	// 是否允许通过点击ESC键来关闭模态窗口。
+		});
+				
+		// 打开弹出框
+		$('#modal-lock-' + session_id).iziModal('open');
+	}
+	
+	lockthis = function(event) {
+		toastr.options.closeButton = true;
+		toastr.options.showMethod = 'slideDown';
+		toastr.options.hideMethod = 'fadeOut';
+		toastr.options.closeMethod = 'fadeOut';
+		toastr.options.timeOut = 4000;	
+		toastr.options.extendedTimeOut = 0;	
+		
+		var thisObj = $(event);	//js对象转jquery对象
+		var session_id = thisObj.attr('id').split("-")[0];
+		var session_name = thisObj.attr("title");
+		var type = thisObj.attr("type1");
+		csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
+		var action_url;
+		if (type == 'clissh') {
+			action_url = "{% url 'webssh_api:session_clissh_lock' %}";
+		} else if (type == 'webssh' || type == 'webtelnet' || type == 'webrdp' || type == 'webvnc' ) {
+			action_url = "{% url 'webssh_api:session_lock' %}";
+		};
+		$.ajax({
+			url: action_url,
+			async: true,
+			type: 'POST',
+			dataType: 'json',
+			data: {
+				'csrfmiddlewaretoken': csrfmiddlewaretoken,
+				'id': session_id,
+			},
+			timeout: 10000,
+			cache: true,
+			beforeSend: LoadFunction, //加载执行方法
+			error: errFunction,  //错误执行方法
+			success: succFunction, //成功执行方法
+		});
+		
+		function LoadFunction() {
+			//$("#aboutcontent").html('删除中...');
+			//alert('删除中');
+		};
+		
+		function errFunction() {
+			// 关闭弹出框
+			$('#modal-lock-' + session_id).iziModal('close');
+			// 消息框
+			toastr.error('锁定会话错误 "' + session_name + '"');
+		};
+		
+		function succFunction(res) {
+			if (res.code != 200) {
+				// 关闭弹出框
+				$('#modal-lock-' + session_id).iziModal('close');
+				// 消息框
+				toastr.error('锁定会话错误 "' + session_name + '": ' + res.err);
+			} else {
+				//$("#session-" + session_id).remove();find
+				$($("#session-" + session_id).find('a[onclick="createlockmodal(this);"]')[0]).html('<i class="fas fa-lock-open"></i> 解锁');
+				$($("#session-" + session_id).find('a[onclick="createlockmodal(this);"]')[0]).attr("onclick", "createunlockmodal(this);");
+				
+				// 关闭弹出框
+				$('#modal-lock-' + session_id).iziModal('close');
+				
+				// 消息框
+				toastr.success('成功锁定会话 "' + session_name + '"');
+			}
+		};
+	}
+	// 锁定 webterminal 会话 - end
 
+	// 解锁 webterminal 会话 - start
+	createunlockmodal = function (event) {
+		var thisObj = $(event);	//js对象转jquery对象
+		var session_id = thisObj.attr('id');
+		var session_name = thisObj.attr("title");
+		var type = thisObj.attr("type");
+		// 生成弹出框，使用 \ 换行
+		$("#modal-container").html('<div id="modal-unlock-' + session_id + '" class="iziModal"><div class="container-fluid"><div class="row">\
+									<div class="col-12 p-3"><h5 class="text-center mt-3">确定要解锁会话 "' + session_name + '" 吗？</h5></div><div class="col-6 p-3">\
+									<button type="button" class="btn btn-block btn-secondary btn-flat" data-iziModal-close>取消</button></div><div class="col-6 p-3">\
+									<a href="javascript:void(0)"><button type="button" class="btn btn-block btn-success btn-flat" id="' + session_id + '-yes" title="\
+									' + session_name + '" type1="' + type + '" onclick="unlockthis(this);">确定</button></a></div></div></div></div>');
+		
+		// 初始化弹出框
+		$("#modal-unlock-" + session_id).iziModal({
+			iconClass: 'icon-announcement',
+			width: 450,
+			//padding: 10,
+			overlayClose: false,	// 是否允许点击模态窗口的外部来关闭模态窗口。
+			closeOnEscape: false, 	// 是否允许通过点击ESC键来关闭模态窗口。
+		});
+				
+		// 打开弹出框
+		$('#modal-unlock-' + session_id).iziModal('open');
+	}
+	
+	unlockthis = function(event) {
+		toastr.options.closeButton = true;
+		toastr.options.showMethod = 'slideDown';
+		toastr.options.hideMethod = 'fadeOut';
+		toastr.options.closeMethod = 'fadeOut';
+		toastr.options.timeOut = 4000;	
+		toastr.options.extendedTimeOut = 0;	
+		
+		var thisObj = $(event);	//js对象转jquery对象
+		var session_id = thisObj.attr('id').split("-")[0];
+		var session_name = thisObj.attr("title");
+		var type = thisObj.attr("type1");
+		csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
+		var action_url;
+		if (type == 'clissh') {
+			action_url = "{% url 'webssh_api:session_clissh_unlock' %}";
+		} else if (type == 'webssh' || type == 'webtelnet' || type == 'webrdp' || type == 'webvnc' ) {
+			action_url = "{% url 'webssh_api:session_unlock' %}";
+		};
+		$.ajax({
+			url: action_url,
+			async: true,
+			type: 'POST',
+			dataType: 'json',
+			data: {
+				'csrfmiddlewaretoken': csrfmiddlewaretoken,
+				'id': session_id,
+			},
+			timeout: 10000,
+			cache: true,
+			beforeSend: LoadFunction, //加载执行方法
+			error: errFunction,  //错误执行方法
+			success: succFunction, //成功执行方法
+		});
+		
+		function LoadFunction() {
+			//$("#aboutcontent").html('删除中...');
+			//alert('删除中');
+		};
+		
+		function errFunction() {
+			// 关闭弹出框
+			$('#modal-unlock-' + session_id).iziModal('close');
+			// 消息框
+			toastr.error('解锁会话错误 "' + session_name + '"');
+		};
+		
+		function succFunction(res) {
+			if (res.code != 200) {
+				// 关闭弹出框
+				$('#modal-unlock-' + session_id).iziModal('close');
+				// 消息框
+				toastr.error('解锁会话错误 "' + session_name + '": ' + res.err);
+			} else {
+				//$("#session-" + session_id).remove();
+				$($("#session-" + session_id).find('a[onclick="createunlockmodal(this);"]')[0]).html('<i class="fas fa-lock"></i> 锁定');
+				$($("#session-" + session_id).find('a[onclick="createunlockmodal(this);"]')[0]).attr("onclick", "createlockmodal(this);");
+
+				// 关闭弹出框
+				$('#modal-unlock-' + session_id).iziModal('close');
+				
+				// 消息框
+				toastr.success('成功解锁会话 "' + session_name + '"');
+			}
+		};
+	}
+	// 解锁 webterminal 会话 - end
+	
 </script>
 {% endblock js %}

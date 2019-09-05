@@ -85,7 +85,6 @@ class Client:
                             for line in tmp:
                                 f.write('{}'.format(line))
         except:
-            # print(traceback.format_exc())
             if self.websocker.send_flag == 0:
                 self.websocker.send('0.;')
             elif self.websocker.send_flag == 1:

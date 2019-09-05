@@ -56,6 +56,7 @@ class TerminalSession(models.Model):
     protocol = models.SmallIntegerField(default=1, choices=PROTOCOL_CHOICES, verbose_name='协议')
     address = models.GenericIPAddressField('IP地址', blank=True, null=True)
     useragent = models.CharField(max_length=512, blank=True, null=True, verbose_name='User_Agent')
+    locked = models.BooleanField(default=False, verbose_name='会话状态')
     create_time = models.DateTimeField('会话时间', auto_now_add=True)
 
     def __str__(self):

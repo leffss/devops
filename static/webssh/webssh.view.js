@@ -14,10 +14,11 @@ function get_term_size() {
 
     var windows_width = $(window).width();
     var windows_height = $(window).height();
+	var headers_height = $("#headers").height();
 
     return {
         cols: Math.floor(windows_width / init_width),
-        rows: Math.floor(windows_height / init_height),
+        rows: Math.floor((windows_height - headers_height) / init_height),
     }
 }
 

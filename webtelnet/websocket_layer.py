@@ -41,6 +41,7 @@ class WebTelnet(WebsocketConsumer):
         self.start_time = None
         self.send_flag = 0      # 0 发送自身通道，1 发送 group 通道，作用为当管理员查看会话时，进入 group 通道
         self.group = 'session_' + gen_rand_char()
+        self.lock = False  # 锁定会话
     
     def connect(self):
         """
@@ -131,7 +132,7 @@ class WebTelnet(WebsocketConsumer):
                     self.telnet.su_root(
                         self.remote_host.remote_user.superusername,
                         self.remote_host.remote_user.superpassword,
-                        0.3,
+                        1,
                     )
         user_agent = None
         for i in self.scope['headers']:
@@ -220,7 +221,13 @@ class WebTelnet(WebsocketConsumer):
             status = data['status']
             if status == 0:
                 data = data['data']
-                self.telnet.shell(data)
+                if self.lock:
+                    self.message['status'] = 3
+                    self.message['message'] = '当前会话已被管理员锁定'
+                    message = json.dumps(self.message)
+                    self.send(message)
+                else:
+                    self.telnet.shell(data)
             else:
                 pass
 
@@ -267,6 +274,20 @@ class WebTelnet(WebsocketConsumer):
             else:
                 pass
         except BaseException:
-            print(traceback.format_exc())
+            pass
 
+    def lock_message(self, data):
+        if not self.lock:
+            self.lock = True
+            self.message['status'] = 3
+            self.message['message'] = '当前会话已被管理员锁定'
+            message = json.dumps(self.message)
+            self.send(message)
 
+    def unlock_message(self, data):
+        if self.lock:
+            self.lock = False
+            self.message['status'] = 6
+            self.message['message'] = '当前会话已被管理员解锁'
+            message = json.dumps(self.message)
+            self.send(message)

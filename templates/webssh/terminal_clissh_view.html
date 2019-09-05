@@ -5,15 +5,21 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>{{ session.user }} - {{ session.username }}@{{ session.host }}:{{ session.port }} - {{ session.name }}</title>
+  <title>{{ session.user }} - {{ session.username }}@{{ session.host }}</title>
   <!-- Tell the browser to be responsive to screen width -->
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
+  <!-- Font Awesome -->
+  <link href="https://cdn.bootcss.com/font-awesome/5.10.0-11/css/all.min.css" rel="stylesheet">
+  
   <!-- Theme style -->
   <link rel="stylesheet" href="{% static 'adminlte/dist/css/adminlte.min.css' %}">
   
   <!-- Toastr -->
   <link rel="stylesheet" href="{% static 'adminlte/plugins/toastr/toastr.min.css' %}">
+  
+      <!-- 弹出窗口插件 -->
+  <link rel="stylesheet" href="{% static 'css/iziModal.min.css' %}">
   
   <!-- webssh -->
   <link rel="stylesheet" href="{% static 'webssh/xterm.css' %}">
@@ -24,7 +30,74 @@
 
 <span id="group" hidden>{{ session.group }}</span>
 
-<div id="terminal"></div>
+<div class="container-fluid" id="headers" style="background-color: #E3F2FD">
+	<div class="row">
+		<div class="col-12 mt-2">
+			<h5>
+			会话名称：{{ session.name }}&nbsp;&nbsp;用户：{{ session.user }}&nbsp;&nbsp;类型：{{ session.get_type_display }}&nbsp;&nbsp;协议：{{ session.get_protocol_display }}&nbsp;&nbsp;主机：{{ session.username }}@{{ session.host }}:{{ session.port }}
+			<a href="javascript:void(0)" class="btn btn-sm btn-danger btn-flat ml-2" id="session-close"><i class="far fa-times-circle"></i> 断开</a>
+			{% if session.locked %}
+				<a href="javascript:void(0)" class="btn btn-sm btn-primary btn-flat ml-2" id="session-unlock"><i class="fas fa-lock-open"></i> 解锁</a>
+			{% else %}
+				<a href="javascript:void(0)" class="btn btn-sm btn-primary btn-flat ml-2" id="session-lock"><i class="fas fa-lock"></i> 锁定</a>
+			{% endif %}
+			</h5>
+		</div>
+	</div>
+</div>
+
+<div class="mt-1" id="terminal"></div>
+
+<!-- 断开会话 -->
+<div id="modal-close" class="iziModal">
+	<div class="container-fluid">
+		<div class="row">
+			<div class="col-12 p-3">
+				<h4 class="text-center mt-3">确定要断开会话吗？</h4>
+			</div>
+			<div class="col-6 p-3">
+				<button type="button" class="btn btn-block btn-secondary btn-flat" data-iziModal-close>取消</button>
+			</div>
+			<div class="col-6 p-3">
+				<a href="javascript:void(0)"><button type="button" class="btn btn-block btn-success btn-flat" onclick="close_session();" data-iziModal-close>确定</button></a>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- 锁定会话 -->
+<div id="modal-lock" class="iziModal">
+	<div class="container-fluid">
+		<div class="row">
+			<div class="col-12 p-3">
+				<h4 class="text-center mt-3">确定要锁定会话吗？</h4>
+			</div>
+			<div class="col-6 p-3">
+				<button type="button" class="btn btn-block btn-secondary btn-flat" data-iziModal-close>取消</button>
+			</div>
+			<div class="col-6 p-3">
+				<a href="javascript:void(0)"><button type="button" class="btn btn-block btn-success btn-flat" onclick="lock_session();" data-iziModal-close>确定</button></a>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- 解锁会话 -->
+<div id="modal-unlock" class="iziModal">
+	<div class="container-fluid">
+		<div class="row">
+			<div class="col-12 p-3">
+				<h4 class="text-center mt-3">确定要解锁会话吗？</h4>
+			</div>
+			<div class="col-6 p-3">
+				<button type="button" class="btn btn-block btn-secondary btn-flat" data-iziModal-close>取消</button>
+			</div>
+			<div class="col-6 p-3">
+				<a href="javascript:void(0)"><button type="button" class="btn btn-block btn-success btn-flat" onclick="unlock_session();" data-iziModal-close>确定</button></a>
+			</div>
+		</div>
+	</div>
+</div>
 
 <!-- jQuery -->
 <script src="{% static 'adminlte/plugins/jquery/jquery.min.js' %}"></script>
@@ -39,12 +112,199 @@
 <!-- Toastr -->
 <script src="{% static 'adminlte/plugins/toastr/toastr.min.js' %}"></script>
 
+<!-- 弹出框插件 -->
+<script src="{% static 'js/iziModal.min.js' %}"></script>
+
 <!-- webssh -->
 <script src="{% static 'webssh/xterm.js' %}"></script>
 <script src="{% static 'webssh/webssh.clissh.view.js' %}"></script>
 
 <script>
 	websocket();
+
+	// 关闭会话 -- start
+	$("#modal-close").iziModal({
+		iconClass: 'icon-announcement',
+		width: 450,
+	});
+	$(document).on('click', '#session-close', function (event) {
+		event.preventDefault();
+		$('#modal-close').iziModal('open');
+	});
+	
+	close_session = function () {
+		toastr.options.closeButton = true;
+		toastr.options.showMethod = 'slideDown';
+		toastr.options.hideMethod = 'fadeOut';
+		toastr.options.closeMethod = 'fadeOut';
+		toastr.options.timeOut = 4000;
+		toastr.options.extendedTimeOut = 0;
+		csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
+		$.ajax({
+			url: "{% url 'webssh_api:session_clissh_close' %}",
+			async: true,
+			type: 'POST',
+			dataType: 'json',
+			data: {
+				'csrfmiddlewaretoken': csrfmiddlewaretoken,
+				'id': {{ session.id }},
+				'session': '{{ session.name }}',
+			},
+			timeout: 10000,
+			cache: true,
+			beforeSend: LoadFunction, //加载执行方法
+			error: errFunction,  //错误执行方法
+			success: succFunction, //成功执行方法
+		});
+		
+		function LoadFunction() {
+			
+		};
+		
+		function errFunction() {
+			toastr.error('关闭会话错误 "{{ session.name }}"');
+		};
+		
+		function succFunction(res) {
+			if (res.code != 200) {
+				// 消息框
+				toastr.error('关闭会话错误 "{{ session.name }}": ' + res.err);
+			} else {
+				// 消息框
+				toastr.success('成功关闭会话 "{{ session.name }}"');
+				$("#session-close").attr("hidden", true);
+				$("#session-unlock").attr("hidden", true);
+				$("#session-lock").attr("hidden", true);
+				$("body").removeAttr("onbeforeunload"); //删除刷新关闭提示属性
+			};
+		};
+	};
+	// 关闭会话 -- end
+
+	// 锁定会话 -- start
+	$("#modal-lock").iziModal({
+		iconClass: 'icon-announcement',
+		width: 450,
+	});
+	$(document).on('click', '#session-lock', function (event) {
+		event.preventDefault();
+		$('#modal-lock').iziModal('open');
+	});
+	
+	lock_session = function () {
+		toastr.options.closeButton = true;
+		toastr.options.showMethod = 'slideDown';
+		toastr.options.hideMethod = 'fadeOut';
+		toastr.options.closeMethod = 'fadeOut';
+		toastr.options.timeOut = 4000;
+		toastr.options.extendedTimeOut = 0;
+		csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
+		var type = '{{ session.get_type_display }}';
+		if (type == 'clissh') {
+			action_url = "{% url 'webssh_api:session_clissh_lock' %}";
+		} else if (type == 'webssh' || type == 'webtelnet' || type == 'webrdp' || type == 'webvnc' ) {
+			action_url = "{% url 'webssh_api:session_lock' %}";
+		};
+		$.ajax({
+			url: action_url,
+			async: true,
+			type: 'POST',
+			dataType: 'json',
+			data: {
+				'csrfmiddlewaretoken': csrfmiddlewaretoken,
+				'id': {{ session.id }},
+			},
+			timeout: 10000,
+			cache: true,
+			beforeSend: LoadFunction, //加载执行方法
+			error: errFunction,  //错误执行方法
+			success: succFunction, //成功执行方法
+		});
+		
+		function LoadFunction() {
+			
+		};
+		
+		function errFunction() {
+			toastr.error('锁定会话错误 "{{ session.name }}"');
+		};
+		
+		function succFunction(res) {
+			if (res.code != 200) {
+				// 消息框
+				toastr.error('锁定会话错误 "{{ session.name }}": ' + res.err);
+			} else {
+				// 消息框
+				toastr.success('成功锁定会话 "{{ session.name }}"');
+				$("#session-lock").html('<i class="fas fa-lock-open"></i> 解锁');
+				$("#session-lock").attr('id', 'session-unlock');
+			};
+		};
+	};
+	// 锁定会话 -- end
+
+	// 解锁会话 -- start
+	$("#modal-unlock").iziModal({
+		iconClass: 'icon-announcement',
+		width: 450,
+	});
+	$(document).on('click', '#session-unlock', function (event) {
+		event.preventDefault();
+		$('#modal-unlock').iziModal('open');
+	});
+	
+	unlock_session = function () {
+		toastr.options.closeButton = true;
+		toastr.options.showMethod = 'slideDown';
+		toastr.options.hideMethod = 'fadeOut';
+		toastr.options.closeMethod = 'fadeOut';
+		toastr.options.timeOut = 4000;
+		toastr.options.extendedTimeOut = 0;
+		csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
+		var type = '{{ session.get_type_display }}';
+		if (type == 'clissh') {
+			action_url = "{% url 'webssh_api:session_clissh_unlock' %}";
+		} else if (type == 'webssh' || type == 'webtelnet' || type == 'webrdp' || type == 'webvnc' ) {
+			action_url = "{% url 'webssh_api:session_unlock' %}";
+		};
+		$.ajax({
+			url: action_url,
+			async: true,
+			type: 'POST',
+			dataType: 'json',
+			data: {
+				'csrfmiddlewaretoken': csrfmiddlewaretoken,
+				'id': {{ session.id }},
+			},
+			timeout: 10000,
+			cache: true,
+			beforeSend: LoadFunction, //加载执行方法
+			error: errFunction,  //错误执行方法
+			success: succFunction, //成功执行方法
+		});
+		
+		function LoadFunction() {
+			
+		};
+		
+		function errFunction() {
+			toastr.error('解锁会话错误 "{{ session.name }}"');
+		};
+		
+		function succFunction(res) {
+			if (res.code != 200) {
+				// 消息框
+				toastr.error('解锁会话错误 "{{ session.name }}": ' + res.err);
+			} else {
+				// 消息框
+				toastr.success('成功解锁会话 "{{ session.name }}"');
+				$("#session-unlock").html('<i class="fas fa-lock"></i> 锁定');
+				$("#session-unlock").attr('id', 'session-lock');
+			};
+		};
+	};
+	// 解锁会话 -- end
+	
 </script>
 
 </body>

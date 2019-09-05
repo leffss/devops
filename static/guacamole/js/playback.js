@@ -147,12 +147,12 @@ function initExamplePlayer(record_file) {
 
     // If playing, the play/pause button should read "Pause"
     recording.onplay = function() {
-        playPause.textContent = 'Pause';
+        playPause.textContent = '暂停';
     };
 
     // If paused, the play/pause button should read "Play"
     recording.onpause = function() {
-        playPause.textContent = 'Play';
+        playPause.textContent = '播放';
     };
 
     // Toggle play/pause when display or button are clicked

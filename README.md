@@ -22,6 +22,7 @@ pip install -r requirements.txt
 # 运行
 python3 manage.py runserver
 python3 manage.py proxy_sshd
+celery -A devops worker -l info -c 3 --max-tasks-per-child 40
 ```
 
 **docker方式(Centos 7)**
@@ -37,6 +38,9 @@ sh start_docker.sh
 
 
 # 升级日志
+### ver1.7.4
+新增webguacamole、webssh、webtelnet会话锁定与解锁功能；微调web终端ui；
+
 ### ver1.7.3
 新增webguacamole，支持RDP、VNC协议连接主机，并支持录像回放；
 
@@ -92,6 +96,9 @@ linux平台下使用celery任务保存终端会话日志与录像(windows不支�
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/11.PNG?raw=true)
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/12.PNG?raw=true)
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/13.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/14.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/15.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/16.PNG?raw=true)
 
 
 # TODO LISTS
@@ -140,6 +147,7 @@ linux平台下使用celery任务保存终端会话日志与录像(windows不支�
 - [x] 所有界面表单数据验证(原生javascript正则表单式验证)
 - [ ] 搜索
 - [ ] 后台耗时任务使用 celery
+- [ ] 批量处理(比如，删除操作)
 
 更多新功能不断探索发现中.
 

@@ -19,6 +19,8 @@ import platform
 from guacamole.client import GuacamoleClient
 from .guacamoleclient import Client
 import os
+import re
+import base64
 from django.http.request import QueryDict
 from webssh.tasks import celery_save_res_asciinema, celery_save_terminal_log
 
@@ -39,6 +41,7 @@ class WebGuacamole(WebsocketConsumer):
         self.group = 'session_' + gen_rand_char()
         self.user_agent = None
         self.guacamoleclient = None
+        self.lock = False
 
     def connect(self):
         self.accept('guacamole')
@@ -152,7 +155,16 @@ class WebGuacamole(WebsocketConsumer):
             TerminalSession.objects.filter(name=self.channel_name, group=self.group).delete()
 
     def receive(self, text_data=None, bytes_data=None):
-        self.guacamoleclient.shell(text_data)
+        # print(text_data)
+        if not self.lock:
+            self.guacamoleclient.shell(text_data)
+        else:
+            if text_data.startswith('4.sync') or text_data.startswith('3.nop'):
+                self.guacamoleclient.shell(text_data)
+            else:
+                if re.match(r'^5\.mouse,.*1\.1;$', text_data) or re.match(r'^3\.key,.*1\.1;$', text_data):
+                    message = str(base64.b64encode('当前会话已被管理员锁定'.encode('utf-8')), 'utf-8')
+                    self.send('6.toastr,1.1,{0}.{1};'.format(len(message), message))    # 给客户端发送警告
 
     # 会话外使用 channels.layers 设置 type 为 group.message 调用此函数
     def group_message(self, data):
@@ -164,6 +176,22 @@ class WebGuacamole(WebsocketConsumer):
     # 会话外使用 channels.layers 设置 type 为 close.message 调用此函数
     def close_message(self, data):
         try:
+            message = str(base64.b64encode('当前会话已被管理员关闭'.encode('utf-8')), 'utf-8')
+            # 给客户端发送toastr警告
+            # 需要在 guacamole/js/all.js 中自定义 toastr 的处理处理方法
+            self.send('6.toastr,1.2,{0}.{1};'.format(len(message), message))
             self.close()
         except BaseException:
             pass
+
+    def lock_message(self, data):
+        if not self.lock:
+            self.lock = True
+            message = str(base64.b64encode('当前会话已被管理员锁定'.encode('utf-8')), 'utf-8')
+            self.send('6.toastr,1.1,{0}.{1};'.format(len(message), message))
+
+    def unlock_message(self, data):
+        if self.lock:
+            self.lock = False
+            message = str(base64.b64encode('当前会话已被管理员解锁'.encode('utf-8')), 'utf-8')
+            self.send('6.toastr,1.0,{0}.{1};'.format(len(message), message))
