@@ -11,7 +11,6 @@ urlpatterns = [
     path('terminal/view/', views.terminal_view, name='terminal_view'),
     path('terminal/clissh/view/', views.terminal_clissh_view, name='terminal_clissh_view'),
     path('logs/', views.logs, name='logs'),
-    path('test/', views.test, name='test'),
     path('sessions/', views.sessions, name='sessions'),
 ]
 

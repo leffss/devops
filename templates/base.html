@@ -213,13 +213,13 @@
             <ul class="nav nav-treeview">
               <li class="nav-item">
                 <a href="{% url 'server:hosts' %}" class="nav-link">
-                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;主机列表</p>
+                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;主机</p>
                 </a>
               </li>
 			  {% if request.session.issuperuser %}
               <li class="nav-item">
                 <a href="{% url 'server:users' %}" class="nav-link">
-                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;用户列表</p>
+                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;远程用户</p>
                 </a>
               </li>
 			  {% endif %}
@@ -299,7 +299,7 @@
 
   <footer class="main-footer">
     <div class="float-right d-none d-sm-block">
-      运维管理系统 <b>Version</b> 1.0.0 <a href="https://github.com/leffss/devops" target="_blank">Github</a>
+      运维管理系统 <a href="https://github.com/leffss/devops" target="_blank">Github</a>
     </div>
     <strong>Copyright &copy; 2019 <a href="//www.cnblogs.com/leffss" target="_blank">leffss</a>.</strong> All rights
     reserved.

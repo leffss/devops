@@ -17,6 +17,8 @@ def main():
     print(cache.get('test_123'))
     print(type(cache.get('test_123')))
     
+    cache.delete('leffss')
+    
     
 if __name__ == '__main__':
     main()

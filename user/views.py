@@ -8,6 +8,7 @@ from util.tool import login_required, hash_code, post_required, admin_required
 import django.utils.timezone as timezone
 from django.db.models import Q
 import time
+import json
 import traceback
 # Create your views here.
 
@@ -37,7 +38,7 @@ def login(request):
                     error_message = '用户已禁用!'                    
                     login_event_log(user, 3, '用户 [{}] 已禁用'.format(username), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
                     return render(request, 'user/login.html', locals())
-            except BaseException:
+            except Exception:
                 error_message = '用户不存在!'                
                 login_event_log(None, 3, '用户 [{}] 不存在'.format(username), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
                 return render(request, 'user/login.html', locals())
@@ -82,7 +83,7 @@ def logout(request):
         del request.session['nickname']
         del request.session['logintime']
         del request.session['lasttime']
-    except BaseException:
+    except Exception:
         pass
     login_event_log(user, 2, '用户 [{}] 退出'.format(user.username), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
     return redirect(reverse('user:login'))
@@ -112,12 +113,26 @@ def logs(request):
 @login_required
 def profile(request):
     user = get_object_or_404(User, pk=request.session.get('userid'))
+    clissh = json.loads(user.setting)['clissh']
+    ssh_app = None
+    for i in clissh:
+        if i['enable']:
+            ssh_app = i
+            break
+    clisftp = json.loads(user.setting)['clisftp']
+    sftp_app = None
+    for i in clisftp:
+        if i['enable']:
+            sftp_app = i
+            break
     return render(request, 'user/profile.html', locals())
 
 
 @login_required
 def profile_edit(request):
     user = get_object_or_404(User, pk=request.session.get('userid'))
+    clissh = json.loads(user.setting)['clissh']
+    clisftp = json.loads(user.setting)['clisftp']
     sex_choices = (
         ('male', "男"),
         ('female', "女"),

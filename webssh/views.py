@@ -1,6 +1,7 @@
 from django.shortcuts import render, HttpResponse
 from server.models import RemoteUserBindHost
 from .models import TerminalLog, TerminalSession
+from user.models import User
 from util.tool import login_required, post_required, admin_required
 from django.http import JsonResponse
 from django.db.models import Q
@@ -10,6 +11,7 @@ from asgiref.sync import async_to_sync
 from util.tool import gen_rand_char
 from django.core.cache import cache
 from django.conf import settings
+import json
 # Create your views here.
 
 
@@ -54,49 +56,25 @@ def terminal_cli(request):
     # 用于限制随机密码ssh和sftp登陆次数
     cache.set(key_ssh, 1, timeout=60 * 60 * 24)  # 写入 redis 缓存以便 proxy_sshd 读取
     cache.set(key_sftp, 1, timeout=60 * 60 * 24)  # 写入 redis 缓存以便 proxy_sshd 读取
-    # Xshell.exe" ssh://网站用户:临时密码@堡垒机:端口 -newtab SSH用户/SSH主机
-    # link = '{scheme}://{user}:{passwd}@{cmdb}:{port}\\" \\"-newtab\\" \\"{username}/{host}\\"'
     host = RemoteUserBindHost.objects.get(pk=host_id)
-
-    link_crt_ssh = '{scheme}://C:\\Program Files\\VanDyke Software\\Clients\\SecureCRT.exe /T /N "{username}@{host}" \
-    /SSH2 /L {user} /PASSWORD {passwd} {cmdb} /P {port}'
-    link_xshell_ssh = '{scheme}://C:\\Program Files (x86)\\NetSarang\\Xmanager Enterprise 5\\Xshell.exe -newtab \
-    "{username}@{host}" -url ssh://{user}:{passwd}@{cmdb}:{port}'
-    link_putty_ssh = '{scheme}://C:\\Users\\xx\\AppData\\Roaming\\TP4A\\Teleport-Assist\\tools\\putty\\putty.exe \
-    -l {user} -pw {passwd} {cmdb} -P {port}'
-
-    clissh = 'link_xshell_ssh'
-
-    if clissh == 'link_crt_ssh':
-        return HttpResponse(link_crt_ssh.format(
-            scheme='apploader',
-            cmdb=request.META['HTTP_HOST'].split(':')[0],
-            port=settings.PROXY_SSHD.get('listen_port', 2222),
-            user=username,
-            passwd=password,
-            host=host.ip,
-            username=host.remote_user.username,
-        ))
-    elif clissh == 'link_xshell_ssh':
-        return HttpResponse(link_xshell_ssh.format(
-            scheme='apploader',     # 自定义的网页调用外部软件(xshell)协议
-            cmdb=request.META['HTTP_HOST'].split(':')[0],  # xshell连接主机(cmdb堡垒机代理)
-            port=settings.PROXY_SSHD.get('listen_port', 2222),
-            user=username,  # xshell连接主机的用户(cmdb堡垒机代理)
-            passwd=password,
-            host=host.ip,  # xshell标签显示连接的主机(后端SSH实际主机)
-            username=host.remote_user.username,  # xshell标签显示连接的用户(后端SSH实际用户)
-        ))
-    elif clissh in ('link_putty_ssh'):
-        return HttpResponse(link_putty_ssh.format(
-            scheme='apploader',
-            cmdb=request.META['HTTP_HOST'].split(':')[0],
-            port=settings.PROXY_SSHD.get('listen_port', 2222),
-            user=username,
-            passwd=password,
-            host=host.ip,
-            username=host.remote_user.username,
-        ))
+    user = User.objects.get(username=username)
+    clissh = json.loads(user.setting)['clissh']
+    ssh_app = None
+    for i in clissh:
+        if i['enable']:
+            ssh_app = i
+            break
+    link_ssh = '{scheme}://%s %s' % (ssh_app['path'], ssh_app['args'])
+    return HttpResponse(link_ssh.format(
+        scheme='apploader',
+        login_host=request.META['HTTP_HOST'].split(':')[0],
+        port=settings.PROXY_SSHD.get('listen_port', 2222),
+        login_user=username,
+        login_passwd=password,
+        host=host.ip,
+        username=host.remote_user.username,
+        hostname=host.hostname,
+    ))
 
 
 @login_required
@@ -115,16 +93,23 @@ def terminal_cli_sftp(request):
     # 用于限制随机密码sftp登陆次数
     cache.set(key_sftp, 1, timeout=60 * 60 * 24)  # 写入 redis 缓存以便 proxy_sshd 读取
     host = RemoteUserBindHost.objects.get(pk=host_id)
-    link_winscp_sftp = '{scheme}://C:\\Users\\xx\\AppData\\Roaming\\TP4A\\Teleport-Assist\\tools\\winscp\\WinSCP.exe \
-    /sessionname="{username}@{host}" {user}:{passwd}@{cmdb}:{port}'
-    return HttpResponse(link_winscp_sftp.format(
+    user = User.objects.get(username=username)
+    clisftp = json.loads(user.setting)['clisftp']
+    sftp_app = None
+    for i in clisftp:
+        if i['enable']:
+            sftp_app = i
+            break
+    link_sftp = '{scheme}://%s %s' % (sftp_app['path'], sftp_app['args'])
+    return HttpResponse(link_sftp.format(
         scheme='apploader',
-        cmdb=request.META['HTTP_HOST'].split(':')[0],
+        login_host=request.META['HTTP_HOST'].split(':')[0],
         port=settings.PROXY_SSHD.get('listen_port', 2222),
-        user=username,
-        passwd=password,
+        login_user=username,
+        login_passwd=password,
         host=host.ip,
         username=host.remote_user.username,
+        hostname=host.hostname,
     ))
 
 
@@ -133,13 +118,6 @@ def terminal_cli_sftp(request):
 def logs(request):
     logs = TerminalLog.objects.all()
     return render(request, 'webssh/logs.html', locals())
-
-
-@login_required
-@admin_required
-def test(request):
-    log = TerminalLog.objects.get(pk=219)
-    return render(request, 'webssh/test.html', locals())
 
 
 @login_required
@@ -183,8 +161,9 @@ def terminal_clissh_view(request):
 def cls_terminalsession():
     try:
         TerminalSession.objects.all().delete()
-    except:
+    except Exception:
         pass
     
 
 cls_terminalsession()
+

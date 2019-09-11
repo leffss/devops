@@ -2,7 +2,7 @@
 {% load static %}
 
   {% block title %}
-  <title>个人信息设置</title>
+  <title>个人信息编辑</title>
   {% endblock title %}
 
 	{% block navheader %}
@@ -11,7 +11,7 @@
         <div class="row mb-1">
           <div class="col-12">
             <ol class="breadcrumb">
-              <li class="breadcrumb-item active">个人信息设置</li>
+              <li class="breadcrumb-item active">个人信息编辑</li>
             </ol>
           </div>
         </div>
@@ -22,7 +22,7 @@
 		  {% block content %}
           <div class="card card-primary">
             <div class="card-header">
-              <h3 class="card-title">个人信息</h3>
+              <h3 class="card-title">个人信息编辑</h3>
 				<div class="card-tools">
 				  <button type="button" class="btn btn-tool" data-widget="collapse">
 					<i class="fas fa-minus"></i>
@@ -37,6 +37,23 @@
             </div>
             <!-- /.card-header -->
             <div class="card-body row">
+				<div class="col-12">
+					<div class="alert alert-info alert-dismissible" style="font-size:0.9rem;">
+						<button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+						提示：本地SSH客户端与本地SFTP客户端命令参数变量意义如下<br>
+						<ul>
+							<li>{login_host}&nbsp;&nbsp;SSH连接IP</li>
+							<li>{login_user}&nbsp;&nbsp;SSH连接用户</li>
+							<li>{login_passwd}&nbsp;&nbsp;SSH连接密码</li>
+							<li>{port}&nbsp;&nbsp;SSH连接端口</li>
+							<li>{username}&nbsp;&nbsp;后端真实主机用户名</li>
+							<li>{host}&nbsp;&nbsp;后端真实主机IP</li>
+							<li>{hostname}&nbsp;&nbsp;后端真实主机名</li>
+						</ul>
+						调用本地SSH客户端与本地SFTP客户端使用URL RPOTOCOL协议，目前只支持windows系统。使用方法见：下载 <a href="/media/apploader.zip">apploader</a> 。
+					</div>
+				</div>
+				
 				<div class="col-2 pt-1 pb-1">用户名：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" value="{{ user.username }}" disabled></div>
 				<div class="col-2 pt-1 pb-1">昵称<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="nickname"  value="{{ user.nickname }}" onkeyup="check_nickname();" onblur="check_nickname();"></div>
 				<div class="offset-2 col-10 pb-1"><small id="nickname_error" style="color:red;"></small></div>
@@ -61,9 +78,73 @@
 					{% endfor %}
                   </select>
 				</div>
+				
+				<div class="col-2 pt-1 pb-2">本地SSH客户端：</div>
+				<div class="col-10 pt-1 pb-2">
+					<div class="input-group">
+					  <div class="input-group-prepend">
+						<button type="button" class="btn btn-info dropdown-toggle" data-toggle="dropdown">
+							{% for ssh in clissh %}
+								<input id="clissh-value-{{ ssh.name }}" path="{{ ssh.path }}" args="{{ ssh.args }}" hidden>
+								{% if ssh.enable %}
+									<span id="clissh-name">{{ ssh.name }}</span>
+								{% endif %}
+							{% endfor %}
+						</button>
+						<ul class="dropdown-menu">
+						  {% for ssh in clissh %}
+						  <li class="dropdown-item"><a href="javascript:void(0);" onclick="changeclissh(this);">{{ ssh.name }}</a></li>
+						  {% endfor %}
+						</ul>
+					  </div>
+					  <!-- /btn-group -->
+						{% for ssh in clissh %}
+							{% if ssh.enable %}
+								<input type="text" class="form-control" id="clissh-path" value='{{ ssh.path }}'>
+								<input type="text" class="form-control" id="clissh-args" value='{{ ssh.args }}'>
+							{% endif %}
+						{% endfor %}
+					</div>
+					<div>
+						<small>提示：第一个输入框为程序路径，第二个输入框为命令参数</small>
+					</div>
+				</div>
+				
+				<div class="col-2 pt-1 pb-2">本地SFTP客户端：</div>
+				<div class="col-10 pt-1 pb-2">
+					<div class="input-group">
+					  <div class="input-group-prepend">
+						<button type="button" class="btn btn-info dropdown-toggle" data-toggle="dropdown">
+							{% for sftp in clisftp %}
+								<input id="clisftp-value-{{ sftp.name }}" path="{{ sftp.path }}" args="{{ sftp.args }}" hidden>
+								{% if sftp.enable %}
+									<span id="clisftp-name">{{ sftp.name }}</span>
+								{% endif %}
+							{% endfor %}
+						</button>
+						<ul class="dropdown-menu">
+						  {% for sftp in clisftp %}
+						  <li class="dropdown-item"><a href="javascript:void(0);" onclick="changeclisftp(this);">{{ sftp.name }}</a></li>
+						  {% endfor %}
+						</ul>
+					  </div>
+					  <!-- /btn-group -->
+						{% for sftp in clisftp %}
+							{% if sftp.enable %}
+								<input type="text" class="form-control" id="clisftp-path" value='{{ sftp.path }}'>
+								<input type="text" class="form-control" id="clisftp-args" value='{{ sftp.args }}'>
+							{% endif %}
+						{% endfor %}
+					</div>
+					<div>
+						<small>提示：第一个输入框为程序路径，第二个输入框为命令参数</small>
+					</div>
+				</div>
+				
 				<div class="col-2 pt-1 pb-1">备注：</div><div class="col-10 pt-1 pb-1"><textarea id="memo" class="form-control">{{ user.memo | default:'' }}</textarea></div>
 				<div class="offset-2 col-10 pt-2"><a class="btn btn-default" href="{% url 'user:profile' %}">返回</a> <button class="btn btn-success ml-2" onclick="changeuserprofile(this);">提交</button><span id="feed_error" class="ml-2" style="color:red;"></span></div>
-            </div>
+
+			</div>
             <!-- /.card-body -->
           </div>
           <!-- /.card --> 
@@ -213,6 +294,14 @@
 		var qq = $('#qq').val();
 		check_right[4] = check_qq();
 		
+		clissh_name = $("#clissh-name").text();
+		clissh_path = $("#clissh-path").val();
+		clissh_args = $("#clissh-args").val();
+		
+		clisftp_name = $("#clisftp-name").text();
+		clisftp_path = $("#clisftp-path").val();
+		clisftp_args = $("#clisftp-args").val();
+		
 		var sex = $("#sex").find("option:selected").val();
 		var memo = $('#memo').val();
 		csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
@@ -233,6 +322,12 @@
 					'qq': qq,
 					'sex': sex,
 					'memo': memo,
+					'clissh_name': clissh_name,
+					'clissh_path': clissh_path,
+					'clissh_args': clissh_args,
+					'clisftp_name': clisftp_name,
+					'clisftp_path': clisftp_path,
+					'clisftp_args': clisftp_args,
 				},
 				timeout: 5000,
 				cache: true,
@@ -272,6 +367,29 @@
 			}
 		};
 	}
-
+	
+	// 改变clissh -- start
+	changeclissh = function(event) {
+		var thisObj = $(event);	//js对象转jquery对象
+		name = thisObj.text();
+		path = $("#clissh-value-" +name).attr("path");
+		args = $("#clissh-value-" +name).attr("args");
+		$("#clissh-name").text(name);
+		$("#clissh-path").val(path);
+		$("#clissh-args").val(args);
+	};
+	// 改变clissh -- end
+	
+	// 改变clisftp -- start
+	changeclisftp = function(event) {
+		var thisObj = $(event);	//js对象转jquery对象
+		name = thisObj.text();
+		path = $("#clisftp-value-" +name).attr("path");
+		args = $("#clisftp-value-" +name).attr("args");
+		$("#clisftp-name").text(name);
+		$("#clisftp-path").val(path);
+		$("#clisftp-args").val(args);
+	};
+	// 改变clisftp -- end	
 </script>
 {% endblock js %}

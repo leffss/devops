@@ -1,12 +1,6 @@
 # coding=utf-8
-
-# import traceback
-# import time
-# import json
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
-# from cmdb.models import Host
-
 from webssh.sshd.sshd import SSHServer
 
 

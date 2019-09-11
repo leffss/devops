@@ -2,7 +2,7 @@
 {% load static %}
 
   {% block title %}
-  <title>新增组</title>
+  <title>组添加</title>
   {% endblock title %}
 
 	{% block navheader %}
@@ -13,7 +13,7 @@
             <ol class="breadcrumb">
               <li class="breadcrumb-item">用户管理</li>
 			  <li class="breadcrumb-item"><a href="{% url 'user:groups' %}">组</a></li>
-			  <li class="breadcrumb-item active">新增组</li>
+			  <li class="breadcrumb-item active">组添加</li>
             </ol>
           </div>
         </div>
@@ -24,7 +24,7 @@
 		  {% block content %}
           <div class="card card-primary">
             <div class="card-header">
-              <h3 class="card-title">组</h3>
+              <h3 class="card-title">组添加</h3>
 				<div class="card-tools">
 				  <button type="button" class="btn btn-tool" data-widget="collapse">
 					<i class="fas fa-minus"></i>
@@ -99,10 +99,10 @@
 			$('#groupname').addClass("is-invalid");
 			$('#groupname_error').text('组名不能未空');
 			return false;
-		} else if(/[@#\$%\^&\*]+/g.test(groupname)) {	// 正则判断
+		} else if(/[^0-9a-zA-Z]+/g.test(groupname)) {	// 正则判断
 			$('#groupname').removeClass("is-valid");
 			$('#groupname').addClass("is-invalid");
-			$('#groupname_error').text('组名不能存在特殊符号');
+			$('#groupname_error').text('组名不能存在符号');
 			return false;
 		} else {
 			$('#groupname').removeClass("is-invalid");

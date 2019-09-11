@@ -50,7 +50,7 @@
 				  <th>昵称</th>
 				  <th>邮箱</th>
 				  <th>拥有主机</th>
-				  <th>是否启用</th>
+				  <th>状态</th>
 				  <th>角色</th>
 				  <th>组</th>
 				  <th>创建时间</th>
@@ -95,7 +95,7 @@
 				  <th>昵称</th>
 				  <th>邮箱</th>
 				  <th>拥有主机</th>
-				  <th>是否启用</th>
+				  <th>状态</th>
 				  <th>角色</th>
 				  <th>组</th>
 				  <th>创建时间</th>
@@ -155,6 +155,7 @@
 		destroy: true,	// 允许重建
 		bProcessing:true,  // 表格数据过多处理时显示: sProcessing
 		lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "全部"]],
+		columnDefs : [ { targets : 9, "orderable" : false } ],
 		order: [],
 		 //scrollY: 480,	// 滚动条
 		 //scrollCollapse: true,
@@ -294,6 +295,7 @@
 					destroy: true,	// 允许重建
 					bProcessing:true,  // 表格数据过多处理时显示: sProcessing
 					lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "全部"]],
+					columnDefs : [ { targets : 9, "orderable" : false } ],
 					order: [],
 					 //scrollY: 480,	// 滚动条
 					 //scrollCollapse: true,

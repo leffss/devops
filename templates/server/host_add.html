@@ -2,7 +2,7 @@
 {% load static %}
 
   {% block title %}
-  <title>添加主机</title>
+  <title>主机添加</title>
   {% endblock title %}
 
 	{% block navheader %}
@@ -12,8 +12,8 @@
           <div class="col-12">
             <ol class="breadcrumb">
               <li class="breadcrumb-item">主机管理</li>
-			  <li class="breadcrumb-item"><a href="{% url 'server:hosts' %}">主机列表</a></li>
-			  <li class="breadcrumb-item active">添加主机</li>
+			  <li class="breadcrumb-item"><a href="{% url 'server:hosts' %}">主机</a></li>
+			  <li class="breadcrumb-item active">主机添加</li>
             </ol>
           </div>
         </div>
@@ -24,7 +24,7 @@
 		  {% block content %}
           <div class="card card-primary">
             <div class="card-header">
-              <h3 class="card-title">添加主机</h3>
+              <h3 class="card-title">主机添加</h3>
 				<div class="card-tools">
 				  <button type="button" class="btn btn-tool" data-widget="collapse">
 					<i class="fas fa-minus"></i>
@@ -78,7 +78,7 @@
 				<div class="col-2 pt-1 pb-1">系统/型号<span style="color:red;"> * </span>：</div><div class="col-10 pt-1"><input class="form-control" type="text" id="release" onkeyup="check_release();" onblur="check_release();"></div>
 				<div class="offset-2 col-10 pb-1"><small id="release_error" style="color:red;"></small></div>
 				
-				<div class="col-2 pt-1 pb-1">用户：</div>
+				<div class="col-2 pt-1 pb-1">远程用户：</div>
 				<div class="col-10 pt-1 pb-1">
 					<select class="form-control" id="binduserid" style="width: 100%;">
 						{% for user in all_users %}
@@ -149,10 +149,10 @@
 			$('#hostname').addClass("is-invalid");
 			$('#hostname_error').text('主机名不能未空');
 			return false;
-		} else if(/[@#\$%\^&\*]+/g.test(hostname)) {	// 正则判断
+		} else if(/[^0-9a-zA-Z\.@\-\_]+/g.test(hostname)) {	// 正则判断
 			$('#hostname').removeClass("is-valid");
 			$('#hostname').addClass("is-invalid");
-			$('#hostname_error').text('主机名不能存在特殊符号');
+			$('#hostname_error').text('主机名必须为数字、字母、 @、 -、 _ 或者 .');
 			return false;
 		} else {
 			$('#hostname').removeClass("is-invalid");

@@ -50,7 +50,7 @@ def user_update(request):
             RemoteUser.objects.filter(id=userid).update(**data)
             login_event_log(user, 17, '主机用户 [{}] 更新成功'.format(RemoteUser.objects.get(id=userid).name), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
             return JsonResponse({"code": 200, "err": ""})
-        except:
+        except Exception:
             # print(traceback.format_exc())
             error_message = '主机用户不存在!'
             return JsonResponse({"code": 401, "err": error_message})
@@ -95,7 +95,7 @@ def user_add(request):
             update_user = RemoteUser.objects.create(**data)
             login_event_log(user, 15, '主机用户 [{}] 添加成功'.format(update_user.name), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
             return JsonResponse({"code": 200, "err": ""})
-        except:
+        except Exception:
             # print(traceback.format_exc())
             error_message = '未知错误!'
             return JsonResponse({"code": 402, "err": error_message})
@@ -174,7 +174,7 @@ def host_update(request):
             login_event_log(user, 14, '主机 [{}] 更新成功'.format(RemoteUserBindHost.objects.get(id=hostid).hostname),
                             request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
             return JsonResponse({"code": 200, "err": ""})
-        except:
+        except Exception:
             # print(traceback.format_exc())
             error_message = '未知错误!'
             return JsonResponse({"code": 400, "err": error_message})
@@ -221,7 +221,7 @@ def host_add(request):
             login_event_log(user, 12, '主机 [{}] 添加成功'.format(remoteuserbindhost.hostname),
                             request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
             return JsonResponse({"code": 200, "err": ""})
-        except:
+        except Exception:
             # print(traceback.format_exc())
             error_message = '未知错误!'
             return JsonResponse({"code": 400, "err": error_message})

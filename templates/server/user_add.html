@@ -2,7 +2,7 @@
 {% load static %}
 
   {% block title %}
-  <title>用户添加</title>
+  <title>远程用户添加</title>
   {% endblock title %}
 
 	{% block navheader %}
@@ -12,8 +12,8 @@
           <div class="col-12">
             <ol class="breadcrumb">
               <li class="breadcrumb-item">主机管理</li>
-			  <li class="breadcrumb-item"><a href="{% url 'server:users' %}">用户列表</a></li>
-			  <li class="breadcrumb-item active">用户添加</li>
+			  <li class="breadcrumb-item"><a href="{% url 'server:users' %}">远程用户</a></li>
+			  <li class="breadcrumb-item active">远程用户添加</li>
             </ol>
           </div>
         </div>
@@ -24,7 +24,7 @@
 		  {% block content %}
           <div class="card card-primary">
             <div class="card-header">
-              <h3 class="card-title">用户添加</h3>
+              <h3 class="card-title">远程用户添加</h3>
 				<div class="card-tools">
 				  <button type="button" class="btn btn-tool" data-widget="collapse">
 					<i class="fas fa-minus"></i>
@@ -40,7 +40,7 @@
             <!-- /.card-header -->
             <div class="card-body row">
 				<div class="col-12">
-					<div class="alert alert-warning alert-dismissible" style="font-size:0.9rem;">
+					<div class="alert alert-info alert-dismissible" style="font-size:0.9rem;">
 						<button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
 						提示：su 跳转功能目前只对超级管理员有效。
 					</div>
@@ -94,10 +94,10 @@
 			$('#name').addClass("is-invalid");
 			$('#name_error').text('名称不能未空');
 			return false;
-		} else if(/[@#\$%\^&\*]+/g.test(name)) {	// 正则判断
+		} else if(/[^0-9a-zA-Z\.\-\_]+/g.test(name)) {	// 正则判断
 			$('#name').removeClass("is-valid");
 			$('#name').addClass("is-invalid");
-			$('#name_error').text('名称不能存在特殊符号');
+			$('#name_error').text('名称必须为数字、字母、 -、 _ 或者 .');
 			return false;
 		} else {
 			$('#name').removeClass("is-invalid");
@@ -114,10 +114,10 @@
 			$('#username').addClass("is-invalid");
 			$('#username_error').text('用户名不能未空');
 			return false;
-		} else if(/[@#\$%\^&\*]+/g.test(username)) {	// 正则判断
+		} else if(/[^0-9a-zA-Z\.\-\_]+/g.test(username)) {	// 正则判断
 			$('#username').removeClass("is-valid");
 			$('#username').addClass("is-invalid");
-			$('#username_error').text('用户名不能存在特殊符号');
+			$('#username_error').text('用户名必须为数字、字母、 -、 _ 或者 .');
 			return false;
 		} else {
 			$('#username').removeClass("is-invalid");

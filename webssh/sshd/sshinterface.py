@@ -28,6 +28,11 @@ logger = logging.getLogger(__name__)
 # ssh_client ===>>          proxy_ssh             ==>> ssh_server
 # ssh_client ===>> (proxy_server -> proxy_client) ==>> ssh_server
 
+try:
+    terminal_exipry_time = settings.CUSTOM_TERMINAL_EXIPRY_TIME
+except Exception:
+    terminal_exipry_time = 60 * 30
+
 
 def transport_keepalive(transport):
     # 对后端transport每隔x秒发送空数据以保持连接
@@ -57,8 +62,8 @@ class ServerInterface(paramiko.ServerInterface):
         self.cmd_tmp = ''   # 一行命令
         self.tab_mode = False   # 使用tab命令补全时需要读取返回数据然后添加到当前输入命令后
         self.history_mode = False
-        self.res_file = gen_rand_char(16) + '.txt'
         self.start_time = time.time()
+        self.res_file = 'clissh_' + str(int(self.start_time)) + '_' + gen_rand_char(16) + '.txt'
         self.log_start_time = timezone.now()
         self.last_save_time = self.start_time
         self.res_asciinema = []
@@ -76,12 +81,12 @@ class ServerInterface(paramiko.ServerInterface):
                     if not self.closed:
                         try:
                             self.chan_cli.send('\n\r\033[31m当前会话已被管理员关闭\033[0m\r\n')
-                        except:
-                            pass
+                        except Exception:
+                            logger.error(traceback.format_exc())
                         try:
                             self.close()
-                        except:
-                            pass
+                        except Exception:
+                            logger.error(traceback.format_exc())
                     try:
                         # 发送数据给查看会话的 websocket 链接
                         message = dict()
@@ -92,13 +97,13 @@ class ServerInterface(paramiko.ServerInterface):
                             "type": "chat.message",
                             "text": message,
                         })
-                    except:
-                        pass
+                    except Exception:
+                        logger.error(traceback.format_exc())
                     break
                 self.lock = cache.get('{}_{}_ssh_session_lock'.format(self.http_user, self.password), False)
                 time.sleep(sleep_time)  # 每次循环暂停一定时间，以免对 redis 造成压力
-        except:
-            pass
+        except Exception:
+            logger.error(traceback.format_exc())
 
     def conn_ssh(self):
         # proxy_client ==>> ssh_server
@@ -118,11 +123,11 @@ class ServerInterface(paramiko.ServerInterface):
 
             try:
                 self.client = self.chan_cli.transport.remote_version
-            except:
+            except Exception:
                 self.client = 'clissh'
             try:
                 self.client_addr = self.chan_cli.transport.sock.getpeername()[0]
-            except:
+            except Exception:
                 self.client_addr = '1.0.0.0'
             data = {
                 'name': '{}_{}_ssh_session'.format(self.http_user, self.password),
@@ -156,7 +161,7 @@ class ServerInterface(paramiko.ServerInterface):
                     }
                 )
             )
-        except BaseException:
+        except Exception:
             self.close()
 
     def su_root(self, superuser, superpassword, wait_time=1):
@@ -167,7 +172,7 @@ class ServerInterface(paramiko.ServerInterface):
             self.chan_ser.send(su)
             time.sleep(wait_time)
             self.chan_ser.send('{}\n'.format(superpassword))
-        except:
+        except Exception:
             self.close()
 
     def bridge(self):
@@ -176,206 +181,230 @@ class ServerInterface(paramiko.ServerInterface):
         sel = selectors.DefaultSelector()  # Linux epol
         sel.register(self.chan_cli, selectors.EVENT_READ)
         sel.register(self.chan_ser, selectors.EVENT_READ)
-        while self.chan_ser and self.chan_cli and not (self.chan_ser.closed or self.chan_cli.closed):
-            events = sel.select(timeout=60)
-            for key, n in events:
-                if key.fileobj == self.chan_ser:
-                    try:
-                        recv_message = self.chan_ser.recv(1024)
-                        if len(recv_message) == 0:
-                            self.chan_cli.send("\r\n\033[31m服务端已断开连接....\033[0m\r\n")
-                            time.sleep(1)
-                            break
-                        else:
-                            try:
-                                # 发送数据给查看会话的 websocket 组
-                                message = dict()
-                                message['status'] = 0
-                                message['message'] = recv_message.decode('utf-8')
-                                channel_layer = get_channel_layer()
-                                async_to_sync(channel_layer.group_send)(self.group, {
-                                    "type": "chat.message",
-                                    "text": message,
-                                })
-                            except:
-                                pass
-                            self.chan_cli.send(recv_message)
-
-                            data = recv_message.decode('utf-8')
-                            if self.tab_mode:
-                                tmp = data.split(' ')
-                                # tab 只返回一个命令时匹配
-                                # print(tmp)
-                                if len(tmp) == 2 and tmp[1] == '' and tmp[0] != '':
-                                    self.cmd_tmp = self.cmd_tmp + tmp[0].encode().replace(b'\x07', b'').decode()
-                                elif len(tmp) == 1 and tmp[0].encode() != b'\x07':  # \x07 蜂鸣声
-                                    self.cmd_tmp = self.cmd_tmp + tmp[0].encode().replace(b'\x07', b'').decode()
-                                self.tab_mode = False
-                            if self.history_mode:  # 不完善，只支持向上翻一个历史命令
-                                # print(data)
-                                if data.strip() != '':
-                                    self.cmd_tmp = data
-                                self.history_mode = False
-
-                            # 记录操作录像
-                            try:
-                                """
-                                防止 sz rz 传输文件时的报错
-                                """
-                                delay = round(time.time() - self.start_time, 6)
-                                self.res_asciinema.append(json.dumps([delay, 'o', recv_message.decode('utf-8')]))
-
-                                # 250条结果或者指定秒数就保存一次，这个任务可以优化为使用 celery
-                                if len(self.res_asciinema) > 250 or int(time.time() - self.last_save_time) > 30:
-                                    tmp = list(self.res_asciinema)
-                                    self.res_asciinema = []
-                                    self.last_save_time = time.time()
-                                    if platform.system().lower() == 'linux':
-                                        celery_save_res_asciinema.delay(settings.MEDIA_ROOT + '/' + self.res_file, tmp)
-                                    else:
-                                        with open(settings.MEDIA_ROOT + '/' + self.res_file, 'a+') as f:
-                                            for line in tmp:
-                                                f.write('{}\n'.format(line))
-
-                            except BaseException:
-                                pass
-                    except socket.timeout:
-                        pass
-                if key.fileobj == self.chan_cli:
-                    try:
-                        send_message = self.chan_cli.recv(1024)
-                        if len(send_message) == 0:
-                            logger.info('客户端断开了连接 {}....'.format(self.client_addr))
-                            # time.sleep(1)
-                            break
-                        else:
-                            if not self.lock:
-                                self.chan_ser.send(send_message)
-                                data = send_message.decode('utf-8')
-                                if data == '\r':  # 记录命令
-                                    data = '\n'
-                                    if self.cmd_tmp.strip() != '':
-                                        self.cmd_tmp += data
-                                        self.cmd += self.cmd_tmp
-
-                                        # print('-----------------------------------')
-                                        # print(self.cmd_tmp)
-                                        # print(self.cmd_tmp.encode())
-                                        # print('-----------------------------------')
-
-                                        self.cmd_tmp = ''
-                                elif data.encode() == b'\x07':
-                                    pass
-                                else:
-                                    if data == '\t' or data.encode() == b'\x1b':  # \x1b 点击2下esc键也可以补全
-                                        self.tab_mode = True
-                                    elif data.encode() == b'\x1b[A' or data.encode() == b'\x1b[B':
-                                        self.history_mode = True
-                                    else:
-                                        self.cmd_tmp += data
+        try:
+            while self.chan_ser and self.chan_cli and not (self.chan_ser.closed or self.chan_cli.closed):
+                events = sel.select(timeout=terminal_exipry_time)    # 指定时间无数据输入或者无数据返回则断开连接
+                if not events:
+                    raise socket.timeout
+                for key, n in events:
+                    if key.fileobj == self.chan_ser:
+                        try:
+                            recv_message = self.chan_ser.recv(1024)
+                            if len(recv_message) == 0:
+                                self.chan_cli.send("\r\n\033[31m服务端已断开连接....\033[0m\r\n")
+                                time.sleep(1)
+                                break
                             else:
-                                # 红色提示文字
-                                self.chan_cli.send("\r\n\033[31m当前会话已被管理员锁定\033[0m\r\n")
-                                self.check_channel_window_change_request(
-                                    self.chan_cli, self.width - 1, self.height, 0, 0
-                                )
-                                self.check_channel_window_change_request(
-                                    self.chan_cli, self.width + 1, self.height, 0, 0
-                                )
+                                try:
+                                    # 发送数据给查看会话的 websocket 组
+                                    message = dict()
+                                    message['status'] = 0
+                                    message['message'] = recv_message.decode('utf-8')
+                                    channel_layer = get_channel_layer()
+                                    async_to_sync(channel_layer.group_send)(self.group, {
+                                        "type": "chat.message",
+                                        "text": message,
+                                    })
+                                except Exception:
+                                    logger.error(traceback.format_exc())
+                                self.chan_cli.send(recv_message)
 
-                    except socket.timeout:
-                        pass
-                    except socket.error:
-                        break
+                                try:
+                                    data = recv_message.decode('utf-8')
+                                    if self.tab_mode:
+                                        tmp = data.split(' ')
+                                        # tab 只返回一个命令时匹配
+                                        # print(tmp)
+                                        if len(tmp) == 2 and tmp[1] == '' and tmp[0] != '':
+                                            self.cmd_tmp = self.cmd_tmp + tmp[0].encode().replace(b'\x07', b'').decode()
+                                        elif len(tmp) == 1 and tmp[0].encode() != b'\x07':  # \x07 蜂鸣声
+                                            self.cmd_tmp = self.cmd_tmp + tmp[0].encode().replace(b'\x07', b'').decode()
+                                        self.tab_mode = False
+                                    if self.history_mode:  # 不完善，只支持向上翻一个历史命令
+                                        # print(data)
+                                        if data.strip() != '':
+                                            self.cmd_tmp = data
+                                        self.history_mode = False
+                                except Exception:
+                                    pass
+                                    # logger.error(traceback.format_exc())
+
+                                # 记录操作录像
+                                try:
+                                    """
+                                    防止 sz rz 传输文件时的报错
+                                    """
+                                    delay = round(time.time() - self.start_time, 6)
+                                    self.res_asciinema.append(json.dumps([delay, 'o', recv_message.decode('utf-8')]))
+
+                                    # 250条结果或者指定秒数就保存一次，这个任务可以优化为使用 celery
+                                    if len(self.res_asciinema) > 250 or int(time.time() - self.last_save_time) > 30:
+                                        tmp = list(self.res_asciinema)
+                                        self.res_asciinema = []
+                                        self.last_save_time = time.time()
+                                        if platform.system().lower() == 'linux':
+                                            celery_save_res_asciinema.delay(settings.MEDIA_ROOT + '/' + self.res_file, tmp)
+                                        else:
+                                            with open(settings.MEDIA_ROOT + '/' + self.res_file, 'a+') as f:
+                                                for line in tmp:
+                                                    f.write('{}\n'.format(line))
+
+                                except Exception:
+                                    pass
+                                    # logger.error(traceback.format_exc())
+
+                        except socket.timeout:
+                            logger.error(traceback.format_exc())
+                    if key.fileobj == self.chan_cli:
+                        try:
+                            send_message = self.chan_cli.recv(1024)
+                            if len(send_message) == 0:
+                                logger.info('客户端断开了连接 {}....'.format(self.client_addr))
+                                # time.sleep(1)
+                                break
+                            else:
+                                if not self.lock:
+                                    self.chan_ser.send(send_message)
+                                    try:
+                                        data = send_message.decode('utf-8')
+                                        if data == '\r':  # 记录命令
+                                            data = '\n'
+                                            if self.cmd_tmp.strip() != '':
+                                                self.cmd_tmp += data
+                                                self.cmd += self.cmd_tmp
+
+                                                # print('-----------------------------------')
+                                                # print(self.cmd_tmp)
+                                                # print(self.cmd_tmp.encode())
+                                                # print('-----------------------------------')
+
+                                                self.cmd_tmp = ''
+                                        elif data.encode() == b'\x07':
+                                            pass
+                                        else:
+                                            if data == '\t' or data.encode() == b'\x1b':  # \x1b 点击2下esc键也可以补全
+                                                self.tab_mode = True
+                                            elif data.encode() == b'\x1b[A' or data.encode() == b'\x1b[B':
+                                                self.history_mode = True
+                                            else:
+                                                self.cmd_tmp += data
+                                    except Exception:
+                                        logger.error(traceback.format_exc())
+                                else:
+                                    # 红色提示文字
+                                    self.chan_cli.send("\r\n\033[31m当前会话已被管理员锁定\033[0m\r\n")
+                                    self.check_channel_window_change_request(
+                                        self.chan_cli, self.width - 1, self.height, 0, 0
+                                    )
+                                    self.check_channel_window_change_request(
+                                        self.chan_cli, self.width + 1, self.height, 0, 0
+                                    )
+
+                        except socket.timeout:
+                            logger.error(traceback.format_exc())
+                        except Exception:
+                            logger.error(traceback.format_exc())
+                            break
+        except socket.timeout:
+            self.chan_cli.send("\r\n\033[31m由于长时间没有操作或者没有数据返回，连接已断开!\033[0m\r\n")
+            logger.info("后端主机 (%s@%s) 会话由于长时间没有操作或者没有数据返回，连接断开!" % (self.ssh_args[2], self.ssh_args[0]))
+        except Exception:
+            logger.error(traceback.format_exc())
 
     def close(self, terminal_type='ssh'):
-        # 关闭ssh终端，必须分开 try 关闭，否则当强制关闭一方时，另一方连接可能被挂起
-        try:
-            self.chan_cli.transport.close()
-        except:
-            pass
+        time.sleep(0.5)     # 防止多次停止重复保存数据
 
-        try:
-            self.chan_ser.transport.close()
-        except:
-            pass
-
-        try:
-            if self.cmd:
-                if platform.system().lower() == 'linux':
-                    celery_save_terminal_log.delay(
-                        self.http_user,
-                        self.hostname,
-                        self.ssh_args[0],
-                        'ssh',
-                        self.ssh_args[1],
-                        self.ssh_args[2],
-                        self.cmd,
-                        self.res_file,
-                        self.client_addr,  # 客户端 ip
-                        self.client,
-                        self.log_start_time,
-                    )
-                else:
-                    terminal_log(
-                        self.http_user,
-                        self.hostname,
-                        self.ssh_args[0],
-                        'ssh',
-                        self.ssh_args[1],
-                        self.ssh_args[2],
-                        self.cmd,
-                        self.res_file,
-                        self.client_addr,    # 客户端 ip
-                        self.client,
-                        self.log_start_time,
-                    )
-        except:
-            pass
-
-        try:
-            if self.cmd:
-                tmp = list(self.res_asciinema)
-                self.res_asciinema = []
-                if platform.system().lower() == 'linux':
-                    celery_save_res_asciinema.delay(settings.MEDIA_ROOT + '/' + self.res_file, tmp)
-                else:
-                    with open(settings.MEDIA_ROOT + '/' + self.res_file, 'a+') as f:
-                        for line in tmp:
-                            f.write('{}\n'.format(line))
-        except:
-            pass
-
-        try:
-            TerminalSession.objects.filter(
-                name='{}_{}_{}_session'.format(self.http_user, self.password, terminal_type)
-            ).delete()
-        except:
-            pass
-
-        try:
-            # 发送数据给查看会话的 websocket 链接
-            message = dict()
-            message['status'] = 1
-            message['message'] = '\n\r连接已断开\r\n'
-            channel_layer = get_channel_layer()
-            async_to_sync(channel_layer.group_send)(self.group, {
-                "type": "chat.message",
-                "text": message,
-            })
-        except:
-            pass
-
-        try:
-            if terminal_type != 'N':    # 重复登陆时可能会调用close，这时不能删除这些 key，否则会把当前正常会话也关闭掉
-                cache.delete('{}_{}_{}_session'.format(self.http_user, self.password, terminal_type))
-                cache.delete('{}_{}_{}_session_lock'.format(self.http_user, self.password, terminal_type))
-        except:
-            pass
+        if terminal_type is 'N':    # 重复登陆时可能会调用close，这时不能删除这些 key，否则会把当前正常会话也关闭掉
+            self.closed = True
+            try:
+                logger.error("密码无效 {} - {}".format(self.http_user, self.password))
+                self.chan_cli.transport.close()
+            except Exception:
+                logger.error(traceback.format_exc())
+            return
 
         if not self.closed:
             logger.info("后端主机 (%s@%s) 会话结束" % (self.ssh_args[2], self.ssh_args[0]))
             self.closed = True
+            # 关闭ssh终端，必须分开 try 关闭，否则当强制关闭一方时，另一方连接可能被挂起
+            try:
+                self.chan_cli.transport.close()
+            except Exception:
+                logger.error(traceback.format_exc())
+
+            try:
+                self.chan_ser.transport.close()
+            except Exception:
+                logger.error(traceback.format_exc())
+
+            try:
+                if self.cmd:
+                    if platform.system().lower() == 'linux':
+                        celery_save_terminal_log.delay(
+                            self.http_user,
+                            self.hostname,
+                            self.ssh_args[0],
+                            'ssh',
+                            self.ssh_args[1],
+                            self.ssh_args[2],
+                            self.cmd,
+                            self.res_file,
+                            self.client_addr,  # 客户端 ip
+                            self.client,
+                            self.log_start_time,
+                        )
+                    else:
+                        terminal_log(
+                            self.http_user,
+                            self.hostname,
+                            self.ssh_args[0],
+                            'ssh',
+                            self.ssh_args[1],
+                            self.ssh_args[2],
+                            self.cmd,
+                            self.res_file,
+                            self.client_addr,    # 客户端 ip
+                            self.client,
+                            self.log_start_time,
+                        )
+            except Exception:
+                logger.error(traceback.format_exc())
+
+            try:
+                if self.cmd:
+                    tmp = list(self.res_asciinema)
+                    self.res_asciinema = []
+                    if platform.system().lower() == 'linux':
+                        celery_save_res_asciinema.delay(settings.MEDIA_ROOT + '/' + self.res_file, tmp)
+                    else:
+                        with open(settings.MEDIA_ROOT + '/' + self.res_file, 'a+') as f:
+                            for line in tmp:
+                                f.write('{}\n'.format(line))
+            except Exception:
+                logger.error(traceback.format_exc())
+
+            try:
+                TerminalSession.objects.filter(
+                    name='{}_{}_{}_session'.format(self.http_user, self.password, terminal_type)
+                ).delete()
+            except Exception:
+                logger.error(traceback.format_exc())
+
+            try:
+                # 发送数据给查看会话的 websocket 链接
+                message = dict()
+                message['status'] = 1
+                message['message'] = '\n\r连接已断开\r\n'
+                channel_layer = get_channel_layer()
+                async_to_sync(channel_layer.group_send)(self.group, {
+                    "type": "chat.message",
+                    "text": message,
+                })
+            except Exception:
+                logger.error(traceback.format_exc())
+
+            cache.delete('{}_{}_{}_session'.format(self.http_user, self.password, terminal_type))
+            cache.delete('{}_{}_{}_session_lock'.format(self.http_user, self.password, terminal_type))
 
     def set_ssh_args(self, hostid):
         # 准备proxy_client ==>> ssh_server连接参数，用于后续SSH、SFTP
@@ -407,12 +436,11 @@ class ServerInterface(paramiko.ServerInterface):
             self.http_user = http_user
             self.password = password
             return paramiko.AUTH_SUCCESSFUL
-        except BaseException:
+        except Exception:
+            logger.error(traceback.format_exc())
             return paramiko.AUTH_FAILED
 
-    def check_auth_gssapi_keyex(
-        self, username, gss_authenticated=paramiko.AUTH_FAILED, cc_file=None
-    ):
+    def check_auth_gssapi_keyex(self, username, gss_authenticated=paramiko.AUTH_FAILED, cc_file=None):
         if gss_authenticated == paramiko.AUTH_SUCCESSFUL:
             return paramiko.AUTH_SUCCESSFUL
         return paramiko.AUTH_FAILED
@@ -452,18 +480,15 @@ class ServerInterface(paramiko.ServerInterface):
                 self.tty_args = [term, width, height]
                 self.type = 'pty'
             else:
-                try:
-                    if ssh_count == 0 and sftp_count == 0:
-                        cache.delete(key)
-                        cache.delete(key_ssh)
-                    else:
-                        cache.delete(key_ssh)
-                except:
-                    pass
-                finally:
+                if ssh_count == 0 and sftp_count == 0:
+                    cache.delete(key)
+                    cache.delete(key_ssh)
+                else:
+                    cache.delete(key_ssh)
                     self.close(terminal_type='N')    # 超过随机密码使用次数限制直接断开连接
             return True
-        except BaseException:
+        except Exception:
+            logger.error(traceback.format_exc())
             self.close(terminal_type='N')
 
     def check_channel_subsystem_request(self, channel, name):
@@ -489,27 +514,24 @@ class ServerInterface(paramiko.ServerInterface):
                 self.type = 'subsystem'
                 self.event.set()
             else:
-                try:
-                    if ssh_count == 0 and sftp_count == 0:
-                        cache.delete(key)
-                        cache.delete(key_sftp)
-                    else:
-                        cache.delete(key_sftp)
-                except:
-                    pass
-                finally:
-                    self.close(terminal_type='N')  # 超过随机密码使用次数限制直接断开连接
+                if ssh_count == 0 and sftp_count == 0:
+                    cache.delete(key)
+                    cache.delete(key_sftp)
+                else:
+                    cache.delete(key_sftp)
+                self.close(terminal_type='N')  # 超过随机密码使用次数限制直接断开连接
             return super(ServerInterface, self).check_channel_subsystem_request(channel, name)
-        except BaseException:
+        except Exception:
+            logger.error(traceback.format_exc())
             self.close(terminal_type='N')
 
-    def check_channel_window_change_request(self, channel, width, height,
-                                            pixelwidth, pixelheight):
+    def check_channel_window_change_request(self, channel, width, height, pixelwidth, pixelheight):
         try:
             self.chan_ser.resize_pty(width=width, height=height)    # 必须 try 错误，否则在打开 xshell 后关闭，再连接会出错
             self.width = width
             self.height = height
-        except BaseException:
+        except Exception:
+            logger.error(traceback.format_exc())
             return False
         return True
 

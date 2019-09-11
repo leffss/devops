@@ -8,6 +8,7 @@ from util.tool import login_required, hash_code, post_required, admin_required
 import django.utils.timezone as timezone
 import time
 import traceback
+import json
 # Create your views here.
 
 
@@ -40,7 +41,7 @@ def password_update(request):
                 error_message = '两次输入的新密码不一致'
                 login_event_log(user, 4, '两次输入的新密码不一致', request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
                 return JsonResponse({"code": 400, "err": error_message})
-        except:
+        except Exception:
             error_message = '用户不存在!'
             login_event_log(None, 4, '用户 [{}] 不存在'.format(username), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
             return JsonResponse({"code": 403, "err": error_message})
@@ -74,6 +75,14 @@ def profile_update(request):
         qq = changeuserprofile_form.cleaned_data.get('qq')
         sex = changeuserprofile_form.cleaned_data.get('sex')
         memo = changeuserprofile_form.cleaned_data.get('memo')
+
+        clissh_name = changeuserprofile_form.cleaned_data.get('clissh_name')
+        clissh_path = changeuserprofile_form.cleaned_data.get('clissh_path')
+        clissh_args = changeuserprofile_form.cleaned_data.get('clissh_args')
+        clisftp_name = changeuserprofile_form.cleaned_data.get('clisftp_name')
+        clisftp_path = changeuserprofile_form.cleaned_data.get('clisftp_path')
+        clisftp_args = changeuserprofile_form.cleaned_data.get('clisftp_args')
+
         data = {
             'nickname': nickname,
             'email': email,
@@ -88,11 +97,35 @@ def profile_update(request):
             if not user.enabled:
                 error_message = '用户已禁用!'
                 return JsonResponse({"code": 401, "err": error_message})
-            User.objects.filter(username=username).update(**data)
+
+            setting = json.loads(user.setting)
+            k = 0
+            for i in setting['clissh']:
+                if i['name'] == clissh_name:
+                    setting['clissh'][k]['path'] = clissh_path
+                    setting['clissh'][k]['args'] = clissh_args
+                    setting['clissh'][k]['enable'] = True
+                else:
+                    setting['clissh'][k]['enable'] = False
+                k += 1
+
+            k = 0
+            for i in setting['clisftp']:
+                if i['name'] == clisftp_name:
+                    setting['clisftp'][k]['path'] = clisftp_path
+                    setting['clisftp'][k]['args'] = clisftp_args
+                    setting['clisftp'][k]['enable'] = True
+                else:
+                    setting['clisftp'][k]['enable'] = False
+                k += 1
+
+            data['setting'] = json.dumps(setting)
+
+            User.objects.filter(pk=userid, username=username).update(**data)
             request.session['nickname'] = nickname
             login_event_log(user, 10, '用户 [{}] 更新个人信息成功'.format(username), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
             return JsonResponse({"code": 200, "err": ""})
-        except:
+        except Exception:
             error_message = '用户不存在!'
             return JsonResponse({"code": 402, "err": error_message})
     else:
@@ -121,7 +154,7 @@ def user_update(request):
         if groups:
             try:
                 groups = [int(group) for group in groups.split(',')]
-            except:
+            except Exception:
                 error_message = '请检查填写的内容!'
                 return JsonResponse({"code": 401, "err": error_message})
         else:
@@ -131,7 +164,7 @@ def user_update(request):
         if hosts:
             try:
                 hosts = [int(host) for host in hosts.split(',')]
-            except:
+            except Exception:
                 error_message = '请检查填写的内容!'
                 return JsonResponse({"code": 401, "err": error_message})
         else:
@@ -167,7 +200,7 @@ def user_update(request):
             update_user.save()
             login_event_log(user, 10, '用户 [{}] 更新信息成功'.format(update_user.username), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
             return JsonResponse({"code": 200, "err": ""})
-        except:
+        except Exception:
             # print(traceback.format_exc())
             error_message = '用户不存在!'
             return JsonResponse({"code": 402, "err": error_message})
@@ -223,7 +256,7 @@ def user_add(request):
         if groups:
             try:
                 groups = [int(group) for group in groups.split(',')]
-            except:
+            except Exception:
                 error_message = '请检查填写的内容!'
                 return JsonResponse({"code": 401, "err": error_message})
         else:
@@ -233,7 +266,7 @@ def user_add(request):
         if hosts:
             try:
                 hosts = [int(host) for host in hosts.split(',')]
-            except:
+            except Exception:
                 error_message = '请检查填写的内容!'
                 return JsonResponse({"code": 401, "err": error_message})
         else:
@@ -273,7 +306,7 @@ def user_add(request):
             update_user.save()
             login_event_log(user, 6, '用户 [{}] 添加成功'.format(update_user.username), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
             return JsonResponse({"code": 200, "err": ""})
-        except:
+        except Exception:
             # print(traceback.format_exc())
             error_message = '未知错误!'
             return JsonResponse({"code": 403, "err": error_message})
@@ -295,7 +328,7 @@ def group_update(request):
         if users:
             try:
                 users = [int(user) for user in users.split(',')]
-            except:
+            except Exception:
                 error_message = '请检查填写的内容!'
                 return JsonResponse({"code": 401, "err": error_message})
         else:
@@ -305,7 +338,7 @@ def group_update(request):
         if hosts:         
             try:
                 hosts = [int(host) for host in hosts.split(',')]
-            except:
+            except Exception:
                 error_message = '请检查填写的内容!'
                 return JsonResponse({"code": 401, "err": error_message})
         else:
@@ -334,7 +367,7 @@ def group_update(request):
             update_group.save()
             login_event_log(user, 11, '组 [{}] 更新信息成功'.format(update_group.group_name), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
             return JsonResponse({"code": 200, "err": ""})
-        except:
+        except Exception:
             # print(traceback.format_exc())
             error_message = '组不存在!'
             return JsonResponse({"code": 402, "err": error_message})
@@ -374,7 +407,7 @@ def group_add(request):
         if users:
             try:
                 users = [int(user) for user in users.split(',')]
-            except:
+            except Exception:
                 error_message = '请检查填写的内容!'
                 return JsonResponse({"code": 401, "err": error_message})
         else:
@@ -384,7 +417,7 @@ def group_add(request):
         if hosts:         
             try:
                 hosts = [int(host) for host in hosts.split(',')]
-            except:
+            except Exception:
                 error_message = '请检查填写的内容!'
                 return JsonResponse({"code": 401, "err": error_message})
         else:
@@ -416,7 +449,7 @@ def group_add(request):
             update_group.save()
             login_event_log(user, 8, '组 [{}] 添加成功'.format(update_group.group_name), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
             return JsonResponse({"code": 200, "err": ""})
-        except:
+        except Exception:
             # print(traceback.format_exc())
             error_message = '未知错误!'
             return JsonResponse({"code": 403, "err": error_message})

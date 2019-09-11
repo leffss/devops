@@ -39,7 +39,7 @@
 			{% if session.locked %}
 				<a href="javascript:void(0)" class="btn btn-sm btn-primary btn-flat ml-2" id="session-unlock"><i class="fas fa-lock-open"></i> 解锁</a>
 			{% else %}
-				<a href="javascript:void(0)" class="btn btn-sm btn-primary btn-flat ml-2" id="session-lock"><i class="fas fa-lock"></i> 锁定</a>
+				<a href="javascript:void(0)" class="btn btn-sm btn-info btn-flat ml-2" id="session-lock"><i class="fas fa-lock"></i> 锁定</a>
 			{% endif %}
 			</h5>
 		</div>
@@ -236,6 +236,7 @@
 			} else {
 				// 消息框
 				toastr.success('成功锁定会话 "{{ session.name }}"');
+				$("#session-lock").removeClass("btn-info").addClass("btn-primary");
 				$("#session-lock").html('<i class="fas fa-lock-open"></i> 解锁');
 				$("#session-lock").attr('id', 'session-unlock');
 			};
@@ -298,6 +299,7 @@
 			} else {
 				// 消息框
 				toastr.success('成功解锁会话 "{{ session.name }}"');
+				$("#session-unlock").removeClass("btn-primary").addClass("btn-info");
 				$("#session-unlock").html('<i class="fas fa-lock"></i> 锁定');
 				$("#session-unlock").attr('id', 'session-lock');
 			};

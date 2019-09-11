@@ -1160,11 +1160,15 @@ Guacamole.Client = function(h) {
 			toastr.options.positionClass = 'toast-top-right';
 			var data = decodeURIComponent(escape(window.atob(Q[1])));	// 解码base64，支持中文
 			if (Q[0] == 0) {
-				toastr.success(data);
+				toastr.success(data);	// 解锁
+				$(".session-close").attr("hidden", false);
 			} else if (Q[0] == 1) {
-				toastr.warning(data);
+				toastr.warning(data);	// 锁定
+				$(".session-close").attr("hidden", true);
 			} else if (Q[0] == 2) {
 				toastr.error(data);
+				$(".session-close").attr("hidden", true);
+				$("body").removeAttr("onbeforeunload"); //删除刷新关闭提示属性
 			} else {
 				toastr.info(data);
 			};

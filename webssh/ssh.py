@@ -12,6 +12,11 @@ from util.tool import gen_rand_char
 from .tasks import celery_save_res_asciinema
 import platform
 
+try:
+    terminal_exipry_time = settings.CUSTOM_TERMINAL_EXIPRY_TIME
+except Exception:
+    terminal_exipry_time = 60 * 30
+
 
 class SSH:
     def __init__(self, websocker, message):
@@ -22,8 +27,8 @@ class SSH:
         self.res = ''
         self.tab_mode = False   # 使用tab命令补全时需要读取返回数据然后添加到当前输入命令后
         self.history_mode = False
-        self.res_file = gen_rand_char(16) + '.txt'
         self.start_time = time.time()
+        self.res_file = 'webssh_' + str(int(self.start_time)) + '_' + gen_rand_char(16) + '.txt'
         self.last_save_time = self.start_time
         self.res_asciinema = []
     
@@ -48,6 +53,10 @@ class SSH:
             self.channel = transport.open_session()
             self.channel.get_pty(term=term, width=pty_width, height=pty_height)
             self.channel.invoke_shell()
+
+            # 如果socket连接在指定时间内无数据交互会断开，原理就是读取socket连接，如果指定时间内无返回就抛出异常
+            # 需要注意：当在终端上运行无输入内容但是会阻塞当前阻断的程序时如果超过这个时间也会被断开
+            self.channel.settimeout(terminal_exipry_time)    # 30分钟
 
             self.res_asciinema.append(
                 json.dumps(
@@ -82,7 +91,7 @@ class SSH:
             Thread(target=self.websocket_to_django).start()
             # Thread(target=self.websocket_to_django).start()
             # Thread(target=self.websocket_to_django).start()
-        except:
+        except Exception:
             self.message['status'] = 2
             self.message['message'] = 'Connection faild...'
             self.cmd += self.message['message']
@@ -109,7 +118,7 @@ class SSH:
         time.sleep(wait_time)
         try:
             self.channel.send('{}\n'.format(superpassword))
-        except:
+        except Exception:
             self.close()
     
     def django_to_ssh(self, data):
@@ -136,7 +145,7 @@ class SSH:
                     self.history_mode = True
                 else:
                     self.cmd_tmp += data
-        except:
+        except Exception:
             self.close()
 
     def websocket_to_django(self):
@@ -187,20 +196,33 @@ class SSH:
                     if data.strip() != '':
                         self.cmd_tmp = data
                     self.history_mode = False
-        except:
+        except socket.timeout:
+            self.message['status'] = 1
+            self.message['message'] = '由于长时间没有操作或者没有数据返回，连接已断开!'
+            message = json.dumps(self.message)
+            if self.websocker.send_flag == 0:
+                self.websocker.send(message)
+            elif self.websocker.send_flag == 1:
+                async_to_sync(self.websocker.channel_layer.group_send)(self.websocker.group, {
+                    "type": "chat.message",
+                    "text": message,
+                })
+            self.close(send_message=False)
+        except Exception:
             self.close()
 
-    def close(self):
-        self.message['status'] = 1
-        self.message['message'] = 'Connection closed...'
-        message = json.dumps(self.message)
-        if self.websocker.send_flag == 0:
-            self.websocker.send(message)
-        elif self.websocker.send_flag == 1:
-            async_to_sync(self.websocker.channel_layer.group_send)(self.websocker.group, {
-                "type": "chat.message",
-                "text": message,
-            })
+    def close(self, send_message=True):
+        if send_message:
+            self.message['status'] = 1
+            self.message['message'] = 'Connection closed...'
+            message = json.dumps(self.message)
+            if self.websocker.send_flag == 0:
+                self.websocker.send(message)
+            elif self.websocker.send_flag == 1:
+                async_to_sync(self.websocker.channel_layer.group_send)(self.websocker.group, {
+                    "type": "chat.message",
+                    "text": message,
+                })
         self.websocker.close()
         self.channel.close()
 

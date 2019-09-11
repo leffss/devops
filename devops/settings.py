@@ -12,16 +12,23 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 
 import os
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-TMP_DIR = os.path.join(BASE_DIR, 'tmp')
-if not os.path.isdir(TMP_DIR):
-    os.makedirs(TMP_DIR)
 
-MEDIA_ROOT = os.path.join(BASE_DIR, 'terminal_logs')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 if not os.path.isdir(MEDIA_ROOT):
     os.makedirs(MEDIA_ROOT)
 MEDIA_URL = '/media/'
+
+# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+
+TMP_DIR = os.path.join(MEDIA_ROOT, 'tmp')
+if not os.path.isdir(TMP_DIR):
+    os.makedirs(TMP_DIR)
+
+FILE_UPLOAD_MAX_MEMORY_SIZE = 27262976    # 上传的文件保存在内存中的大小限制  26MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 27262976    # 上传的数据保存在内存中的大小限制  26MB
+
+FILE_UPLOAD_TEMP_DIR = os.path.join(MEDIA_ROOT, 'tmp')       # 上传的文件大于FILE_UPLOAD_MAX_MEMORY_SIZE时临时保存目录
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
@@ -63,6 +70,12 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+FILE_UPLOAD_HANDLERS = [
+    # 'django.core.files.uploadhandler.MemoryFileUploadHandler',
+    'django.core.files.uploadhandler.TemporaryFileUploadHandler',
+]
+
 
 # 添加 websocket 支持
 ASGI_APPLICATION = 'devops.routing.application'
@@ -140,6 +153,9 @@ SIMPLEUI_STATIC_OFFLINE = True
 # session 如果在此期间未做任何操作，则退出， django 本身要么设置固定时间，要么关闭浏览器失效
 CUSTOM_SESSION_EXIPRY_TIME = 60 * 30    # 30 分钟
 
+# 终端过期时间，最好小于等于 CUSTOM_SESSION_EXIPRY_TIME
+CUSTOM_TERMINAL_EXIPRY_TIME = 60 * 30
+
 redis_setting = {
     'host': '127.0.0.1',
     'port': 6379,
@@ -215,5 +231,5 @@ PROXY_SSHD = {
 GUACD = {
     'host': '192.168.223.111',
     'port': 4822,
-    'timeout': 15,
+    'timeout': 30,
 }

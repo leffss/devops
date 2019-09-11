@@ -2,7 +2,7 @@
 {% load static %}
 
   {% block title %}
-  <title>用户信息</title>
+  <title>远程用户详细</title>
   {% endblock title %}
 
 	{% block navheader %}
@@ -12,8 +12,8 @@
           <div class="col-12">
             <ol class="breadcrumb">
               <li class="breadcrumb-item">主机管理</li>
-			  <li class="breadcrumb-item"><a href="{% url 'server:users' %}">用户列表</a></li>
-			  <li class="breadcrumb-item active">用户信息</li>
+			  <li class="breadcrumb-item"><a href="{% url 'server:users' %}">远程用户</a></li>
+			  <li class="breadcrumb-item active">远程用户详细</li>
             </ol>
           </div>
         </div>
@@ -24,7 +24,7 @@
 		  {% block content %}
           <div class="card card-primary">
             <div class="card-header">
-              <h3 class="card-title">用户信息</h3>
+              <h3 class="card-title">远程用户详细</h3>
 				<div class="card-tools">
 				  <a class="btn btn-tool" href="{% url 'server:user_edit' user.id %}" title="编辑">
 					<!--i class="fas fa-wrench"></i-->编辑

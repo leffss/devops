@@ -11,5 +11,7 @@ urlpatterns = [
     path('session/clissh/close/', views_api.session_clissh_close, name='session_clissh_close'),
     path('session/clissh/lock/', views_api.session_clissh_lock, name='session_clissh_lock'),
     path('session/clissh/unlock/', views_api.session_clissh_unlock, name='session_clissh_unlock'),
+    path('session/upload/<int:pk>/', views_api.session_upload, name='session_upload'),
+    path('session/download/<int:pk>/', views_api.session_download, name='session_download'),
 ]
 

@@ -46,8 +46,13 @@
 				  <th>协议</th>
 				  <th>端口</th>
 				  <th>系统</th>
-				  <th>用户名</th>
-				  <th>操作</th>
+				  <th>用户</th>
+				  <th>
+					  操作 
+					  <a href="#" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-content="客户端使用方法见：个人信息 - 编辑">
+						<i class="far fa-question-circle"></i>
+					  </a>
+				  </th>
                 </tr>
                 </thead>
                 <tbody>
@@ -136,8 +141,13 @@
 				  <th>协议</th>
 				  <th>端口</th>
 				  <th>系统</th>
-				  <th>用户名</th>
-				  <th>操作</th>
+				  <th>用户</th>
+				  <th>
+					  操作 
+					  <a href="#" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-content="客户端使用方法见：个人信息 - 编辑">
+						<i class="far fa-question-circle"></i>
+					  </a>
+				  </th>
                 </tr>
                 </tfoot>
               </table>
@@ -180,6 +190,7 @@ $("#datatables-lists").DataTable({
 	destroy: true,	// 允许重建
 	bProcessing:true,  // 表格数据过多处理时显示: sProcessing
 	lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "全部"]],
+	columnDefs : [ { targets : 6, "orderable" : false } ],
 	order: [],
 	 //scrollY: 480,	// 滚动条
 	 //scrollCollapse: true,
@@ -192,6 +203,14 @@ $("#datatables-lists").DataTable({
 
 <script>
 	function clishell(event){	// 创建clishell
+		toastr.options.closeButton = true;
+		toastr.options.showMethod = 'slideDown';
+		toastr.options.hideMethod = 'fadeOut';
+		toastr.options.closeMethod = 'fadeOut';
+		toastr.options.timeOut = 3000;	
+		toastr.options.extendedTimeOut = 0;	
+		toastr.options.progressBar = true;
+		toastr.options.positionClass = 'toast-top-right'; 
 		var thisObj = $(event);	//js对象转jquery对象
 		var hostid = $(thisObj.find("input[name='hostid']")[0]).val();
 		csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
@@ -206,7 +225,7 @@ $("#datatables-lists").DataTable({
 				"hostid": hostid,
 			},
 			error: function(){
-				alert("创建ssh客户端终端错误！请联系管理员");
+				toastr.error('创建ssh客户端终端错误！');
 			},
 			success: function(ssh_url){
 				window.location.href=ssh_url;
@@ -215,6 +234,14 @@ $("#datatables-lists").DataTable({
 	};
 	
 	function clisftpshell(event){	// 创建clisftpshell
+		toastr.options.closeButton = true;
+		toastr.options.showMethod = 'slideDown';
+		toastr.options.hideMethod = 'fadeOut';
+		toastr.options.closeMethod = 'fadeOut';
+		toastr.options.timeOut = 3000;	
+		toastr.options.extendedTimeOut = 0;	
+		toastr.options.progressBar = true;
+		toastr.options.positionClass = 'toast-top-right'; 
 		var thisObj = $(event);	//js对象转jquery对象
 		var hostid = $(thisObj.find("input[name='hostid']")[0]).val();
 		csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
@@ -229,13 +256,17 @@ $("#datatables-lists").DataTable({
 				"hostid": hostid,
 			},
 			error: function(){
-				alert("创建sftp客户端终端错误！请联系管理员");
+				toastr.error('创建sftp客户端终端错误！');
 			},
 			success: function(sftp_url){
 				window.location.href=sftp_url;
 			}
 		});
 	};
+	
+	$(document).ready(function(){
+		$('[data-toggle="popover"]').popover();   
+	});
 	
 </script>
 {% endblock js %}

@@ -49,7 +49,7 @@
 				  <th>协议</th>
 				  <th>客户端IP</th>
 				  <th>客户端</th>
-				  <th>会话开始时间</th>
+				  <th>开始时间</th>
 				  <th>操作</th>
                 </tr>
                 </thead>
@@ -123,7 +123,7 @@
 						{% if session.locked %}
 						<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" type="{{ session.get_type_display }}" class="btn btn-sm btn-primary btn-flat mb-1" onclick="createunlockmodal(this);"><i class="fas fa-lock-open"></i> 解锁</a>
 						{% else %}
-						<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" type="{{ session.get_type_display }}" class="btn btn-sm btn-primary btn-flat mb-1" onclick="createlockmodal(this);"><i class="fas fa-lock"></i> 锁定</a>
+						<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" type="{{ session.get_type_display }}" class="btn btn-sm btn-info btn-flat mb-1" onclick="createlockmodal(this);"><i class="fas fa-lock"></i> 锁定</a>
 						{% endif %}
 					{% endif %}
 					
@@ -141,7 +141,7 @@
 				  <th>协议</th>
 				  <th>客户端IP</th>
 				  <th>客户端</th>
-				  <th>会话开始时间</th>
+				  <th>开始时间</th>
 				  <th>操作</th>
                 </tr>
                 </tfoot>
@@ -190,6 +190,7 @@
 		destroy: true,	// 允许重建
 		bProcessing:true,  // 表格数据过多处理时显示: sProcessing
 		lengthMenu: [[5, 10, 25, 50, 100, -1], [5, 10, 25, 50, 100, "全部"]],
+		columnDefs : [ { targets : 9, "orderable" : false } ],
 		order: [],
 		 //scrollY: 480,	// 滚动条
 		 //scrollCollapse: true,
@@ -308,6 +309,7 @@
 					destroy: true,	// 允许重建
 					bProcessing:true,  // 表格数据过多处理时显示: sProcessing
 					lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "全部"]],
+					columnDefs : [ { targets : 9, "orderable" : false } ],
 					order: [],
 					 //scrollY: 480,	// 滚动条
 					 //scrollCollapse: true,
@@ -663,6 +665,7 @@
 				toastr.error('锁定会话错误 "' + session_name + '": ' + res.err);
 			} else {
 				//$("#session-" + session_id).remove();find
+				$($("#session-" + session_id).find('a[onclick="createlockmodal(this);"]')[0]).removeClass("btn-info").addClass("btn-primary");
 				$($("#session-" + session_id).find('a[onclick="createlockmodal(this);"]')[0]).html('<i class="fas fa-lock-open"></i> 解锁');
 				$($("#session-" + session_id).find('a[onclick="createlockmodal(this);"]')[0]).attr("onclick", "createunlockmodal(this);");
 				
@@ -757,6 +760,7 @@
 				toastr.error('解锁会话错误 "' + session_name + '": ' + res.err);
 			} else {
 				//$("#session-" + session_id).remove();
+				$($("#session-" + session_id).find('a[onclick="createunlockmodal(this);"]')[0]).removeClass("btn-primary").addClass("btn-info");
 				$($("#session-" + session_id).find('a[onclick="createunlockmodal(this);"]')[0]).html('<i class="fas fa-lock"></i> 锁定');
 				$($("#session-" + session_id).find('a[onclick="createunlockmodal(this);"]')[0]).attr("onclick", "createlockmodal(this);");
 

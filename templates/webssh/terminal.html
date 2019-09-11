@@ -25,7 +25,8 @@
   <!-- 弹出窗口插件 -->
   <link rel="stylesheet" href="{% static 'css/iziModal.min.css' %}">
   
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/rrweb@latest/dist/rrweb.min.css"/>
+  <!-- bootstrap-fileinput -->
+  <link rel="stylesheet" href="{% static 'bootstrap-fileinput/css/fileinput.min.css' %}">
 
 </head>
 <body>
@@ -33,13 +34,31 @@
 <span id="hostid" hidden>{{ host.id }}</span>
 
 <div class="container-fluid" id="headers" style="background-color: #E3F2FD">
-	<div class="row">
-		<div class="col-12 mt-2">
+	<div class="row pt-2 pb-1">
+		<div class="col-lg-6">
 			<h5>
 			主机：{{ host.hostname }}&nbsp;&nbsp;协议：{{ host.get_protocol_display }}&nbsp;&nbsp;连接：{{ host.remote_user.username }}@{{ host.ip }}:{{ host.port }}
 			<a href="javascript:void(0)" class="btn btn-sm btn-danger btn-flat ml-2 session-close"><i class="far fa-times-circle"></i> 断开</a>
 			</h5>
 		</div>
+		
+		<div class="col-lg-3" id="up">
+			<input type="file" id="upload_file" class="file pb-2" name="upload_file" multiple required>
+		</div>
+		
+		<div class="col-lg-3" id="down">
+		  <form action="{% url 'webssh_api:session_download' host.id %}" method="post" class="form" target="_blank" onsubmit="return check_download_file();">
+			  {% csrf_token %}
+			  <div class="input-group mt-1 mt-xs-1 mt-md-1 mt-lg-0">
+				  <input type="text" class="form-control" id="download_file" name="download_file" placeholder="全路径，例如/tmp/text.txt">
+				  <input type="text" id="real_download_file" name="real_download_file" hidden>
+				  <div class="input-group-append">
+					<button type="submit" class="btn btn-info">&nbsp;&nbsp;下载</button>
+				  </div>
+			  </div>
+		  </form>
+		</div>
+		
 	</div>
 </div>
 
@@ -78,6 +97,10 @@
 <!-- 弹出框插件 -->
 <script src="{% static 'js/iziModal.min.js' %}"></script>
 
+<!-- bootstrap-fileinput -->
+<script src="{% static 'bootstrap-fileinput/js/fileinput.min.js' %}"></script>
+<!--script src="{% static 'bootstrap-fileinput/js/locales/zh.js' %}"></script-->
+
 <!-- webssh -->
 <script src="{% static 'webssh/xterm.js' %}"></script>
 <script src="{% static 'webssh/webssh.js' %}"></script>
@@ -99,8 +122,108 @@
 		sock.close();
 		term.write('连接已关闭...\n\r');
 		$(".session-close").attr("hidden", true);
+		$("#up").attr("hidden", true);
+		$("#down").attr("hidden", true);
 		$("body").removeAttr("onbeforeunload"); //删除刷新关闭提示属性
 	};
+	
+	// 上传文件 -- start
+	$("#upload_file").fileinput({
+        language: 'zh',
+        showUpload: true,
+		uploadAsync: false,
+        dropZoneEnabled: false,
+        msgPlaceholder: '上传文件，最大支持5GB',
+        showPreview: false,
+        showCaption: true,
+		showCancel: true,
+        maxFileSize: 5242880,	// 单位kb，最大文件5GB，
+        maxFileCount: 5,
+        uploadUrl: "{% url 'webssh_api:session_upload' host.id %}",
+		
+		enableResumableUpload: true,
+		resumableUploadOptions: {
+            chunkSize: 25600, // 分片大小 25 MB，设置更大速度更块一些，但是服务器侧占用资源也较多
+        },
+		mergeAjaxCallbacks: true,
+		ajaxSettings: {
+			headers: {'X-CSRFToken': '{{ csrf_token }}'},
+			success: function (response) {
+                //$.alert({
+                //    title: 'Tips',
+                //    type: 'green',
+                //    content: response.msg,
+                //})
+				console.log("上传成功", response);
+				toastr.options.closeButton = true;
+				toastr.options.showMethod = 'slideDown';
+				toastr.options.hideMethod = 'fadeOut';
+				toastr.options.closeMethod = 'fadeOut';
+				toastr.options.timeOut = 3000;	
+				toastr.options.extendedTimeOut = 0;	
+				toastr.options.progressBar = true;
+				toastr.options.positionClass = 'toast-top-right';
+				if (response.complete == true && response.uploaded == true) {
+					// 消息框
+					toastr.success('文件上传成功: ' + response.filename);
+				} else {};
+            },
+		},
+        //ajaxSettings: {
+            //headers: {'X-CSRFToken': '{{ csrf_token }}'},
+            //success: function (response) {
+                //$.alert({
+                //    title: 'Tips',
+                //    type: 'green',
+                //    content: response.msg,
+                //})
+				//console.log("上传成功");
+            //},
+            //error: function (response) {
+                //$.alert({
+                //    title: 'Tips',
+                //    type: 'red',
+                //    content: response.msg,
+                //})
+				//console.log("上传错误");
+            //},
+        //},
+        browseLabel: '选择',
+        removeLabel: '清空',
+        uploadLabel: '上传',
+    }).on('fileuploaded', function(event, previewId, index, fileId) {
+        console.log('File uploaded', previewId, index, fileId);
+    }).on('fileuploaderror', function(event, data, msg) {
+        console.log('File uploaded error', data.previewId, data.index, data.fileId, msg);
+		toastr.options.closeButton = true;
+		toastr.options.showMethod = 'slideDown';
+		toastr.options.hideMethod = 'fadeOut';
+		toastr.options.closeMethod = 'fadeOut';
+		toastr.options.timeOut = 0;	
+		toastr.options.extendedTimeOut = 0;	
+		toastr.options.progressBar = true;
+		toastr.options.positionClass = 'toast-top-right';
+		toastr.success('文件上传错误: ' + data.fileId);
+    }).on('filebatchuploadcomplete', function(event, preview, config, tags, extraData) {
+        console.log('File batch upload complete', preview, config, tags, extraData);
+    });
+	// 上传文件 -- end
+	
+	// 下载文件 -- start
+	check_download_file = function() {
+		if ($("#download_file").val() == '') {
+			$('#download_file').removeClass("is-valid");
+			$('#download_file').addClass("is-invalid");
+			return false;
+		}
+		$('#download_file').removeClass("is-invalid");
+		//$('#download_file').addClass("is-valid");
+		download_file = $('#download_file').val();
+		$('#download_file').val("");
+		$('#real_download_file').val(download_file);
+		return true;
+	};
+	// 下载文件 -- end
 	
 </script>
 

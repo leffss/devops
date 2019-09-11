@@ -21,7 +21,7 @@ import platform
 
 try:
     session_exipry_time = settings.CUSTOM_SESSION_EXIPRY_TIME
-except BaseException:
+except Exception:
     session_exipry_time = 60 * 30
 
 
@@ -112,9 +112,9 @@ class WebSSH(WebsocketConsumer):
                             "text": message,
                         })
                     self.close(3001)
-                except BaseException:
+                except Exception:
                     pass
-        except BaseException:
+        except Exception:
             self.message['status'] = 2
             self.message['message'] = 'Host is not exist...'
             message = json.dumps(self.message)
@@ -191,7 +191,7 @@ class WebSSH(WebsocketConsumer):
                 pass
             else:
                 self.ssh.close()
-        except:
+        except Exception:
             pass
         finally:
             try:
@@ -204,7 +204,7 @@ class WebSSH(WebsocketConsumer):
                         with open(settings.MEDIA_ROOT + '/' + self.ssh.res_file, 'a+') as f:
                             for line in tmp:
                                 f.write('{}\n'.format(line))
-            except:
+            except Exception:
                 pass
 
             user_agent = None
@@ -305,7 +305,7 @@ class WebSSH(WebsocketConsumer):
                 })
             else:
                 pass
-        except BaseException:
+        except Exception:
             pass
 
     def lock_message(self, data):
@@ -347,7 +347,7 @@ class WebSSH_view(WebsocketConsumer):
 
         try:
             TerminalSession.objects.get(group=self.group)
-        except BaseException:
+        except Exception:
             self.message['status'] = 2
             self.message['message'] = 'session group is not exist...'
             message = json.dumps(self.message)
@@ -366,7 +366,7 @@ class WebSSH_view(WebsocketConsumer):
     def disconnect(self, close_code):
         try:
             async_to_sync(self.channel_layer.group_discard)(self.group, self.channel_name)
-        except:
+        except Exception:
             pass
 
     def receive(self, text_data=None, bytes_data=None):
@@ -387,7 +387,7 @@ class WebSSH_view(WebsocketConsumer):
                 self.send(data['text'])
             else:
                 pass
-        except BaseException:
+        except Exception:
             print(traceback.format_exc())
 
 
@@ -417,7 +417,7 @@ class CliSSH_view(WebsocketConsumer):
         try:
             # 退出组
             async_to_sync(self.channel_layer.group_discard)(self.group, self.channel_name)
-        except:
+        except Exception:
             pass
 
     def receive(self, text_data=None, bytes_data=None):
@@ -440,6 +440,6 @@ class CliSSH_view(WebsocketConsumer):
                 self.send(json.dumps(data['text']))
             else:
                 pass
-        except BaseException:
+        except Exception:
             print(traceback.format_exc())
 

@@ -1,6 +1,6 @@
 from django.db import models
 from server.models import RemoteUserBindHost
-
+import json
 # Create your models here.
 
 
@@ -25,6 +25,49 @@ class User(models.Model):
     phone = models.CharField(max_length=11, blank=True, null=True, verbose_name="手机")
     weixin = models.CharField(max_length=64, blank=True, null=True, verbose_name="微信")
     qq = models.CharField(max_length=24, blank=True, null=True, verbose_name="QQ")
+    setting_default = {
+        'clissh': [
+            {
+                'name': 'securecrt',
+                'path': 'C:\\Program Files\\VanDyke Software\\Clients\\SecureCRT.exe',
+                'args': '/T /N "{username}@{host}-{hostname}" /SSH2 /L {login_user} /PASSWORD {login_passwd} {login_host} /P {port}',
+                'enable': True
+            },
+            {
+                'name': 'xshell',
+                'path': 'C:\\Program Files (x86)\\NetSarang\\Xmanager Enterprise 5\\Xshell.exe',
+                 'args': '-newtab "{username}@{host}-{hostname}" -url ssh://{login_user}:{login_passwd}@{login_host}:{port}',
+                 'enable': False
+            },
+            {
+                'name': 'putty',
+                'path': 'C:\\Users\\xx\\AppData\\Roaming\\TP4A\\Teleport-Assist\\tools\\putty\\putty.exe',
+                'args': '-l {login_user} -pw {login_passwd} {login_host} -P {port}',
+                'enable': False
+            },
+            {
+                'name': 'custom',
+                'path': '',
+                'args': '',
+                'enable': False
+            }
+        ],
+        'clisftp': [
+            {
+                'name': 'winscp',
+                'path': 'C:\\Program Files\\winscp\\WinSCP.exe',
+                'args': '/sessionname="{username}@{host}-{hostname}" {login_user}:{login_passwd}@{login_host}:{port}',
+                'enable': True
+            },
+            {
+                'name': 'custom',
+                'path': '',
+                'args': '',
+                'enable': False
+            }
+        ]
+    }
+    setting = models.TextField(default=json.dumps(setting_default), blank=True, null=True, verbose_name="设置")
     memo = models.TextField(blank=True, null=True, verbose_name="备注")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     last_login_time = models.DateTimeField(blank=True, null=True, verbose_name='最后登录时间')

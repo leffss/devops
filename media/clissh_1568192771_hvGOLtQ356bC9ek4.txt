@@ -1,0 +1,10 @@
+{"version": 2, "width": 250, "height": 40, "timestamp": 1568192771, "env": {"SHELL": "/bin/sh", "TERM": "linux"}}
+[0.535053, "o", "Last login: Wed Sep 11 17:05:36 2019 from 192.168.223.1\r\r\n"]
+[0.597059, "o", "\u001b]0;root@k8s1:~\u0007\u001b[?1034h[root@k8s1 ~]# "]
+[7.570757, "o", "\r\n\u001b]0;root@k8s1:~\u0007[root@k8s1 ~]# "]
+[7.746774, "o", "\r\n\u001b]0;root@k8s1:~\u0007[root@k8s1 ~]# "]
+[7.898789, "o", "\r\n\u001b]0;root@k8s1:~\u0007[root@k8s1 ~]# "]
+[8.290829, "o", "d"]
+[8.40184, "o", "f"]
+[8.555855, "o", "\r\n"]
+[8.556855, "o", "Filesystem              1K-blocks    Used Available Use% Mounted on\r\n/dev/mapper/centos-root  38770180 8436376  30333804  22% /\r\ndevtmpfs                  4066364       0   4066364   0% /dev\r\ntmpfs                     4078604       0   4078604   0% /dev/shm\r\ntmpfs                     4078604   12440   4066164   1% /run\r\ntmpfs                     4078604       0   4078604   0% /sys/fs/cgroup\r\n/dev/sda1                 1038336  134988    903348  14% /boot\r\ntmpfs                      815724       0    815724   0% /run/user/0\r\n\u001b]0;root@k8s1:~\u0007[root@k8s1 ~]# "]

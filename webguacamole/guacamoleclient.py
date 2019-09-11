@@ -15,7 +15,7 @@ class Client:
         self.websocker = websocker
         self.start_time = time.time()
         self.last_save_time = self.start_time
-        self.res_file = gen_rand_char(16) + '.txt'
+        self.res_file = 'webguacamole_' + str(int(self.start_time)) + '_' + gen_rand_char(16) + '.txt'
         self.res = []
         self.guacamoleclient = None
 
@@ -48,13 +48,13 @@ class Client:
                     dpi=dpi,
                 )
             Thread(target=self.websocket_to_django).start()
-        except:
+        except Exception:
             self.websocker.close(3001)
 
     def django_to_guacd(self, data):
         try:
             self.guacamoleclient.send(data)
-        except:
+        except Exception:
             self.close()
 
     def websocket_to_django(self):
@@ -84,7 +84,7 @@ class Client:
                         with open(settings.MEDIA_ROOT + '/' + self.res_file, 'a+') as f:
                             for line in tmp:
                                 f.write('{}'.format(line))
-        except:
+        except Exception:
             if self.websocker.send_flag == 0:
                 self.websocker.send('0.;')
             elif self.websocker.send_flag == 1:

@@ -66,7 +66,9 @@ function websocket() {
 			//term.clear()
 			term.write(message)
 			$("body").removeAttr("onbeforeunload"); //删除刷新关闭提示属性
-			
+			$("#session-close").attr("hidden", true);
+			$("#session-unlock").attr("hidden", true);
+			$("#session-lock").attr("hidden", true);
 			//$(document).keyup(function(event){	// 监听回车按键事件
 			//	if(event.keyCode == 13){
 					//window.location.reload();

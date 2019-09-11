@@ -69,7 +69,7 @@ function websocket() {
 			//term.clear()
 			term.write(message)
 			$("body").removeAttr("onbeforeunload"); //删除刷新关闭提示属性
-			
+			$(".session-close").attr("hidden", true);
 			//$(document).keyup(function(event){	// 监听回车按键事件
 			//	if(event.keyCode == 13){
 					//window.location.reload();
@@ -89,6 +89,7 @@ function websocket() {
 			toastr.options.progressBar = true;
 			toastr.options.positionClass = 'toast-top-right'; 
 			toastr.warning(message);
+			$(".session-close").attr("hidden", true);
 		} else if (status === 6 ) {		// 解锁会话
 			toastr.options.closeButton = true;
 			toastr.options.showMethod = 'slideDown';
@@ -99,6 +100,7 @@ function websocket() {
 			toastr.options.progressBar = true;
 			toastr.options.positionClass = 'toast-top-right'; 
 			toastr.success(message);
+			$(".session-close").attr("hidden", false);
 		};
     });
 

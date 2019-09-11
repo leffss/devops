@@ -51,6 +51,18 @@
 				<div class="col-3 pt-1 pb-1 border-bottom">所属组：</div><div class="col-9 pt-1 pb-1 border-bottom">{% if user.groups.all %}{% for group in user.groups.all %}<button type="button" class="btn btn-sm btn-success btn-flat">{{ group.group_name }}</button>&nbsp;&nbsp;{% endfor %}{% else %}{% endif %}</div>
 				<div class="col-3 pt-1 pb-1 border-bottom">创建时间：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ user.create_time | date:"Y/m/d H:i:s" }}</div>
 				<div class="col-3 pt-1 pb-1 border-bottom">最后登录时间：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ user.last_login_time | date:"Y/m/d H:i:s" | default:'' }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">本地SSH客户端：</div>
+				<div class="col-9 pt-1 pb-1 border-bottom">
+					客户端：{{ ssh_app.name | default:'' }}<br>
+					程序路径：{{ ssh_app.path | default:'' }}<br>
+					命令参数：{{ ssh_app.args | default:'' }}<br>
+				</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">本地SFTP客户端：</div>
+				<div class="col-9 pt-1 pb-1 border-bottom">
+					客户端：{{ sftp_app.name | default:'' }}<br>
+					程序路径：{{ sftp_app.path | default:'' }}<br>
+					命令参数：{{ sftp_app.args | default:'' }}<br>
+				</div>
 				<div class="col-3 pt-1 pb-1">备注：</div><div class="col-9 pt-1 pb-1">{{ user.memo | default:'' }}</div>
             </div>
             <!-- /.card-body -->

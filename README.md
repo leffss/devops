@@ -4,16 +4,19 @@
 
 # 安装
 首先其他依赖服务(docker方式)
+
 **redis**
 ```
 docker run --name redis-server -p 6379:6379 -d redis:latest
 ```
+
 **guacd**
 ```
 docker run --name guacd -p 4822:4822 -d guacamole/guacd
 ```
 
 然后部署 devops
+
 **原始方式**
 ```
 # 安装相关库
@@ -30,14 +33,23 @@ celery -A devops worker -l info -c 3 --max-tasks-per-child 40
 sh start_docker.sh
 ```
 
-- 其他依赖服务相关配置见项目配置文件：settings.py
+- 其他依赖服务相关配置见项目配置文件：devops/settings.py
 - windows 对 celery 兼容很差，无法正常使用，所以请使用 linux 部署，推荐 Centos 7 系列
+- 调用scrt或者xshell客户端使用的是 URL PROTOCOL，需要本机安装 apploader，具体登陆后见：个人信息 - 配置
 
 访问首页：http://127.0.0.1:8000
 账号： admin     密码：123456
 
 
 # 升级日志
+
+### ver1.7.5
+修正强制断开clissh后保存2次终端日志的BUG；
+新增会话在一定时间内无操作自动断开功能（默认30分钟，settings.py中可配置）；
+个人信息中新增调用本地SSH客户端与本地SFTP客户端相关配置；
+webssh终端页面新增文件上传与下载功能(支持5GB以下文件)；
+修正clissh连接后无法使用sz下载文件和rz上传文件的bug；
+
 ### ver1.7.4
 新增webguacamole、webssh、webtelnet会话锁定与解锁功能；微调web终端ui；
 

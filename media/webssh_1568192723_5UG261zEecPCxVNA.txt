@@ -1,0 +1,7 @@
+{"version": 2, "width": 250, "height": 40, "timestamp": 1568192723, "env": {"SHELL": "/bin/sh", "TERM": "linux"}}
+[0.279028, "o", "Last login: Wed Sep 11 16:58:39 2019 from 192.168.223.1\r\r\n"]
+[0.346035, "o", "[root@k8s1 ~]# "]
+[4.030403, "o", "s"]
+[4.231423, "o", "d"]
+[4.366437, "o", "s"]
+[4.633463, "o", "\r\n-bash: sds: command not found\r\n[root@k8s1 ~]# "]

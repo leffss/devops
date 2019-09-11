@@ -29,6 +29,12 @@ class ChangeUserProfileForm(forms.Form):
     qq = forms.CharField(label="QQ", max_length=64, required=False)
     sex = forms.ChoiceField(label="性别", choices=SEX_CHOICES)
     memo = forms.CharField(label="备注", max_length=256, widget=forms.Textarea, required=False)
+    clissh_name = forms.CharField(label="clissh客户端", max_length=64, required=False)
+    clissh_path = forms.CharField(label="clissh程序路径", max_length=512, required=False)
+    clissh_args = forms.CharField(label="clissh命令参数", max_length=512, required=False)
+    clisftp_name = forms.CharField(label="clisftp客户端", max_length=64, required=False)
+    clisftp_path = forms.CharField(label="clisftp程序路径", max_length=512, required=False)
+    clisftp_args = forms.CharField(label="clisftp命令参数", max_length=512, required=False)
 
 
 class ChangeUserForm(forms.Form):

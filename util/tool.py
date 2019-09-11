@@ -7,11 +7,13 @@ import hashlib
 import time
 import random
 from webssh.models import TerminalLog
-
+import glob
+import os
+import traceback
 
 try:
     session_exipry_time = settings.CUSTOM_SESSION_EXIPRY_TIME
-except BaseException:
+except Exception:
     session_exipry_time = 60 * 30
 
 
@@ -78,4 +80,30 @@ def terminal_log(user, hostname, ip, protocol, port, username, cmd, detail, addr
     event.useragent = useragent
     event.start_time = start_time
     event.save()
+
+
+def file_combine(file_size, file_count, file_path, file_name, file_name_md5):
+    """
+    使用fileinput分段上传过来的数据
+    验证分段数量和分段总大小正确后才合并
+    """
+    try:
+        file_lists = glob.glob(r'{}/{}_{}_*'.format(file_path, file_name_md5, file_count))
+        if len(file_lists) != file_count:
+            return False
+        else:
+            total_size = 0
+            for file in file_lists:
+                total_size += os.path.getsize(file)
+            if total_size == file_size:
+                with open('{}/{}'.format(file_path, file_name), 'wb') as f:
+                    for i in range(1, file_count + 1):
+                        with open('{}/{}_{}_{}'.format(file_path, file_name_md5, file_count, i), 'rb') as chunk:
+                            f.write(chunk.read())
+                        os.remove('{}/{}_{}_{}'.format(file_path, file_name_md5, file_count, i))
+                return True
+            else:
+                return False
+    except Exception:
+        return False
 

@@ -2,7 +2,7 @@
 {% load static %}
 
   {% block title %}
-  <title>新增用户</title>
+  <title>用户添加</title>
   {% endblock title %}
 
 	{% block navheader %}
@@ -13,7 +13,7 @@
             <ol class="breadcrumb">
               <li class="breadcrumb-item">用户管理</li>
 			  <li class="breadcrumb-item"><a href="{% url 'user:users' %}">用户</a></li>
-			  <li class="breadcrumb-item active">新增用户</li>
+			  <li class="breadcrumb-item active">用户添加</li>
             </ol>
           </div>
         </div>
@@ -146,10 +146,10 @@
 			$('#username').addClass("is-invalid");
 			$('#username_error').text('用户名不能未空');
 			return false;
-		} else if(/[@#\$%\^&\*]+/g.test(username)) {	// 正则判断
+		} else if(/[^0-9a-zA-Z\.@]+/g.test(username)) {	// 正则判断
 			$('#username').removeClass("is-valid");
 			$('#username').addClass("is-invalid");
-			$('#username_error').text('用户名不能存在特殊符号');
+			$('#username_error').text('用户名必须为数字、字母、@ 或者 .');
 			return false;
 		} else {
 			$('#username').removeClass("is-invalid");

@@ -2,7 +2,7 @@
 {% load static %}
 
   {% block title %}
-  <title>主机列表</title>
+  <title>主机</title>
   {% endblock title %}
 
 	{% block navheader %}
@@ -12,7 +12,7 @@
           <div class="col-12">
             <ol class="breadcrumb">
               <li class="breadcrumb-item">主机管理</li>
-              <li class="breadcrumb-item active">主机列表</li>
+              <li class="breadcrumb-item active">主机</li>
             </ol>
           </div>
         </div>
@@ -24,7 +24,7 @@
           <div class="card card-primary card-outline">
             <div class="card-header">
               <h3 class="card-title">
-				主机列表{% if request.session.issuperuser %}<a href="{% url 'server:host_add' %}" class="btn btn-sm btn-outline-success ml-3 addsoft"><i class="fas fa-plus fa-sm"></i> 新增</a>{% endif %}
+				主机{% if request.session.issuperuser %}<a href="{% url 'server:host_add' %}" class="btn btn-sm btn-outline-success ml-3 addsoft"><i class="fas fa-plus fa-sm"></i> 新增</a>{% endif %}
 			  </h3>
 				<div class="card-tools">
 				  <button type="button" class="btn btn-tool" data-widget="collapse">
@@ -47,11 +47,9 @@
 				  <th>类型</th>
 				  <th>环境</th>
 				  <th>IP</th>
-				  <th>是否启用</th>
+				  <th>状态</th>
 				  <th>协议</th>
-				  <th>端口</th>
-				  <th>系统</th>
-				  <th>用户名</th>
+				  <th>远程用户</th>
 				  <th>添加时间</th>
 				  <th>操作</th>
                 </tr>
@@ -76,8 +74,6 @@
 				  {% endif %}
 				  
 				  </td>
-				  <td>{{ host.port }}</td>
-				  <td>{{ host.release }}</td>
 				  {% if host.remote_user %}
 				  <td>{{ host.remote_user.username }}</td>
 				  {% else %}
@@ -96,11 +92,9 @@
 				  <th>类型</th>
 				  <th>环境</th>
 				  <th>IP</th>
-				  <th>是否启用</th>
+				  <th>状态</th>
 				  <th>协议</th>
-				  <th>端口</th>
-				  <th>系统</th>
-				  <th>用户名</th>
+				  <th>远程用户</th>
 				  <th>添加时间</th>
 				  <th>操作</th>
                 </tr>
@@ -150,6 +144,7 @@
 		destroy: true,	// 允许重建
 		bProcessing:true,  // 表格数据过多处理时显示: sProcessing
 		lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "全部"]],
+		columnDefs : [ { targets : 8, "orderable" : false } ],
 		order: [],
 		 //scrollY: 480,	// 滚动条
 		 //scrollCollapse: true,
@@ -265,6 +260,7 @@
 					destroy: true,	// 允许重建
 					bProcessing:true,  // 表格数据过多处理时显示: sProcessing
 					lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "全部"]],
+					columnDefs : [ { targets : 8, "orderable" : false } ],
 					order: [],
 					 //scrollY: 480,	// 滚动条
 					 //scrollCollapse: true,

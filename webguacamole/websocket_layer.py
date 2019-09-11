@@ -16,13 +16,18 @@ import time
 import traceback
 from util.tool import gen_rand_char
 import platform
-from guacamole.client import GuacamoleClient
 from .guacamoleclient import Client
 import os
 import re
 import base64
 from django.http.request import QueryDict
 from webssh.tasks import celery_save_res_asciinema, celery_save_terminal_log
+
+
+try:
+    terminal_exipry_time = settings.CUSTOM_TERMINAL_EXIPRY_TIME
+except Exception:
+    terminal_exipry_time = 60 * 30
 
 
 class WebGuacamole(WebsocketConsumer):
@@ -42,6 +47,8 @@ class WebGuacamole(WebsocketConsumer):
         self.user_agent = None
         self.guacamoleclient = None
         self.lock = False
+        self.last_operation_time = time.time()
+        self.closed = False
 
     def connect(self):
         self.accept('guacamole')
@@ -96,68 +103,75 @@ class WebGuacamole(WebsocketConsumer):
             'useragent': self.user_agent,
         }
         TerminalSession.objects.create(**data)
+        t = threading.Thread(target=self.check_timeout)
+        t.daemon = True
+        t.start()
 
     def disconnect(self, close_code):
-        try:
-            async_to_sync(self.channel_layer.group_discard)(self.group, self.channel_name)
-            if close_code == 3001:
+        time.sleep(0.5)
+        if not self.closed:
+            self.closed = True
+            try:
+                async_to_sync(self.channel_layer.group_discard)(self.group, self.channel_name)
+                if close_code == 3001:
+                    pass
+                else:
+                    self.guacamoleclient.close()
+            except Exception:
                 pass
-            else:
-                self.guacamoleclient.close()
-        except:
-            pass
-        finally:
-            if self.guacamoleclient.res:
-                try:
-                    tmp = list(self.guacamoleclient.res)
-                    self.guacamoleclient.res = []
-                    if platform.system().lower() == 'linux':
-                        celery_save_res_asciinema.delay(settings.MEDIA_ROOT + '/' + self.guacamoleclient.res_file, tmp, False)
-                    else:
-                        with open(settings.MEDIA_ROOT + '/' + self.guacamoleclient.res_file, 'a+') as f:
-                            for line in tmp:
-                                f.write('{}'.format(line))
-                except:
-                    pass
+            finally:
+                if self.guacamoleclient.res:
+                    try:
+                        tmp = list(self.guacamoleclient.res)
+                        self.guacamoleclient.res = []
+                        if platform.system().lower() == 'linux':
+                            celery_save_res_asciinema.delay(settings.MEDIA_ROOT + '/' + self.guacamoleclient.res_file, tmp, False)
+                        else:
+                            with open(settings.MEDIA_ROOT + '/' + self.guacamoleclient.res_file, 'a+') as f:
+                                for line in tmp:
+                                    f.write('{}'.format(line))
+                    except Exception:
+                        pass
 
-                try:
-                    if platform.system().lower() == 'linux':
-                        celery_save_terminal_log.delay(
-                            self.session.get('username'),
-                            self.remote_host.hostname,
-                            self.remote_host.ip,
-                            self.remote_host.get_protocol_display(),
-                            self.remote_host.port,
-                            self.remote_host.remote_user.username,
-                            '',
-                            self.guacamoleclient.res_file,
-                            self.scope['client'][0],
-                            self.user_agent,
-                            self.start_time,
-                        )
-                    else:
-                        terminal_log(
-                            self.session.get('username'),
-                            self.remote_host.hostname,
-                            self.remote_host.ip,
-                            self.remote_host.get_protocol_display(),
-                            self.remote_host.port,
-                            self.remote_host.remote_user.username,
-                            '',
-                            self.guacamoleclient.res_file,
-                            self.scope['client'][0],
-                            self.user_agent,
-                            self.start_time,
-                        )
-                except:
-                    pass
-                
-            TerminalSession.objects.filter(name=self.channel_name, group=self.group).delete()
+                    try:
+                        if platform.system().lower() == 'linux':
+                            celery_save_terminal_log.delay(
+                                self.session.get('username'),
+                                self.remote_host.hostname,
+                                self.remote_host.ip,
+                                self.remote_host.get_protocol_display(),
+                                self.remote_host.port,
+                                self.remote_host.remote_user.username,
+                                '',
+                                self.guacamoleclient.res_file,
+                                self.scope['client'][0],
+                                self.user_agent,
+                                self.start_time,
+                            )
+                        else:
+                            terminal_log(
+                                self.session.get('username'),
+                                self.remote_host.hostname,
+                                self.remote_host.ip,
+                                self.remote_host.get_protocol_display(),
+                                self.remote_host.port,
+                                self.remote_host.remote_user.username,
+                                '',
+                                self.guacamoleclient.res_file,
+                                self.scope['client'][0],
+                                self.user_agent,
+                                self.start_time,
+                            )
+                    except Exception:
+                        pass
+
+                TerminalSession.objects.filter(name=self.channel_name, group=self.group).delete()
 
     def receive(self, text_data=None, bytes_data=None):
-        # print(text_data)
         if not self.lock:
             self.guacamoleclient.shell(text_data)
+            if not text_data.startswith('4.sync') and not text_data.startswith('3.nop'):
+                self.last_operation_time = time.time()
         else:
             if text_data.startswith('4.sync') or text_data.startswith('3.nop'):
                 self.guacamoleclient.shell(text_data)
@@ -170,7 +184,7 @@ class WebGuacamole(WebsocketConsumer):
     def group_message(self, data):
         try:
             self.send(data['text'])
-        except BaseException:
+        except Exception:
             pass
 
     # 会话外使用 channels.layers 设置 type 为 close.message 调用此函数
@@ -181,7 +195,7 @@ class WebGuacamole(WebsocketConsumer):
             # 需要在 guacamole/js/all.js 中自定义 toastr 的处理处理方法
             self.send('6.toastr,1.2,{0}.{1};'.format(len(message), message))
             self.close()
-        except BaseException:
+        except Exception:
             pass
 
     def lock_message(self, data):
@@ -195,3 +209,20 @@ class WebGuacamole(WebsocketConsumer):
             self.lock = False
             message = str(base64.b64encode('当前会话已被管理员解锁'.encode('utf-8')), 'utf-8')
             self.send('6.toastr,1.0,{0}.{1};'.format(len(message), message))
+
+    def check_timeout(self, sleep_time=3):
+        while 1:
+            if self.closed:
+                break
+
+            if int(time.time() - self.last_operation_time) >= terminal_exipry_time:
+                try:
+                    message = str(base64.b64encode('由于长时间没有操作或者没有数据返回，连接已断开!'.encode('utf-8')), 'utf-8')
+                    self.send('6.toastr,1.2,{0}.{1};'.format(len(message), message))
+                    self.close()
+                except Exception:
+                    pass
+                break
+
+            time.sleep(sleep_time)
+

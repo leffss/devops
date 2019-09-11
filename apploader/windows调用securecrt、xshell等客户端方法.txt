@@ -1,3 +1,5 @@
 windows调用securecrt、xshell等客户端方法:
-1.复制本目录dist\apploader.exe程序到c:\根目录下
-2.保存并导入apploader.reg文件到注册表。
+1.复制本目录apploader.exe程序到c:\根目录下（也可以在其他目录，apploader.reg中相应目录变更即可）
+2.双击导入apploader.reg文件到注册表。
+
+注意：目前仅在 win7sp1 与 win10 测试通过

@@ -2,7 +2,7 @@
 {% load static %}
 
   {% block title %}
-  <title>主机信息</title>
+  <title>主机详细</title>
   {% endblock title %}
 
 	{% block navheader %}
@@ -12,8 +12,8 @@
           <div class="col-12">
             <ol class="breadcrumb">
               <li class="breadcrumb-item">主机管理</li>
-			  <li class="breadcrumb-item"><a href="{% url 'server:hosts' %}">主机列表</a></li>
-			  <li class="breadcrumb-item active">主机信息</li>
+			  <li class="breadcrumb-item"><a href="{% url 'server:hosts' %}">主机</a></li>
+			  <li class="breadcrumb-item active">主机详细</li>
             </ol>
           </div>
         </div>
@@ -24,7 +24,7 @@
 		  {% block content %}
           <div class="card card-primary">
             <div class="card-header">
-              <h3 class="card-title">主机信息</h3>
+              <h3 class="card-title">主机详细</h3>
 				<div class="card-tools">
 				  {% if request.session.issuperuser %}
 				  <a class="btn btn-tool" href="{% url 'server:host_edit' host.id %}" title="编辑">
@@ -52,7 +52,7 @@
 				<div class="col-3 pt-1 pb-1 border-bottom">环境：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.get_env_display }}</div>
 				<div class="col-3 pt-1 pb-1 border-bottom">端口：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.port }}</div>
 				<div class="col-3 pt-1 pb-1 border-bottom">系统/型号：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.release }}</div>
-				<div class="col-3 pt-1 pb-1 border-bottom">用户名：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.remote_user.username }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">远程用户：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.remote_user.username }}</div>
 				<div class="col-3 pt-1 pb-1 border-bottom">添加时间：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.create_time | date:"Y/m/d H:i:s" }}</div>
 				<div class="col-3 pt-1 pb-1 border-bottom">是否启用：</div><div class="col-9 pt-1 pb-1 border-bottom">{% if host.enabled %}<span class="badge badge-success">启用</span>{% else %}<span class="badge badge-danger">禁用</span>{% endif %}</div>
 				<div class="col-3 pt-1 pb-1">备注：</div><div class="col-9 pt-1 pb-1">{{ host.memo | default:'' }}</div>

@@ -8,7 +8,12 @@ from asgiref.sync import async_to_sync
 import traceback
 from webssh.tasks import celery_save_res_asciinema
 import platform
+import socket
 
+try:
+    terminal_exipry_time = settings.CUSTOM_TERMINAL_EXIPRY_TIME
+except Exception:
+    terminal_exipry_time = 60 * 30
 
 class Telnet:
     """
@@ -19,17 +24,17 @@ class Telnet:
         self.message = message
         self.cmd = ''       # 多行命令
         self.cmd_tmp = ''   # 一行命令
-        self.res_file = gen_rand_char(16) + '.txt'
         self.res = ''
         self.tab_mode = False   # 使用tab命令补全时需要读取返回数据然后添加到当前输入命令后
         self.history_mode = False
         self.start_time = time.time()
+        self.res_file = 'webtelnet_' + str(int(self.start_time)) + '_' + gen_rand_char(16) + '.txt'
         self.last_save_time = self.start_time
         self.res_asciinema = []
         
         self.tn = telnetlib.Telnet()
 
-    def connect(self, host, user, password, port=23, timeout=30, wait_time=5, user_pre=b"ogin:", password_pre=b"assword:"):
+    def connect(self, host, user, password, port=23, timeout=60 * 30, wait_time=3, user_pre=b"ogin:", password_pre=b"assword:"):
         """
         是因为telnet本身是弱协议，也就是说它并没有明确定义用户如何登陆，何时输入用户名或者密码，不同的telnet服务有着各自不同的实现方式。
         比如说，有些telnet服务会显示 Login: 来提示用户输入用户名，而另一些则用 username: 进行提示，还有的用 login: 进行提示。
@@ -59,11 +64,12 @@ class Telnet:
                 message = json.dumps(self.message)
                 self.websocker.send(message)
                 self.websocker.close(3001)
-            self.tn.write(b'export TERM=ansi\n')
+            self.tn.write(b'export TERM=ansi\n')    # 设置后才能使用clear清屏命令
             time.sleep(wait_time)
             self.tn.read_very_eager().decode('utf-8')
             # 创建1线程将服务器返回的数据发送到django websocket, 多个的话会极容易导致前端显示数据错乱
             Thread(target=self.websocket_to_django).start()
+
             self.res_asciinema.append(
                 json.dumps(
                     {
@@ -75,7 +81,7 @@ class Telnet:
                      }
                 )
             )
-        except:
+        except Exception:
             self.message['status'] = 2
             self.message['message'] = 'connection faild...'
             message = json.dumps(self.message)
@@ -87,7 +93,7 @@ class Telnet:
         time.sleep(wait_time)
         try:
             self.tn.write('{}\n'.format(superpassword).encode('utf-8'))
-        except:
+        except Exception:
             self.close()
             
     def django_to_ssh(self, data):
@@ -114,15 +120,23 @@ class Telnet:
                     self.history_mode = True
                 else:
                     self.cmd_tmp += data
-        except:
+        except Exception:
             self.close()
 
     def websocket_to_django(self):
         try:
             while True:
-                data = self.tn.read_very_eager().decode('utf-8')
+                # read_very_eager 方法读取时会是无限循环，性能比较低
+                # data = self.tn.read_very_eager().decode('utf-8')
+                # if not len(data):
+                #     continue
+
+                # expect 使用正则匹配所有返回内容，还可以实现超时无返回内容断开连接
+                x, y, data = self.tn.expect([br'[\s\S]+'], timeout=terminal_exipry_time)
+                data = data.decode('utf-8')
                 if not len(data):
-                    continue
+                    raise socket.timeout
+
                 self.message['status'] = 0
                 self.message['message'] = data
                 self.res += data
@@ -164,13 +178,9 @@ class Telnet:
                     if data.strip() != '':
                         self.cmd_tmp = data
                     self.history_mode = False
-        except:
-            self.close()
-
-    def close(self):
-        try:
+        except socket.timeout:
             self.message['status'] = 1
-            self.message['message'] = 'connection closed...'
+            self.message['message'] = '由于长时间没有操作或者没有数据返回，连接已断开!'
             message = json.dumps(self.message)
             if self.websocker.send_flag == 0:
                 self.websocker.send(message)
@@ -179,9 +189,27 @@ class Telnet:
                     "type": "chat.message",
                     "text": message,
                 })
+            self.close(send_message=False)
+        except Exception:
+            print(traceback.format_exc())
+            self.close()
+
+    def close(self, send_message=True):
+        try:
+            if send_message:
+                self.message['status'] = 1
+                self.message['message'] = 'connection closed...'
+                message = json.dumps(self.message)
+                if self.websocker.send_flag == 0:
+                    self.websocker.send(message)
+                elif self.websocker.send_flag == 1:
+                    async_to_sync(self.websocker.channel_layer.group_send)(self.websocker.group, {
+                        "type": "chat.message",
+                        "text": message,
+                    })
             self.websocker.close()
             self.tn.close()
-        except:
+        except Exception:
             pass
 
     def shell(self, data):

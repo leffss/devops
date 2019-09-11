@@ -19,7 +19,7 @@ import platform
 
 try:
     session_exipry_time = settings.CUSTOM_SESSION_EXIPRY_TIME
-except BaseException:
+except Exception:
     session_exipry_time = 60 * 30
 
 
@@ -96,9 +96,9 @@ class WebTelnet(WebsocketConsumer):
                             "text": message,
                         })
                     self.close(3001)
-                except BaseException:
+                except Exception:
                     pass
-        except BaseException:
+        except Exception:
             self.message['status'] = 2
             self.message['message'] = 'Host is not exist...'
             message = json.dumps(self.message)
@@ -160,7 +160,7 @@ class WebTelnet(WebsocketConsumer):
                 pass
             else:
                 self.telnet.close()
-        except:
+        except Exception:
             pass
         finally:
             try:
@@ -174,7 +174,7 @@ class WebTelnet(WebsocketConsumer):
                         with open(settings.MEDIA_ROOT + '/' + self.telnet.res_file, 'a+') as f:
                             for line in tmp:
                                 f.write('{}\n'.format(line))
-            except:
+            except Exception:
                 pass
                 
             user_agent = None
@@ -273,7 +273,7 @@ class WebTelnet(WebsocketConsumer):
                 })
             else:
                 pass
-        except BaseException:
+        except Exception:
             pass
 
     def lock_message(self, data):

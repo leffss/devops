@@ -45,10 +45,8 @@
                 <tr>
 				  <th>操作人</th>
 				  <th>主机名</th>
-				  <th>主机IP</th>
+				  <th>连接</th>
 				  <th>协议</th>
-				  <th>端口</th>
-				  <th>用户名</th>
 				  <th>命令</th>
 				  <th>客户端IP</th>
 				  <th>客户端</th>
@@ -62,7 +60,7 @@
                 <tr>
 				  <td>{{ log.user | default:'' }}</td>
 				  <td>{{ log.hostname }}</td>
-				  <td>{{ log.ip }}</td>
+				  <td>{{ log.username }}@{{ log.ip }}:{{ log.port }}</td>
 				  <td>
 				  {% if log.protocol == 'ssh' %}
 					<span class="badge badge-success">{{ log.protocol }}</span>
@@ -74,8 +72,6 @@
 				    <span class="badge badge-secondary">{{ log.protocol }}</span>
 				  {% endif %}
 				  </td>
-				  <td>{{ log.port }}</td>
-				  <td>{{ log.username }}</td>
 				  <td>{{ log.cmd | linebreaksbr | truncatechars_html:10 | default:'' }}<br>...</td>
 				  <td>{{ log.address | default:'' }}</td>
 				  <td>{{ log.useragent | truncatechars_html:25 | default:'' }}...</td>
@@ -98,10 +94,8 @@
                 <tr>
 				  <th>操作人</th>
 				  <th>主机名</th>
-				  <th>主机IP</th>
+				  <th>连接</th>
 				  <th>协议</th>
-				  <th>端口</th>
-				  <th>用户名</th>
 				  <th>命令</th>
 				  <th>客户端IP</th>
 				  <th>客户端</th>
@@ -156,41 +150,42 @@
 <script src="{% static 'adminlte/plugins/datatables/jquery.dataTables.js' %}"></script>
 <script src="{% static 'adminlte/plugins/datatables/dataTables.bootstrap4.js' %}"></script>
 <script>
-$("#datatables-lists").DataTable({
-	language: {
-		"sProcessing": "处理中...",
-		"sLengthMenu": "显示 _MENU_ 项结果",
-		"sZeroRecords": "没有匹配结果",
-		"sInfo": "显示第 _START_ 至 _END_ 项结果，共 _TOTAL_ 项",
-		"sInfoEmpty": "显示第 0 至 0 项结果，共 0 项",
-		"sInfoFiltered": "(由 _MAX_ 项结果过滤)",
-		"sInfoPostFix": "",
-		"sSearch": "搜索:",
-		"sUrl": "",
-		"sEmptyTable": "无数据",
-		"sLoadingRecords": "载入中...",
-		"sInfoThousands": ",",
-		"oPaginate": {
-			"sFirst": "首页",
-			"sPrevious": "上页",
-			"sNext": "下页",
-			"sLast": "末页"
+	$("#datatables-lists").DataTable({
+		language: {
+			"sProcessing": "处理中...",
+			"sLengthMenu": "显示 _MENU_ 项结果",
+			"sZeroRecords": "没有匹配结果",
+			"sInfo": "显示第 _START_ 至 _END_ 项结果，共 _TOTAL_ 项",
+			"sInfoEmpty": "显示第 0 至 0 项结果，共 0 项",
+			"sInfoFiltered": "(由 _MAX_ 项结果过滤)",
+			"sInfoPostFix": "",
+			"sSearch": "搜索:",
+			"sUrl": "",
+			"sEmptyTable": "无数据",
+			"sLoadingRecords": "载入中...",
+			"sInfoThousands": ",",
+			"oPaginate": {
+				"sFirst": "首页",
+				"sPrevious": "上页",
+				"sNext": "下页",
+				"sLast": "末页"
+			},
+			"oAria": {
+				"sSortAscending": ": 以升序排列此列",
+				"sSortDescending": ": 以降序排列此列"
+			}
 		},
-		"oAria": {
-			"sSortAscending": ": 以升序排列此列",
-			"sSortDescending": ": 以降序排列此列"
-		}
-	},
-	destroy: true,	// 允许重建
-	bProcessing:true,  // 表格数据过多处理时显示: sProcessing
-	lengthMenu: [[5, 10, 25, 50, 100, -1], [5, 10, 25, 50, 100, "全部"]],
-	order: [],
-	 //scrollY: 480,	// 滚动条
-	 //scrollCollapse: true,
-	 //jQueryUI: true,
-	 stateSave: true,	// 保存最后一次分页信息、排序信息，当页面刷新，或者重新进入这个页面，恢复上次的状态。
-	 stateDuration: 86400,	// 本地储存(0~更大)还是session储存(-1) 
-});
+		destroy: true,	// 允许重建
+		bProcessing:true,  // 表格数据过多处理时显示: sProcessing
+		lengthMenu: [[5, 10, 25, 50, 100, -1], [5, 10, 25, 50, 100, "全部"]],
+		columnDefs : [ { targets : 9, "orderable" : false } ],
+		order: [],
+		 //scrollY: 480,	// 滚动条
+		 //scrollCollapse: true,
+		 //jQueryUI: true,
+		 stateSave: true,	// 保存最后一次分页信息、排序信息，当页面刷新，或者重新进入这个页面，恢复上次的状态。
+		 stateDuration: 86400,	// 本地储存(0~更大)还是session储存(-1) 
+	});
 </script>
 
 <script src="{% static 'asciinema-player/asciinema-player.js' %}"></script>
@@ -231,7 +226,8 @@ $("#datatables-lists").DataTable({
 		var info = thisObj.attr('info');
 		var file = thisObj.attr("id");
 		$("#view_info").text("录像：" + info);
-		var res = '<asciinema-player src="/media/' + file + '" theme="monokai" title="' + info + '" rows="30" idle-time-limit="1"></asciinema-player>';
+		//var res = '<asciinema-player src="/media/' + file + '" theme="monokai" title="' + info + '" rows="30" idle-time-limit="1"></asciinema-player>';
+		var res = '<asciinema-player src="/media/' + file + '" theme="monokai" title="' + info + '" rows="30"></asciinema-player>';
 		$("#view_container").html(res);
 		$("#modal-view").iziModal({
 			iconClass: 'icon-announcement',

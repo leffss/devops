@@ -7,6 +7,7 @@ import paramiko
 from paramiko.common import WARNING
 from .sshinterface import transport_keepalive
 import traceback
+from django.conf import settings
 import threading
 from django.core.cache import cache
 from webssh.models import TerminalSession
@@ -22,6 +23,11 @@ logging.basicConfig(level=logging.INFO, format='[%(asctime)s] - %(name)s - %(lev
 logger = logging.getLogger(__name__)
 # ssh_client ===>>          proxy_ssh             ==>> ssh_server
 # ssh_client ===>> (proxy_server -> proxy_client) ==>> ssh_server
+
+try:
+    terminal_exipry_time = settings.CUSTOM_TERMINAL_EXIPRY_TIME
+except BaseException:
+    terminal_exipry_time = 60 * 30
 
 
 class SFTPInterface(paramiko.SFTPServerInterface):
@@ -64,6 +70,7 @@ class SFTPInterface(paramiko.SFTPServerInterface):
         t = threading.Thread(target=self.check_backend)
         t.daemon = True
         t.start()
+        self.last_operation_time = time.time()    # 最后一次操作日志，用于指定时间无操作后退出
 
     def get_sftp_proxy_client(self, ssh_args):
         host = ssh_args[0]
@@ -78,6 +85,7 @@ class SFTPInterface(paramiko.SFTPServerInterface):
             # gss_host=host,
         )
         # 设置 window_size 稍微提高下载速度 5MB/s --> 13MB/s
+        # 由于paramiko库的原因下载和上传速度目前都只能达到13-17MB/S的样子，将就够用
         ssh_proxy_client = paramiko.SFTPClient.from_transport(t, window_size=2 ** 32 - 1)
         # ssh_proxy_client = paramiko.SFTPClient.from_transport(t)
         return ssh_proxy_client, t
@@ -87,82 +95,86 @@ class SFTPInterface(paramiko.SFTPServerInterface):
             while 1:
                 if self.sftp_closed:
                     break
+
+                if int(time.time() - self.last_operation_time) >= terminal_exipry_time:   # 超时退出
+                    self.session_ended()
+                    break
+
                 if not cache.get('{}_{}_sftp_session'.format(self.proxy_ssh.http_user, self.proxy_ssh.password), False):
                     self.session_ended()
                     break
+
                 try:
                     self.transport.getpeername()
                 except:
                     self.session_ended()
                     break
+
                 time.sleep(sleep_time)  # 每次循环暂停一定时间，以免对 redis 造成压力
         except:
-            pass
+            logger.error(traceback.format_exc())
 
     def session_ended(self):
-        try:
-            if self.cmd:
-                tmp = self.cmd
-                self.cmd = ''
-                if platform.system().lower() == 'linux':
-                    celery_save_terminal_log.delay(
-                        self.proxy_ssh.http_user,
-                        self.proxy_ssh.hostname,
-                        self.proxy_ssh.ssh_args[0],
-                        'sftp',
-                        self.proxy_ssh.ssh_args[1],
-                        self.proxy_ssh.ssh_args[2],
-                        tmp,
-                        # self.res_file,
-                        'nothing',
-                        self.client_addr,  # 客户端 ip
-                        self._client,
-                        self.proxy_ssh.log_start_time,
-                    )
-                else:
-                    terminal_log(
-                        self.proxy_ssh.http_user,
-                        self.proxy_ssh.hostname,
-                        self.proxy_ssh.ssh_args[0],
-                        'sftp',
-                        self.proxy_ssh.ssh_args[1],
-                        self.proxy_ssh.ssh_args[2],
-                        tmp,
-                        # self.res_file,
-                        'nothing',
-                        self.client_addr,    # 客户端 ip
-                        self._client,
-                        self.proxy_ssh.log_start_time,
-                    )
-        except:
-            pass
+        time.sleep(0.5)     # 防止多次停止重复保存数据
+        if not self.sftp_closed:
+            self.sftp_closed = True
+            try:
+                if self.cmd:
+                    tmp = self.cmd
+                    self.cmd = ''
+                    if platform.system().lower() == 'linux':
+                        celery_save_terminal_log.delay(
+                            self.proxy_ssh.http_user,
+                            self.proxy_ssh.hostname,
+                            self.proxy_ssh.ssh_args[0],
+                            'sftp',
+                            self.proxy_ssh.ssh_args[1],
+                            self.proxy_ssh.ssh_args[2],
+                            tmp,
+                            # self.res_file,
+                            'nothing',
+                            self.client_addr,  # 客户端 ip
+                            self._client,
+                            self.proxy_ssh.log_start_time,
+                        )
+                    else:
+                        terminal_log(
+                            self.proxy_ssh.http_user,
+                            self.proxy_ssh.hostname,
+                            self.proxy_ssh.ssh_args[0],
+                            'sftp',
+                            self.proxy_ssh.ssh_args[1],
+                            self.proxy_ssh.ssh_args[2],
+                            tmp,
+                            # self.res_file,
+                            'nothing',
+                            self.client_addr,    # 客户端 ip
+                            self._client,
+                            self.proxy_ssh.log_start_time,
+                        )
+            except:
+                logger.error(traceback.format_exc())
 
-        try:
-            TerminalSession.objects.filter(
-                name='{}_{}_{}_session'.format(self.proxy_ssh.http_user, self.proxy_ssh.password, 'sftp')
-            ).delete()
-        except:
-            pass
+            try:
+                TerminalSession.objects.filter(
+                    name='{}_{}_{}_session'.format(self.proxy_ssh.http_user, self.proxy_ssh.password, 'sftp')
+                ).delete()
+            except:
+                logger.error(traceback.format_exc())
 
-        try:
             cache.delete('{}_{}_sftp_session'.format(self.proxy_ssh.http_user, self.proxy_ssh.password))
-        except:
-            pass
 
-        try:
-            self.proxy_ssh.chan_cli.transport.close()
-        except:
-            pass
-        try:
-            logger.info('后端主机SFTP断开: %s@%s' % (self.transport.get_username(), self.transport.getpeername()[0]))
-            super(SFTPInterface, self).session_ended()
-            self.client.close()
-            self.transport.close()
-        except:
-            pass
-        finally:
-            if not self.sftp_closed:
-                self.sftp_closed = True
+            try:
+                self.proxy_ssh.chan_cli.transport.close()
+            except:
+                logger.error(traceback.format_exc())
+            try:
+                logger.info('后端主机SFTP断开: %s@%s' % (self.transport.get_username(), self.transport.getpeername()[0]))
+                super(SFTPInterface, self).session_ended()
+                self.client.close()
+                self.transport.close()
+            except:
+                logger.error(traceback.format_exc())
 
     def _parsePath(self, path):
         if not self.root_path:
@@ -174,6 +186,7 @@ class SFTPInterface(paramiko.SFTPServerInterface):
         return result
 
     def list_folder(self, path):
+        self.last_operation_time = time.time()
         try:
             filelist = self.client.listdir_attr(self._parsePath(path))
             # import ipdb; ipdb.set_trace()
@@ -189,24 +202,28 @@ class SFTPInterface(paramiko.SFTPServerInterface):
             return paramiko.SFTPServer.convert_errno(e.errno)
 
     def stat(self, path):
+        self.last_operation_time = time.time()
         try:
             return self.client.stat(self._parsePath(path))
         except IOError as e:
             return paramiko.SFTPServer.convert_errno(e.errno)
 
     def lstat(self, path):
+        self.last_operation_time = time.time()
         try:
             return self.client.lstat(self._parsePath(path))
         except IOError as e:
             return paramiko.SFTPServer.convert_errno(e.errno)
 
     def open(self, path, flags, attr):
+        self.last_operation_time = time.time()
         if flags == 769:
             self.cmd += '上传 {0}\n'.format(path)
         elif flags == 0:
             self.cmd += '下载 {0}\n'.format(path)
         else:
             self.cmd += '打开文件 {1} {0}\n'.format(path, flags)
+
         try:
             if (flags & os.O_CREAT) and (attr is not None):
                 attr._flags &= ~attr.FLAG_PERMISSIONS
@@ -223,7 +240,6 @@ class SFTPInterface(paramiko.SFTPServerInterface):
                 else:
                     fstr = 'r+b'
             else:
-                # O_RDONLY (== 0)
                 fstr = 'rb'
 
             f = self.client.open(self._parsePath(path), fstr)
@@ -240,6 +256,7 @@ class SFTPInterface(paramiko.SFTPServerInterface):
             return paramiko.SFTPServer.convert_errno(e.errno)
 
     def remove(self, path):
+        self.last_operation_time = time.time()
         self.cmd += '删除文件 {0}\n'.format(path)
         try:
             self.client.remove(self._parsePath(path))
@@ -248,6 +265,7 @@ class SFTPInterface(paramiko.SFTPServerInterface):
         return paramiko.SFTP_OK
 
     def rename(self, oldpath, newpath):
+        self.last_operation_time = time.time()
         self.cmd += '重命名/移动 {0} --> {1}\n'.format(oldpath, newpath)
         try:
             self.client.rename(self._parsePath(oldpath), self._parsePath(newpath))
@@ -256,6 +274,7 @@ class SFTPInterface(paramiko.SFTPServerInterface):
         return paramiko.SFTP_OK
 
     def mkdir(self, path, attr):
+        self.last_operation_time = time.time()
         self.cmd += '创建文件夹 {0}\n'.format(path)
         try:
             if attr.st_mode is None:
@@ -267,6 +286,7 @@ class SFTPInterface(paramiko.SFTPServerInterface):
         return paramiko.SFTP_OK
 
     def rmdir(self, path):
+        self.last_operation_time = time.time()
         self.cmd += '删除文件夹 {0}\n'.format(path)
         try:
             self.client.rmdir(self._parsePath(path))
@@ -275,6 +295,7 @@ class SFTPInterface(paramiko.SFTPServerInterface):
         return paramiko.SFTP_OK
 
     def chattr(self, path, attr):
+        self.last_operation_time = time.time()
         self.cmd += '权限变更 {0} {1}\n'.format(path, attr)
         try:
             if attr._flags & attr.FLAG_PERMISSIONS:
@@ -291,9 +312,11 @@ class SFTPInterface(paramiko.SFTPServerInterface):
         return paramiko.SFTP_OK
 
     def symlink(self, target_path, path):
+        self.last_operation_time = time.time()
         return paramiko.SFTP_OP_UNSUPPORTED
 
     def readlink(self, path):
+        self.last_operation_time = time.time()
         try:
             return self.client.readlink(self._parsePath(path))
         except:
