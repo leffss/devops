@@ -1,0 +1,4 @@
+/* 页面加载完后再显示，更好的显示特效 */
+.content-list {
+	display : none;
+}

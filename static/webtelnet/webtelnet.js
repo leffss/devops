@@ -37,7 +37,8 @@ function websocket() {
             useStyle: true,
             cursorBlink: true,
 			theme: {
-				background: '#008080',
+				//background: '#008080',
+				background: '#272822',
 			},
         }
         ),
@@ -70,6 +71,15 @@ function websocket() {
 			term.write(message)
 			$("body").removeAttr("onbeforeunload"); //删除刷新关闭提示属性
 			$(".session-close").attr("hidden", true);
+			toastr.options.closeButton = true;
+			toastr.options.showMethod = 'slideDown';
+			toastr.options.hideMethod = 'fadeOut';
+			toastr.options.closeMethod = 'fadeOut';
+			toastr.options.timeOut = 0;	
+			toastr.options.extendedTimeOut = 3000;	
+			toastr.options.progressBar = true;
+			toastr.options.positionClass = 'toast-top-right';
+			toastr.error(message);
 			//$(document).keyup(function(event){	// 监听回车按键事件
 			//	if(event.keyCode == 13){
 					//window.location.reload();
@@ -79,7 +89,6 @@ function websocket() {
 			//$('#django-webssh-terminal').addClass('hide');
 			//$('#form').removeClass('hide');
         } else if (status === 3 ) {		// 锁定会话
-			console.log(message);
 			toastr.options.closeButton = true;
 			toastr.options.showMethod = 'slideDown';
 			toastr.options.hideMethod = 'fadeOut';

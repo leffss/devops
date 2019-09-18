@@ -21,11 +21,11 @@
 	{% endblock navheader %}
 	
 		  {% block content %}
-          <div class="card card-primary card-outline">
+          <div class="card content-list">
             <div class="card-header">
               <h3 class="card-title">在线终端</h3>
 				<div class="card-tools">
-				  <button type="button" class="btn btn-tool" data-widget="collapse">
+				  <!--button type="button" class="btn btn-tool" data-widget="collapse">
 					<i class="fas fa-minus"></i>
 				  </button>
 				  <button type="button" class="btn btn-tool" data-widget="maximize">
@@ -33,7 +33,7 @@
                   </button>
 				  <button type="button" class="btn btn-tool" data-widget="remove">
 					<i class="fas fa-times"></i>
-				  </button>
+				  </button-->
 				</div>
             </div>
             <!-- /.card-header -->
@@ -97,33 +97,33 @@
 						{% csrf_token %}
 						<input type="text" name="sessionname" value="{{ session.name  }}" hidden>
 						<input type="text" name="group" value="{{ session.group  }}" hidden>
-						<button type="submit" class="btn btn-sm btn-success btn-flat mb-1"><i class="far fa-eye"></i> 查看</button>
+						<button type="submit" class="btn btn-sm btn-success mb-1"><i class="far fa-eye"></i> 查看</button>
 						</form>&nbsp;&nbsp;
 					{% elif session.get_type_display == 'clissh' %}
 						<form method="post" action="{% url 'webssh:terminal_clissh_view' %}" target="_blank" style="display:inline;">
 						{% csrf_token %}
 						<input type="text" name="sessionname" value="{{ session.name  }}" hidden>
 						<input type="text" name="group" value="{{ session.group  }}" hidden>
-						<button type="submit" class="btn btn-sm btn-success btn-flat mb-1"><i class="far fa-eye"></i> 查看</button>
+						<button type="submit" class="btn btn-sm btn-success mb-1"><i class="far fa-eye"></i> 查看</button>
 						</form>&nbsp;&nbsp;
 					{% endif %}
 					
 					{% if session.get_type_display == 'webssh' or session.get_type_display == 'webtelnet' %}
-						<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" group="{{ session.group }}" class="btn btn-sm btn-danger btn-flat mb-1" onclick="createdeletemodal(this);"><i class="far fa-times-circle"></i> 断开</a>
+						<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" group="{{ session.group }}" class="btn btn-sm btn-danger mb-1" onclick="createdeletemodal(this);"><i class="far fa-times-circle"></i> 断开</a>
 						&nbsp;&nbsp;
 					{% elif session.get_type_display == 'clissh' or session.get_type_display == 'clisftp' %}
-						<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" class="btn btn-sm btn-danger btn-flat mb-1" onclick="createdeletemodal_clissh(this);"><i class="far fa-times-circle"></i> 断开</a>
+						<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" class="btn btn-sm btn-danger mb-1" onclick="createdeletemodal_clissh(this);"><i class="far fa-times-circle"></i> 断开</a>
 						&nbsp;&nbsp;
 					{% elif session.get_type_display == 'webrdp' or session.get_type_display == 'webvnc' %}
-						<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" group="{{ session.group }}" class="btn btn-sm btn-danger btn-flat mb-1" onclick="createdeletemodal_rdp(this);"><i class="far fa-times-circle"></i> 断开</a>
+						<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" group="{{ session.group }}" class="btn btn-sm btn-danger mb-1" onclick="createdeletemodal_rdp(this);"><i class="far fa-times-circle"></i> 断开</a>
 						&nbsp;&nbsp;
 					{% endif %}
 					
 					{% if session.get_type_display == 'webssh' or session.get_type_display == 'webtelnet' or session.get_type_display == 'webrdp' or session.get_type_display == 'webvnc' or session.get_type_display == 'clissh' %}
 						{% if session.locked %}
-						<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" type="{{ session.get_type_display }}" class="btn btn-sm btn-primary btn-flat mb-1" onclick="createunlockmodal(this);"><i class="fas fa-lock-open"></i> 解锁</a>
+						<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" type="{{ session.get_type_display }}" class="btn btn-sm btn-primary mb-1" onclick="createunlockmodal(this);"><i class="fas fa-lock-open"></i> 解锁</a>
 						{% else %}
-						<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" type="{{ session.get_type_display }}" class="btn btn-sm btn-info btn-flat mb-1" onclick="createlockmodal(this);"><i class="fas fa-lock"></i> 锁定</a>
+						<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" type="{{ session.get_type_display }}" class="btn btn-sm btn-info mb-1" onclick="createlockmodal(this);"><i class="fas fa-lock"></i> 锁定</a>
 						{% endif %}
 					{% endif %}
 					
@@ -688,8 +688,8 @@
 		// 生成弹出框，使用 \ 换行
 		$("#modal-container").html('<div id="modal-unlock-' + session_id + '" class="iziModal"><div class="container-fluid"><div class="row">\
 									<div class="col-12 p-3"><h5 class="text-center mt-3">确定要解锁会话 "' + session_name + '" 吗？</h5></div><div class="col-6 p-3">\
-									<button type="button" class="btn btn-block btn-secondary btn-flat" data-iziModal-close>取消</button></div><div class="col-6 p-3">\
-									<a href="javascript:void(0)"><button type="button" class="btn btn-block btn-success btn-flat" id="' + session_id + '-yes" title="\
+									<button type="button" class="btn btn-block btn-secondary" data-iziModal-close>取消</button></div><div class="col-6 p-3">\
+									<a href="javascript:void(0)"><button type="button" class="btn btn-block btn-success" id="' + session_id + '-yes" title="\
 									' + session_name + '" type1="' + type + '" onclick="unlockthis(this);">确定</button></a></div></div></div></div>');
 		
 		// 初始化弹出框

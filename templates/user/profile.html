@@ -20,14 +20,15 @@
 	{% endblock navheader %}
 	
 		  {% block content %}
-          <div class="card card-primary">
+          <div class="card card-primary content-list">
             <div class="card-header">
               <h3 class="card-title">个人信息</h3>
 				<div class="card-tools">
-				  <a class="btn btn-tool" href="{% url 'user:profile_edit' %}" title="编辑">
+				  <a class="btn btn-tool" href="{% if request.next %}{{ request.next }}{% else %}{% url 'server:index' %}{% endif %}">返回</a>
+				  <a class="btn btn-tool" href="{% url 'user:profile_edit' %}?next={% if request.META.QUERY_STRING %}{{ request.META.PATH_INFO }}?{{ request.META.QUERY_STRING }}{% else %}{{ request.META.PATH_INFO }}{% endif %}" title="编辑">
 					<!--i class="fas fa-wrench"></i-->编辑
 				  </a>
-				  <button type="button" class="btn btn-tool" data-widget="collapse">
+				  <!--button type="button" class="btn btn-tool" data-widget="collapse">
 					<i class="fas fa-minus"></i>
 				  </button>
 				  <button type="button" class="btn btn-tool" data-widget="maximize">
@@ -35,7 +36,7 @@
                   </button>
 				  <button type="button" class="btn btn-tool" data-widget="remove">
 					<i class="fas fa-times"></i>
-				  </button>
+				  </button-->
 				</div>
             </div>
             <!-- /.card-header -->

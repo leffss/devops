@@ -1,9 +1,0 @@
-{"version": 2, "width": 250, "height": 40, "timestamp": 1568191641, "env": {"SHELL": "/bin/sh", "TERM": "linux"}}
-[0.295029, "o", "Last login: Wed Sep 11 16:43:54 2019 from 192.168.223.1\r\r\n"]
-[0.460046, "o", "[root@k8s1 ~]# "]
-[5.014501, "o", "\r\n[root@k8s1 ~]# "]
-[5.314531, "o", "s"]
-[5.322532, "o", "a"]
-[5.394539, "o", "d"]
-[6.0006, "o", "\r\n"]
-[6.0016, "o", "-bash: sad: command not found\r\n[root@k8s1 ~]# "]

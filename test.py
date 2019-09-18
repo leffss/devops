@@ -21,4 +21,13 @@ def main():
     
     
 if __name__ == '__main__':
-    main()
+    # main()
+    # x = b'\xe8\xb5'
+    # print(x.decode('utf-8'))
+    y = '知'
+    print(y.encode('utf-8'))
+    print(y.encode('gbk'))
+
+    a = 'xxxx'
+    print(a[0:2])
+    print(a[100:])

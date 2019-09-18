@@ -33,6 +33,10 @@
 
         }
     </style>
+	
+  <!-- custom -->
+  <link rel="stylesheet" href="{% static 'css/custom.css' %}">
+  
 </head>
 <body>
 
@@ -41,19 +45,19 @@
 <!-- 用于获取屏幕dpi-->
 <div id='dpi'></div>
 
-<div class="container-fluid" id="headers" style="background-color: #E3F2FD">
+<div class="container-fluid content-list" id="headers" style="background-color: #E3F2FD">
 	<div class="row">
 		<div class="col-12 mt-2">
 			<h5>
 			主机：{{ host.hostname }}&nbsp;&nbsp;协议：{{ host.get_protocol_display }}&nbsp;&nbsp;连接：{{ host.remote_user.username }}@{{ host.ip }}:{{ host.port }}
-			<a href="javascript:void(0)" class="btn btn-sm btn-danger btn-flat ml-2 session-close"><i class="far fa-times-circle"></i> 断开</a>
+			<a href="javascript:void(0)" class="btn btn-sm btn-danger ml-2 session-close"><i class="far fa-times-circle"></i> 断开</a>
 			</h5>
 		</div>
 	</div>
 </div>
 
 <!-- Display -->
-<div class="mt-1" id="display"></div>
+<div class="mt-1 content-list" id="display"></div>
 
 <!-- 断开连接 -->
 <div id="modal-close" class="iziModal">
@@ -63,10 +67,10 @@
 				<h4 class="text-center mt-3">确定要断开当前连接吗？</h4>
 			</div>
 			<div class="col-6 p-3">
-				<button type="button" class="btn btn-block btn-secondary btn-flat" data-iziModal-close>取消</button>
+				<button type="button" class="btn btn-block btn-secondary" data-iziModal-close>取消</button>
 			</div>
 			<div class="col-6 p-3">
-				<a href="javascript:void(0)"><button type="button" class="btn btn-block btn-success btn-flat" onclick="close_session();" data-iziModal-close>确定</button></a>
+				<a href="javascript:void(0)"><button type="button" class="btn btn-block btn-success" onclick="close_session();" data-iziModal-close>确定</button></a>
 			</div>
 		</div>
 	</div>
@@ -93,6 +97,7 @@
 <script src="{% static 'js/iziModal.min.js' %}"></script>
 
 <script src="{% static 'guacamole/js/all.js' %}"></script>
+<!--script src="{% static 'guacamole/js/all.min.js' %}"></script-->
 
 <script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
 
@@ -224,5 +229,21 @@
 	};
 
 </script>
+
+<!-- 动画特效 -->
+<script src="//cdn.bootcss.com/velocity/1.5.2/velocity.min.js"></script>
+<script src="//cdn.bootcss.com/velocity/1.5.2/velocity.ui.min.js"></script>
+<script>
+	$(".content-list").velocity("transition.slideUpBigIn", { stagger: 150, drag: true });
+	//$(".content-list").velocity("transition.slideRightBigIn", { stagger: 120, drag: true });	
+</script>
+
+<!-- 页面加载完后再显示，更好的显示特效 -->
+<script>
+	document.addEventListener("DOMContentLoaded", function(){
+		$(".content-list").css("display", "block");
+	});
+</script>
+
 </body>
 </html>

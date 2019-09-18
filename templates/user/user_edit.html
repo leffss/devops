@@ -23,7 +23,7 @@
 	
 		  {% block content %}
 		  <div class="row">
-			  <div class="col-md-6">
+			  <div class="col-md-6 content-list">
 				  <div class="card card-primary">
 					<div class="card-header">
 					  <h3 class="card-title">必填</h3>
@@ -60,14 +60,14 @@
 							  <label class="custom-control-label" for="enabled">启用</label>
 							</div>
 						</div>
-						<div class="offset-2 col-10 pt-2"><a class="btn btn-default" href="{% url 'user:users' %}">返回</a> <button class="btn btn-success ml-2" onclick="changeuserprofile(this);">提交</button><span id="feed_error" class="ml-2" style="color:red;"></span></div>
+						<div class="offset-2 col-10 pt-2"><a class="btn btn-default" href="{% if request.next %}{{ request.next }}{% else %}{% url 'user:users' %}{% endif %}">返回</a> <button class="btn btn-success ml-2" onclick="changeuserprofile(this);">提交</button><span id="feed_error" class="ml-2" style="color:red;"></span></div>
 					</div>
 					<!-- /.card-body -->
 				  </div>
 				  <!-- /.card -->
 			  </div>
 			  
-			  <div class="col-md-6">
+			  <div class="col-md-6 content-list">
 				  <div class="card card-secondary">
 					<div class="card-header">
 					  <h3 class="card-title">选填</h3>
@@ -363,7 +363,7 @@
 			} else {
 				// 消息框
 				toastr.options.timeOut = 1000;
-				toastr.options.onHidden = function() { window.location.href = "{% url 'user:user' user.id %}"; }
+				toastr.options.onHidden = function() { window.location.href = "{% if request.next %}{{ request.next }}{% else %}{% url 'user:user' user.id %}{% endif %}"; }
 				toastr.success('更新用户信息成功');
 			}
 		};

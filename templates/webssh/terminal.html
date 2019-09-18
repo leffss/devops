@@ -27,18 +27,21 @@
   
   <!-- bootstrap-fileinput -->
   <link rel="stylesheet" href="{% static 'bootstrap-fileinput/css/fileinput.min.css' %}">
+  
+  <!-- custom -->
+  <link rel="stylesheet" href="{% static 'css/custom.css' %}">
 
 </head>
 <body>
 
 <span id="hostid" hidden>{{ host.id }}</span>
 
-<div class="container-fluid" id="headers" style="background-color: #E3F2FD">
+<div class="container-fluid content-list" id="headers" style="background-color: #E3F2FD">
 	<div class="row pt-2 pb-1">
 		<div class="col-lg-6">
 			<h5>
 			主机：{{ host.hostname }}&nbsp;&nbsp;协议：{{ host.get_protocol_display }}&nbsp;&nbsp;连接：{{ host.remote_user.username }}@{{ host.ip }}:{{ host.port }}
-			<a href="javascript:void(0)" class="btn btn-sm btn-danger btn-flat ml-2 session-close"><i class="far fa-times-circle"></i> 断开</a>
+			<a href="javascript:void(0)" class="btn btn-sm btn-danger ml-2 session-close"><i class="far fa-times-circle"></i> 断开</a>
 			</h5>
 		</div>
 		
@@ -62,7 +65,7 @@
 	</div>
 </div>
 
-<div class="mt-1" id="terminal"></div>
+<div class="mt-1 content-list" id="terminal"></div>
 
 <!-- 断开连接 -->
 <div id="modal-close" class="iziModal">
@@ -72,10 +75,10 @@
 				<h4 class="text-center mt-3">确定要断开当前连接吗？</h4>
 			</div>
 			<div class="col-6 p-3">
-				<button type="button" class="btn btn-block btn-secondary btn-flat" data-iziModal-close>取消</button>
+				<button type="button" class="btn btn-block btn-secondary" data-iziModal-close>取消</button>
 			</div>
 			<div class="col-6 p-3">
-				<a href="javascript:void(0)"><button type="button" class="btn btn-block btn-success btn-flat" onclick="close_session();" data-iziModal-close>确定</button></a>
+				<a href="javascript:void(0)"><button type="button" class="btn btn-block btn-success" onclick="close_session();" data-iziModal-close>确定</button></a>
 			</div>
 		</div>
 	</div>
@@ -138,7 +141,7 @@
         showCaption: true,
 		showCancel: true,
         maxFileSize: 5242880,	// 单位kb，最大文件5GB，
-        maxFileCount: 5,
+        maxFileCount: 1,
         uploadUrl: "{% url 'webssh_api:session_upload' host.id %}",
 		
 		enableResumableUpload: true,
@@ -159,13 +162,13 @@
 				toastr.options.showMethod = 'slideDown';
 				toastr.options.hideMethod = 'fadeOut';
 				toastr.options.closeMethod = 'fadeOut';
-				toastr.options.timeOut = 3000;	
+				toastr.options.timeOut = 5000;	
 				toastr.options.extendedTimeOut = 0;	
 				toastr.options.progressBar = true;
 				toastr.options.positionClass = 'toast-top-right';
 				if (response.complete == true && response.uploaded == true) {
 					// 消息框
-					toastr.success('文件上传成功: ' + response.filename);
+					toastr.success('文件"' + response.filename + '"已上传到目录"' + response.remote_path + '"');
 				} else {};
             },
 		},
@@ -203,7 +206,7 @@
 		toastr.options.extendedTimeOut = 0;	
 		toastr.options.progressBar = true;
 		toastr.options.positionClass = 'toast-top-right';
-		toastr.success('文件上传错误: ' + data.fileId);
+		toastr.error('文件上传错误: ' + data.fileId);
     }).on('filebatchuploadcomplete', function(event, preview, config, tags, extraData) {
         console.log('File batch upload complete', preview, config, tags, extraData);
     });
@@ -225,6 +228,21 @@
 	};
 	// 下载文件 -- end
 	
+</script>
+
+<!-- 动画特效 -->
+<script src="//cdn.bootcss.com/velocity/1.5.2/velocity.min.js"></script>
+<script src="//cdn.bootcss.com/velocity/1.5.2/velocity.ui.min.js"></script>
+<script>
+	$(".content-list").velocity("transition.slideUpBigIn", { stagger: 150, drag: true });
+	//$(".content-list").velocity("transition.slideRightBigIn", { stagger: 120, drag: true });	
+</script>
+
+<!-- 页面加载完后再显示，更好的显示特效 -->
+<script>
+	document.addEventListener("DOMContentLoaded", function(){
+		$(".content-list").css("display", "block");
+	});
 </script>
 
 </body>

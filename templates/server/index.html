@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load server_tags %}
 
 
   {% block title %}
@@ -7,12 +8,13 @@
   {% endblock title %}
 		  
     {% block navheader %}
+	
     <section class="content-header">
       <div class="container-fluid">
         <div class="row mb-1">
           <div class="col-12">
             <ol class="breadcrumb">
-              <li class="breadcrumb-item active">仪表盘</li>
+              <li class="breadcrumb-item active"><h4 class="mb-0">仪表盘</h4></li>
             </ol>
           </div>
         </div>
@@ -23,7 +25,7 @@
 
 		  {% block content %}
 		  <div class="row">
-			  <div class="col-lg-3 col-6">
+			  <div class="col-lg-3 col-6 content-list">
 				<!-- small box -->
 				<div class="small-box bg-info">
 				  <div class="inner">
@@ -37,7 +39,7 @@
 				</div>
 			  </div>
 			  <!-- ./col -->
-			  <div class="col-lg-3 col-6">
+			  <div class="col-lg-3 col-6 content-list">
 				<!-- small box -->
 				<div class="small-box bg-success">
 				  <div class="inner">
@@ -51,9 +53,9 @@
 				</div>
 			  </div>
 			  <!-- ./col -->
-			  <div class="col-lg-3 col-6">
+			  <div class="col-lg-3 col-6 content-list">
 				<!-- small box -->
-				<div class="small-box bg-warning">
+				<div class="small-box bg-yellow">
 				  <div class="inner">
 					<h3>{{ group_count }}</h3>
 					<p>用户组</p>
@@ -65,9 +67,9 @@
 				</div>
 			  </div>
 			  <!-- ./col -->
-			  <div class="col-lg-3 col-6">
+			  <div class="col-lg-3 col-6 content-list">
 				<!-- small box -->
-				<div class="small-box bg-secondary">
+				<div class="small-box bg-red">
 				  <div class="inner">
 					<h3>{{ session_count }}</h3>
 					<p>在线终端</p>
@@ -79,6 +81,173 @@
 				</div>
 			  </div>
 			  <!-- ./col -->
+			  
+			  <div class="col-lg-6 col-12 content-list">
+				  <div class="card">
+					  <div class="card-header border-transparent">
+						<h3 class="card-title">主机类型</h3>
+						<!--div class="card-tools">
+						  <button type="button" class="btn btn-tool" data-widget="collapse">
+							<i class="fas fa-minus"></i>
+						  </button>
+						  <button type="button" class="btn btn-tool" data-widget="remove">
+							<i class="fas fa-times"></i>
+						  </button>
+						</div-->
+					  </div>
+					  <!-- /.card-header -->
+					  <div class="card-body">
+						<div id="donutChart" style="max-width:100%;height:420px;"></div>
+						<!-- /.table-responsive -->
+					  </div>
+					  <!-- /.card-body -->
+					</div>
+			   </div>
+			  
+			  <div class="col-lg-6 col-12 content-list">
+				<div class="card">
+				  <div class="card-header no-border">
+					<h3 class="card-title">最新主机</h3>
+					<!--div class="card-tools">
+					  <button type="button" class="btn btn-tool" data-widget="collapse">
+						<i class="fas fa-minus"></i>
+					  </button>
+					  <button type="button" class="btn btn-tool" data-widget="remove">
+						<i class="fas fa-times"></i>
+					  </button>
+					</div-->
+				  </div>
+				  <div class="card-body p-0">
+					<table class="table table-striped table-valign-middle">
+					  <thead>
+					  <tr>
+						<th>名称</th>
+						<th>IP</th>
+						<th>状态</th>
+						<th>添加时间</th>
+					  </tr>
+					  </thead>
+					  <tbody>
+					  
+					  {% get_recent_hosts 10 as hosts %}
+					  {% for host in hosts %}
+					  <tr>
+						<td>{{ host.hostname }}</td>
+						<td>{{ host.ip }}</td>
+						<td>{% if host.enabled %}<span class="badge badge-success">启用</span>{% else %}<span class="badge badge-danger">禁用</span>{% endif %}</td>
+						<td>{{ host.create_time|date:"Y/m/d H:i:s" }}</td>
+					  </tr>
+					  {% endfor %}
+					  </tbody>
+					</table>
+				  </div>
+				  <div class="card-footer">
+					<a class='btn btn-info btn-sm float-right' href="{% url 'server:hosts' %}">查看所有</a>
+				  </div>
+				</div>
+			  </div>
+			  
+			  
 			</div>
 			
 		  {% endblock content %}
+
+{% block js %}
+<script src="https://cdn.bootcss.com/echarts/4.2.1/echarts.min.js"></script>
+<script>
+	{% get_host_types as res %}
+	
+	$(function () {
+	    //资产类型数量统计 饼图
+        function genData() {
+            let title = [];
+            let type_detail = [];
+			let env_detail = [];
+
+            {% for env in res.envs %}				
+				title.push("{{ env.env }}");
+				env_detail.push({
+					value: {{ env.total }}, 
+					name: '{{ env.env }}'
+				});
+            {% endfor %}
+			
+            {% for type in res.types %}				
+				title.push("{{ type.type }}");
+				type_detail.push({
+					value: {{ type.total }}, 
+					name: '{{ type.type }}'
+				});
+            {% endfor %}
+
+            return {
+                title: title,
+                type_detail: type_detail,
+				env_detail: env_detail,
+            };
+        };
+        // 基于准备好的dom，初始化echarts实例
+        let donutChart = echarts.init(document.getElementById('donutChart'));
+        let data = genData();
+		// 指定图表的配置项和数据
+        option = {
+            title : {
+                x:'center'
+            },
+            tooltip : {
+                trigger: 'item',
+                formatter: "{b} : {c} ({d}%)"
+            },
+            legend: {
+                orient: 'vertical',
+                left: 'left',
+                data: data.title,
+            },
+            series : [
+			
+				{
+                    name: '资产环境',
+                    type: 'pie',
+                    radius: [0, '42%'],
+                    label: {
+                        normal: {
+                            position: 'inner'
+                        }
+                    },
+                    data: data.env_detail,
+                },
+			
+                {
+                    name: '主机类型',
+                    type: 'pie',
+                    radius : '70%',
+                    center: ['50%', '50%'],	// 位置
+					roseType : 'area',	// 面积模式
+					radius : ['40%', '85%'],	// 中空
+                    data: data.type_detail,
+                    itemStyle: {
+                        emphasis: {
+                            shadowBlur: 20,
+                            shadowOffsetX: 10,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    },
+					label: {
+						normal: {
+							show: true,
+							formatter: '{b} : {c} ({d}%)',//模板变量有 {a}、{b}、{c}、{d}，分别表示系列名，数据名，数据值，百分比。{d}数据会根据value值计算百分比
+						    labelLine  : {                   
+								show:true
+							}
+						}
+					}
+                }
+            ]
+        };
+		// 使用刚指定的配置项和数据显示图表。
+		donutChart.setOption(option);
+    });
+	
+
+</script>
+{% endblock js %}

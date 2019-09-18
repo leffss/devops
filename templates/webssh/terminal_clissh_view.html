@@ -24,29 +24,32 @@
   <!-- webssh -->
   <link rel="stylesheet" href="{% static 'webssh/xterm.css' %}">
   <!--link rel="stylesheet" href="{% static 'webssh/style.css' %}"-->
-
+  
+  <!-- custom -->
+  <link rel="stylesheet" href="{% static 'css/custom.css' %}">
+  
 </head>
 <body>
 
 <span id="group" hidden>{{ session.group }}</span>
 
-<div class="container-fluid" id="headers" style="background-color: #E3F2FD">
+<div class="container-fluid content-list" id="headers" style="background-color: #E3F2FD">
 	<div class="row">
 		<div class="col-12 mt-2">
 			<h5>
 			会话名称：{{ session.name }}&nbsp;&nbsp;用户：{{ session.user }}&nbsp;&nbsp;类型：{{ session.get_type_display }}&nbsp;&nbsp;协议：{{ session.get_protocol_display }}&nbsp;&nbsp;主机：{{ session.username }}@{{ session.host }}:{{ session.port }}
-			<a href="javascript:void(0)" class="btn btn-sm btn-danger btn-flat ml-2" id="session-close"><i class="far fa-times-circle"></i> 断开</a>
+			<a href="javascript:void(0)" class="btn btn-sm btn-danger ml-2" id="session-close"><i class="far fa-times-circle"></i> 断开</a>
 			{% if session.locked %}
-				<a href="javascript:void(0)" class="btn btn-sm btn-primary btn-flat ml-2" id="session-unlock"><i class="fas fa-lock-open"></i> 解锁</a>
+				<a href="javascript:void(0)" class="btn btn-sm btn-primary ml-2" id="session-unlock"><i class="fas fa-lock-open"></i> 解锁</a>
 			{% else %}
-				<a href="javascript:void(0)" class="btn btn-sm btn-info btn-flat ml-2" id="session-lock"><i class="fas fa-lock"></i> 锁定</a>
+				<a href="javascript:void(0)" class="btn btn-sm btn-info ml-2" id="session-lock"><i class="fas fa-lock"></i> 锁定</a>
 			{% endif %}
 			</h5>
 		</div>
 	</div>
 </div>
 
-<div class="mt-1" id="terminal"></div>
+<div class="mt-1 content-list" id="terminal"></div>
 
 <!-- 断开会话 -->
 <div id="modal-close" class="iziModal">
@@ -56,10 +59,10 @@
 				<h4 class="text-center mt-3">确定要断开会话吗？</h4>
 			</div>
 			<div class="col-6 p-3">
-				<button type="button" class="btn btn-block btn-secondary btn-flat" data-iziModal-close>取消</button>
+				<button type="button" class="btn btn-block btn-secondary" data-iziModal-close>取消</button>
 			</div>
 			<div class="col-6 p-3">
-				<a href="javascript:void(0)"><button type="button" class="btn btn-block btn-success btn-flat" onclick="close_session();" data-iziModal-close>确定</button></a>
+				<a href="javascript:void(0)"><button type="button" class="btn btn-block btn-success" onclick="close_session();" data-iziModal-close>确定</button></a>
 			</div>
 		</div>
 	</div>
@@ -73,10 +76,10 @@
 				<h4 class="text-center mt-3">确定要锁定会话吗？</h4>
 			</div>
 			<div class="col-6 p-3">
-				<button type="button" class="btn btn-block btn-secondary btn-flat" data-iziModal-close>取消</button>
+				<button type="button" class="btn btn-block btn-secondary" data-iziModal-close>取消</button>
 			</div>
 			<div class="col-6 p-3">
-				<a href="javascript:void(0)"><button type="button" class="btn btn-block btn-success btn-flat" onclick="lock_session();" data-iziModal-close>确定</button></a>
+				<a href="javascript:void(0)"><button type="button" class="btn btn-block btn-success" onclick="lock_session();" data-iziModal-close>确定</button></a>
 			</div>
 		</div>
 	</div>
@@ -90,10 +93,10 @@
 				<h4 class="text-center mt-3">确定要解锁会话吗？</h4>
 			</div>
 			<div class="col-6 p-3">
-				<button type="button" class="btn btn-block btn-secondary btn-flat" data-iziModal-close>取消</button>
+				<button type="button" class="btn btn-block btn-secondary" data-iziModal-close>取消</button>
 			</div>
 			<div class="col-6 p-3">
-				<a href="javascript:void(0)"><button type="button" class="btn btn-block btn-success btn-flat" onclick="unlock_session();" data-iziModal-close>确定</button></a>
+				<a href="javascript:void(0)"><button type="button" class="btn btn-block btn-success" onclick="unlock_session();" data-iziModal-close>确定</button></a>
 			</div>
 		</div>
 	</div>
@@ -307,6 +310,21 @@
 	};
 	// 解锁会话 -- end
 	
+</script>
+
+<!-- 动画特效 -->
+<script src="//cdn.bootcss.com/velocity/1.5.2/velocity.min.js"></script>
+<script src="//cdn.bootcss.com/velocity/1.5.2/velocity.ui.min.js"></script>
+<script>
+	$(".content-list").velocity("transition.slideUpBigIn", { stagger: 150, drag: true });
+	//$(".content-list").velocity("transition.slideRightBigIn", { stagger: 120, drag: true });	
+</script>
+
+<!-- 页面加载完后再显示，更好的显示特效 -->
+<script>
+	document.addEventListener("DOMContentLoaded", function(){
+		$(".content-list").css("display", "block");
+	});
 </script>
 
 </body>

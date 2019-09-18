@@ -26,11 +26,11 @@
 	{% endblock navheader %}
 	
 		  {% block content %}
-          <div class="card card-primary card-outline">
+          <div class="card content-list">
             <div class="card-header">
               <h3 class="card-title">用户<a href="{% url 'user:user_add' %}" class="btn btn-sm btn-outline-success ml-3 addsoft"><i class="fas fa-plus fa-sm"></i> 新增</a></h3>
 				<div class="card-tools">
-				  <button type="button" class="btn btn-tool" data-widget="collapse">
+				  <!--button type="button" class="btn btn-tool" data-widget="collapse">
 					<i class="fas fa-minus"></i>
 				  </button>
 				  <button type="button" class="btn btn-tool" data-widget="maximize">
@@ -38,7 +38,7 @@
                   </button>
 				  <button type="button" class="btn btn-tool" data-widget="remove">
 					<i class="fas fa-times"></i>
-				  </button>
+				  </button-->
 				</div>
             </div>
             <!-- /.card-header -->
@@ -74,12 +74,12 @@
 				  <td>{{ user.get_role_display }}</td>
 				  
 				  <td>
-				  {% for group in user.groups.all %}<a href="{% url 'user:group' group.id %}" class="btn btn-sm btn-success btn-flat mb-1">{{ group.group_name }}</a>&nbsp;&nbsp;{% endfor %}
+				  {% for group in user.groups.all %}<a href="{% url 'user:group' group.id %}" class="btn btn-sm btn-success mb-1">{{ group.group_name }}</a>&nbsp;&nbsp;{% endfor %}
 				  </td>
 				  <td>{{ user.create_time|date:"Y/m/d H:i:s" }}</td>
 				  <td>{{ user.last_login_time|date:"Y/m/d H:i:s"|default:''}}</td>
 				  <td>
-				  <a href="{% url 'user:user' user.id %}" class="btn btn-primary btn-sm mb-1"><i class="fas fa-folder"></i> 详细</a>&nbsp;&nbsp;<a href="{% url 'user:user_edit' user.id %}" class="btn btn-info btn-sm mb-1"><i class="fas fa-pencil-alt"></i> 编辑</a>
+				  <a href="{% url 'user:user' user.id %}" class="btn btn-primary btn-sm mb-1"><i class="fas fa-folder"></i> 详细</a>&nbsp;&nbsp;<a href="{% url 'user:user_edit' user.id %}?next={% if request.META.QUERY_STRING %}{{ request.META.PATH_INFO }}?{{ request.META.QUERY_STRING }}{% else %}{{ request.META.PATH_INFO }}{% endif %}" class="btn btn-info btn-sm mb-1"><i class="fas fa-pencil-alt"></i> 编辑</a>
 				  {% if user.groups.all.count == 0 and user.remote_user_bind_hosts.all.count == 0 %}
 				  &nbsp;&nbsp;<a href="javascript:void(0)" id="{{ user.id }}" title="{{ user.username }}" onclick="createdeletemodal(this);" class="btn btn-danger btn-sm mb-1"><i class="fas fa-trash"></i> 删除</a>
 				  {% else %}
@@ -196,8 +196,8 @@
 		// 生成弹出框，使用 \ 换行
 		$("#modal-container").html('<div id="modal-delete-' + user_id + '" class="iziModal"><div class="container-fluid"><div class="row">\
 									<div class="col-12 p-3"><h5 class="text-center mt-3">确定要删除用户 "' + user_name + '" 吗？</h5></div><div class="col-6 p-3">\
-									<button type="button" class="btn btn-block btn-secondary btn-flat" data-iziModal-close>取消</button></div><div class="col-6 p-3">\
-									<a href="javascript:void(0)"><button type="button" class="btn btn-block btn-success btn-flat" id="' + user_id + '-yes" title="\
+									<button type="button" class="btn btn-block btn-secondary" data-iziModal-close>取消</button></div><div class="col-6 p-3">\
+									<a href="javascript:void(0)"><button type="button" class="btn btn-block btn-success" id="' + user_id + '-yes" title="\
 									' + user_name + '" onclick="deletethis(this);">确定</button></a></div></div></div></div>');
 		
 		// 初始化弹出框

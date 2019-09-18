@@ -11,8 +11,12 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
 import os
+import sys
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# app统一放到apps目录，方便管理
+sys.path.insert(0, os.path.join(BASE_DIR, 'apps'))
 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 if not os.path.isdir(MEDIA_ROOT):
@@ -69,6 +73,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'util.middleware.NextMiddleware',
 ]
 
 FILE_UPLOAD_HANDLERS = [

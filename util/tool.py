@@ -56,7 +56,8 @@ def admin_required(func):
     @wraps(func)    # 保留原函数信息，重要
     def wrapper(request, *args, **kwargs):
         if not request.session['issuperuser']:
-            return JsonResponse({"code": 403, "err": "无权限"})
+            return redirect(reverse('server:hosts'))
+            # return JsonResponse({"code": 403, "err": "无权限"})
         return func(request, *args, **kwargs)
     return wrapper
 

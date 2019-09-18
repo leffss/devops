@@ -14,6 +14,9 @@
   <!-- Font Awesome -->
   <link href="https://cdn.bootcss.com/font-awesome/5.10.0-11/css/all.min.css" rel="stylesheet">
   
+  <!-- animate -->
+  <link href="//cdn.bootcss.com/animate.css/3.5.2/animate.min.css" rel="stylesheet">
+  
   <!-- Ionicons -->
   <link href="https://cdn.bootcss.com/ionicons/2.0.1/css/ionicons.min.css" rel="stylesheet">
   
@@ -35,6 +38,9 @@
   <!-- Toastr -->
   <link rel="stylesheet" href="{% static 'adminlte/plugins/toastr/toastr.min.css' %}">
 
+  <!-- custom -->
+  <link rel="stylesheet" href="{% static 'css/custom.css' %}">
+  
   {% block css %}
 
   {% endblock css %}
@@ -77,7 +83,7 @@
 		  <img src="{% static 'adminlte/dist/img/timg.jpg' %}" class="img-circle elevation-1" style="max-width:100%;height:100%;"> <small>{{ request.session.nickname }}</small>
 		</a>
 		<div class="dropdown-menu" x-placement="bottom-start" style="position: absolute; will-change: transform; top: 0px; left: 0px; transform: translate3d(0px, 40px, 0px);">
-		  <a class="dropdown-item personinfo" tabindex="-1" href="{% url 'user:profile' %}" ><small>个人信息</small></a>
+		  <a class="dropdown-item personinfo" tabindex="-1" href="{% url 'user:profile' %}?next={% if request.META.QUERY_STRING %}{{ request.META.PATH_INFO }}?{{ request.META.QUERY_STRING }}{% else %}{{ request.META.PATH_INFO }}{% endif %}" ><small>个人信息</small></a>
 		  <a class="dropdown-item changepasswd" tabindex="-1" href="javascript:void(0);"><small>修改密码</small></a>
 		</div>
 	  </li>
@@ -100,10 +106,10 @@
 					<h4 class="text-center mt-3">确定要退出吗？</h4>
 				</div>
 				<div class="col-6 p-3">
-					<button type="button" class="btn btn-block btn-secondary btn-flat" data-iziModal-close>取消</button>
+					<button type="button" class="btn btn-block btn-secondary" data-iziModal-close>取消</button>
 				</div>
 				<div class="col-6 p-3">
-					<a href="{% url 'user:logout' %}"><button type="button" class="btn btn-block btn-success btn-flat">确定</button></a>
+					<a href="{% url 'user:logout' %}"><button type="button" class="btn btn-block btn-success">确定</button></a>
 				</div>
 			</div>
 		</div>
@@ -139,16 +145,14 @@
 
 			<div class="card-footer row">
 			  <div class="col-6 pl-3 pr-3">
-				<button type="button" class="btn btn-block btn-secondary btn-flat" data-iziModal-close>取消</button>
+				<button type="button" class="btn btn-block btn-secondary" data-iziModal-close>取消</button>
 			  </div>
 			  <div class="col-6 pl-3 pr-3">
-				<button type="submit" class="btn btn-block btn-success btn-flat" onclick="javascript:void(0);">修改</button>
+				<button type="submit" class="btn btn-block btn-success" onclick="javascript:void(0);">修改</button>
 			  </div>
 			</div>
 	  </form>
 	</div>
-	
-	
 	
   <!-- Main Sidebar Container -->
   <aside class="main-sidebar sidebar-dark-primary elevation-4">
@@ -168,16 +172,18 @@
         <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
           <!-- Add icons to the links using the .nav-icon class
                with font-awesome or any other icon font library -->
-		  <li class="nav-header">导航栏</li>
+		  <!--li class="nav-header">导航栏</li-->
 		  {% block leftnav %}
+		  {% if request.session.issuperuser %}
 		  <li class="nav-item">
-            <a href="{% url 'server:index' %}" class="nav-link">
+            <a href="{% url 'server:index' %}" class="nav-link items">
               <i class="nav-icon fas fa-tachometer-alt fa-xs"></i>
               <p>
                 仪表盘
               </p>
             </a>
           </li>
+		  {% endif %}
 		  {% if request.session.issuperuser %}
 		  <li class="nav-item has-treeview menu-open">
             <a href="#" class="nav-link">
@@ -188,13 +194,13 @@
               </p>
             </a>
             <ul class="nav nav-treeview">
-              <li class="nav-item">
+              <li class="nav-item items">
                 <a href="{% url 'user:users' %}" class="nav-link">
                   <!--i class="fas fa-user-edit nav-icon"></i-->
                   <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;用户</p>
                 </a>
               </li>
-              <li class="nav-item">
+              <li class="nav-item items">
                 <a href="{% url 'user:groups' %}" class="nav-link">
                   <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;组</p>
                 </a>
@@ -211,13 +217,13 @@
               </p>
             </a>
             <ul class="nav nav-treeview">
-              <li class="nav-item">
+              <li class="nav-item items">
                 <a href="{% url 'server:hosts' %}" class="nav-link">
                   <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;主机</p>
                 </a>
               </li>
 			  {% if request.session.issuperuser %}
-              <li class="nav-item">
+              <li class="nav-item items">
                 <a href="{% url 'server:users' %}" class="nav-link">
                   <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;远程用户</p>
                 </a>
@@ -234,13 +240,13 @@
               </p>
             </a>
             <ul class="nav nav-treeview">
-              <li class="nav-item">
+              <li class="nav-item items">
                 <a href="{% url 'webssh:hosts' %}" class="nav-link">
                   <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;终端登陆</p>
                 </a>
               </li>
 			  {% if request.session.issuperuser %}
-              <li class="nav-item">
+              <li class="nav-item items">
                 <a href="{% url 'webssh:sessions' %}" class="nav-link">
                   <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在线终端</p>
                 </a>
@@ -258,12 +264,12 @@
               </p>
             </a>
             <ul class="nav nav-treeview">
-              <li class="nav-item">
+              <li class="nav-item items">
                 <a href="{% url 'user:logs' %}" class="nav-link">
                   <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;操作日志</p>
                 </a>
               </li>
-              <li class="nav-item">
+              <li class="nav-item items">
                 <a href="{% url 'webssh:logs' %}" class="nav-link">
                   <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;终端日志</p>
                 </a>
@@ -536,9 +542,37 @@
 		$('#change_newpasswdagain').val('');
 		return false;
 	}
-
 </script>
-		
+
+
+<!-- animated.css 动画特效 -->
+<script>
+	// tags鼠标移入移出事件
+	$('.items').hover(function() {
+		// 鼠标移入时添加hover类
+		$(this).addClass('animated tada')
+		}, function() {
+		// 鼠标移出时移出hover类
+		$(this).removeClass('animated tada')
+	});
+</script>
+
+
+<!-- 动画特效 -->
+<script src="//cdn.bootcss.com/velocity/1.5.2/velocity.min.js"></script>
+<script src="//cdn.bootcss.com/velocity/1.5.2/velocity.ui.min.js"></script>
+<script>
+	$(".content-list").velocity("transition.slideUpBigIn", { stagger: 150, drag: true });
+	//$(".content-list").velocity("transition.slideRightBigIn", { stagger: 120, drag: true });	
+</script>
+
+<!-- 页面加载完后再显示，更好的显示特效 -->
+<script>
+	document.addEventListener("DOMContentLoaded", function(){
+		$(".content-list").css("display", "block");
+	});
+</script>
+
 {% block js %}
 
 {% endblock js %}

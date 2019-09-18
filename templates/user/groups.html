@@ -21,11 +21,11 @@
 	{% endblock navheader %}
 	
 		  {% block content %}
-          <div class="card card-primary card-outline">
+          <div class="card content-list">
             <div class="card-header">
               <h3 class="card-title">组<a href="{% url 'user:group_add' %}" class="btn btn-sm btn-outline-success ml-3 addsoft"><i class="fas fa-plus fa-sm"></i> 新增</a></h3>
 				<div class="card-tools">
-				  <button type="button" class="btn btn-tool" data-widget="collapse">
+				  <!--button type="button" class="btn btn-tool" data-widget="collapse">
 					<i class="fas fa-minus"></i>
 				  </button>
 				  <button type="button" class="btn btn-tool" data-widget="maximize">
@@ -33,7 +33,7 @@
                   </button>
 				  <button type="button" class="btn btn-tool" data-widget="remove">
 					<i class="fas fa-times"></i>
-				  </button>
+				  </button-->
 				</div>
             </div>
             <!-- /.card-header -->
@@ -56,7 +56,7 @@
 				  <td>{{ group.remote_user_bind_hosts.all.count }}</td>
 				  <td>{{ group.create_time|date:"Y/m/d H:i:s" }}</td>
 				  <td>
-				  <a href="{% url 'user:group' group.id %}" class="btn btn-primary btn-sm mb-1"><i class="fas fa-folder"></i> 详细</a>&nbsp;&nbsp;<a href="{% url 'user:group_edit' group.id %}" class="btn btn-info btn-sm mb-1"><i class="fas fa-pencil-alt"></i> 编辑</a>
+				  <a href="{% url 'user:group' group.id %}" class="btn btn-primary btn-sm mb-1"><i class="fas fa-folder"></i> 详细</a>&nbsp;&nbsp;<a href="{% url 'user:group_edit' group.id %}?next={% if request.META.QUERY_STRING %}{{ request.META.PATH_INFO }}?{{ request.META.QUERY_STRING }}{% else %}{{ request.META.PATH_INFO }}{% endif %}" class="btn btn-info btn-sm mb-1"><i class="fas fa-pencil-alt"></i> 编辑</a>
 				  {% if group.user_set.all.count == 0 and group.remote_user_bind_hosts.all.count == 0 %}
 				  &nbsp;&nbsp;<a href="javascript:void(0)" id="{{ group.id }}" title="{{ group.group_name }}" onclick="createdeletemodal(this);" class="btn btn-danger btn-sm mb-1"><i class="fas fa-trash"></i> 删除</a>
 				  {% else %}
@@ -138,8 +138,8 @@
 		// 生成弹出框，使用 \ 换行
 		$("#modal-container").html('<div id="modal-delete-' + group_id + '" class="iziModal"><div class="container-fluid"><div class="row">\
 									<div class="col-12 p-3"><h5 class="text-center mt-3">确定要删除组 "' + group_name + '" 吗？</h5></div><div class="col-6 p-3">\
-									<button type="button" class="btn btn-block btn-secondary btn-flat" data-iziModal-close>取消</button></div><div class="col-6 p-3">\
-									<a href="javascript:void(0)"><button type="button" class="btn btn-block btn-success btn-flat" id="' + group_id + '-yes" title="\
+									<button type="button" class="btn btn-block btn-secondary" data-iziModal-close>取消</button></div><div class="col-6 p-3">\
+									<a href="javascript:void(0)"><button type="button" class="btn btn-block btn-success" id="' + group_id + '-yes" title="\
 									' + group_name + '" onclick="deletethis(this);">确定</button></a></div></div></div></div>');
 		
 		// 初始化弹出框
