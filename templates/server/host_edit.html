@@ -43,7 +43,7 @@
 				<div class="col-2 pt-1 pb-1">主机名：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="hostname" value="{{ host.hostname }}" disabled></div>
 				<div class="col-2 pt-1 pb-1">类型：</div>
 				<div class="col-10 pt-1 pb-1">
-					<select class="form-control" id="type" style="width: 100%;">
+					<select class="form-control select2" id="type" style="width: 100%;">
 						{% for type in type_choices %}
 						<option value="{{ type.0 }}" {% if host.type == type.0 %}selected="selected"{% endif %}>{{ type.1 }}</option>
 						{% endfor %}
@@ -57,7 +57,7 @@
 				
 				<div class="col-2 pt-1 pb-1">协议：</div>
 				<div class="col-10 pt-1 pb-1">
-					<select class="form-control" id="protocol" style="width: 100%;">
+					<select class="form-control select2" id="protocol" style="width: 100%;">
 						{% for protocol in protocol_choices %}
 						<option value="{{ protocol.0 }}" {% if host.protocol == protocol.0 %}selected="selected"{% endif %}>{{ protocol.1 }}</option>
 						{% endfor %}
@@ -65,7 +65,7 @@
 				</div>
 				<div class="col-2 pt-1 pb-1">环境：</div>
 				<div class="col-10 pt-1 pb-1">
-					<select class="form-control" id="env" style="width: 100%;">
+					<select class="form-control select2" id="env" style="width: 100%;">
 						{% for env in env_choices %}
 						<option value="{{ env.0 }}" {% if host.env == env.0 %}selected="selected"{% endif %}>{{ env.1 }}</option>
 						{% endfor %}
@@ -74,12 +74,21 @@
 				<div class="col-2 pt-1 pb-1">端口<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="port" value="{{ host.port }}" onkeyup="check_port();" onblur="check_port();"></div>
 				<div class="offset-2 col-10 pb-1"><small id="port_error" style="color:red;"></small></div>
 				
+				<div class="col-2 pt-1 pb-1">平台：</div>
+				<div class="col-10 pt-1 pb-1">
+					<select class="form-control select2" id="platform" style="width: 100%;">
+						{% for platform in platform_choices %}
+						<option value="{{ platform.0 }}" {% if host.platform == platform.0 %}selected="selected"{% endif %}>{{ platform.1 }}</option>
+						{% endfor %}
+					</select>
+				</div>
+				
 				<div class="col-2 pt-1 pb-1">系统/型号<span style="color:red;"> * </span>：</div><div class="col-10 pt-1"><input class="form-control" type="text" id="release" value="{{ host.release }}" onkeyup="check_release();" onblur="check_release();"></div>
 				<div class="offset-2 col-10 pb-1"><small id="release_error" style="color:red;"></small></div>
 				
 				<div class="col-2 pt-1 pb-1">远程用户：</div>
 				<div class="col-10 pt-1 pb-1">
-					<select class="form-control" id="binduserid" style="width: 100%;">
+					<select class="form-control select2" id="binduserid" style="width: 100%;">
 						<option value="{{ host.remote_user.id }}" selected="selected">{{ host.remote_user.name }}</option>
 						{% for user in other_users %}
 						<option value="{{ user.id }}">{{ user.name }}</option>
@@ -253,6 +262,7 @@
 		
 		var protocol = $('#protocol').val();
 		var env = $('#env').val();
+		var platform = $('#platform').val();
 		
 		var port = $('#port').val();
 		check_right[2] = check_port();
@@ -284,6 +294,7 @@
 				'wip': wip,
 				'protocol': protocol,
 				'env': env,
+				'platform': platform,
 				'port': port,
 				'release': release,
 				'memo': memo,

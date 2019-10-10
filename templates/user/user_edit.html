@@ -40,7 +40,7 @@
 
 						<div class="col-2 pt-1 pb-2">性别：</div>
 						<div class="col-10 pt-1 pb-2">
-						  <select class="form-control" id="sex" style="width: 100%;">
+						  <select class="form-control select2" id="sex" style="width: 100%;">
 							{% for sex in sex_choices %}
 							<option value="{{ sex.0 }}" {% if user.sex == sex.0 %}selected="selected"{% endif %}>{{ sex.1 }}</option>
 							{% endfor %}
@@ -48,7 +48,7 @@
 						</div>
 						<div class="col-2 pt-1 pb-2">角色：</div>
 						<div class="col-10 pt-1 pb-2">
-						  <select class="form-control" id="role" style="width: 100%;">
+						  <select class="form-control select2" id="role" style="width: 100%;">
 							{% for role in role_choices %}
 							<option value="{{ role.0 }}" {% if user.role == role.0 %}selected="selected"{% endif %}>{{ role.1 }}</option>
 							{% endfor %}
@@ -84,20 +84,12 @@
 						<div class="offset-2 col-10 pb-1"><small id="qq_error" style="color:red;"></small></div>
 						
 						<div class="col-2 pt-1 pb-1">用户组：</div>
-						<div class="col-5 pt-1 pb-1">
+						<div class="col-10 pt-1 pb-1">
 						  <div class="form-group">
-							<span>所属组</span>
-							<select multiple class="form-control" id="group_select_left" style="min-height:150px">
+							<select multiple class="form-control select2_multiple" data-placeholder="请选择用户组" id="group_select_left" style="width:100%">
 							  {% for group in user.groups.all %}
-							  <option value="{{ group.id }}">{{ group.group_name }}</option>
+							  <option value="{{ group.id }}" selected>{{ group.group_name }}</option>
 							  {% endfor %}
-							</select>
-						  </div>
-						</div>
-						<div class="col-5 pt-1 pb-1">
-						  <div class="form-group">
-							<span>其他组</span>
-							<select multiple class="form-control" id="group_select_right" style="min-height:150px">
 							  {% for group in other_groups %}
 							  <option value="{{ group.id }}">{{ group.group_name }}</option>
 							  {% endfor %}
@@ -106,26 +98,19 @@
 						</div>
 						
 						<div class="col-2 pt-1 pb-1">主机：</div>
-						<div class="col-5 pt-1 pb-1">
+						<div class="col-10 pt-1 pb-1">
 						  <div class="form-group">
-							<span>拥有主机</span>
-							<select multiple class="form-control" id="host_select_left" style="min-height:150px">
+							<select multiple class="form-control select2_multiple" data-placeholder="请选择主机" id="host_select_left" style="width:100%">
 							  {% for host in user.remote_user_bind_hosts.all %}
-							  <option value="{{ host.id }}">{{ host.hostname }}_{{ host.ip }}_{{ host.remote_user.username }}</option>
+							  <option value="{{ host.id }}" selected>{{ host.hostname }}_{{ host.ip }}_{{ host.remote_user.username }}</option>
 							  {% endfor %}
-							</select>
-						  </div>
-						</div>
-						<div class="col-5 pt-1 pb-1">
-						  <div class="form-group">
-							<span>其他主机</span>
-							<select multiple class="form-control" id="host_select_right" style="min-height:150px">
 							  {% for host in other_hosts %}
 							  <option value="{{ host.id }}">{{ host.hostname }}_{{ host.ip }}_{{ host.remote_user.username }}</option>
 							  {% endfor %}
 							</select>
 						  </div>
 						</div>
+
 						<div class="col-2 pt-1 pb-1">备注：</div><div class="col-10 pt-1 pb-1"><textarea id="memo" class="form-control">{{ user.memo | default:'' }}</textarea></div>
 					</div>
 					<!-- /.card-body -->
@@ -293,14 +278,14 @@
 		}
 		
 		var groups = new Array();
-		$("#group_select_left option").each(function(){
+		$("#group_select_left option:selected").each(function(){
 			var value = $(this).val();   //获取option值
 			groups.push(value);
 		});
 		groups = groups.join(",")
 		
 		var hosts = new Array();
-		$("#host_select_left option").each(function(){
+		$("#host_select_left option:selected").each(function(){
 			var value = $(this).val();   //获取option值
 			hosts.push(value);
 		});
@@ -368,49 +353,6 @@
 			}
 		};
 	}
-
-	// 左右选项框
-	$(function(){
-		//移到右边
-		$('#add').click(function() {
-		//获取选中的选项，删除并追加给对方
-			$('#select1 option:selected').appendTo('#select2');
-		});
-		//移到左边
-		$('#remove').click(function() {
-			$('#select2 option:selected').appendTo('#select1');
-		});
-		
-		//全部移到右边
-		$('#add_all').click(function() {
-			//获取全部的选项,删除并追加给对方
-			$('#select1 option').appendTo('#select2');
-		});
-		//全部移到左边
-		$('#remove_all').click(function() {
-			$('#select2 option').appendTo('#select1');
-		});
-		
-		//双击选项
-		$('#group_select_left').dblclick(function(){ //绑定双击事件
-			//获取全部的选项,删除并追加给对方
-			$("option:selected",this).appendTo('#group_select_right'); //追加给对方
-		});
-		//双击选项
-		$('#group_select_right').dblclick(function(){
-		   $("option:selected",this).appendTo('#group_select_left');
-		});
-		
-		//双击选项
-		$('#host_select_left').dblclick(function(){ //绑定双击事件
-			//获取全部的选项,删除并追加给对方
-			$("option:selected",this).appendTo('#host_select_right'); //追加给对方
-		});
-		//双击选项
-		$('#host_select_right').dblclick(function(){
-		   $("option:selected",this).appendTo('#host_select_left');
-		});
-	});
 
 </script>
 {% endblock js %}

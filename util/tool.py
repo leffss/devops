@@ -7,9 +7,13 @@ import hashlib
 import time
 import random
 from webssh.models import TerminalLog
+from user.models import LoginLog
+from tasks.tasks import task_save_event_log, task_save_terminal_log, task_save_res
+import platform
 import glob
 import os
 import traceback
+
 
 try:
     session_exipry_time = settings.CUSTOM_SESSION_EXIPRY_TIME
@@ -68,19 +72,59 @@ def gen_rand_char(length=10, chars='0123456789zyxwvutsrqponmlkjihgfedcbaZYXWVUTS
 
 
 def terminal_log(user, hostname, ip, protocol, port, username, cmd, detail, address, useragent, start_time):
-    event = TerminalLog()
-    event.user = user
-    event.hostname = hostname
-    event.ip = ip
-    event.protocol = protocol
-    event.port = port
-    event.username = username
-    event.cmd = cmd
-    event.detail = detail
-    event.address = address
-    event.useragent = useragent
-    event.start_time = start_time
-    event.save()
+    username = ''
+    try:
+        username = user.username
+    except Exception:
+        username = user
+    if platform.system().lower() in ['linux', 'unix']:
+        task_save_terminal_log.delay(username, hostname, ip, protocol, port, username, cmd, detail, address, useragent, start_time)
+    else:
+        event = TerminalLog()
+        event.user = username
+        event.hostname = hostname
+        event.ip = ip
+        event.protocol = protocol
+        event.port = port
+        event.username = username
+        event.cmd = cmd
+        event.detail = detail
+        event.address = address
+        event.useragent = useragent
+        event.start_time = start_time
+        event.save()
+
+
+def res(res_file, res, enter=True):
+    if platform.system().lower() in ['linux', 'unix']:
+        task_save_res.delay(res_file, res, enter)
+    else:
+        if enter:
+            with open(res_file, 'a+') as f:
+                for line in res:
+                    f.write('{}\n'.format(line))
+        else:
+            with open(res_file, 'a+') as f:
+                for line in res:
+                    f.write('{}'.format(line))
+
+
+def event_log(user, event_type, detail, address, useragent):
+    username = ''
+    try:
+        username = user.username
+    except Exception:
+        username = user
+    if platform.system().lower() in ['linux', 'unix']:
+        task_save_event_log.delay(username, event_type, detail, address, useragent)
+    else:
+        event = LoginLog()
+        event.user = username
+        event.event_type = event_type
+        event.detail = detail
+        event.address = address
+        event.useragent = useragent
+        event.save()
 
 
 def file_combine(file_size, file_count, file_path, file_name, file_name_md5):

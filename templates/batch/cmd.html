@@ -1,0 +1,328 @@
+{% extends 'base.html' %}
+{% load static %}
+
+  {% block title %}
+  <title>执行命令</title>
+  {% endblock title %}
+
+	{% block navheader %}
+    <section class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-1">
+          <div class="col-12">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item">批量处理</li>
+			  <li class="breadcrumb-item active">执行命令</li>
+            </ol>
+          </div>
+        </div>
+      </div><!-- /.container-fluid -->
+    </section>
+	{% endblock navheader %}
+	
+		  {% block content %}
+          <div class="card card-primary content-list">
+            <div class="card-header">
+              <h3 class="card-title">执行命令</h3>
+				<div class="card-tools">
+				  <!--button type="button" class="btn btn-tool" data-widget="collapse">
+					<i class="fas fa-minus"></i>
+				  </button>
+				  <button type="button" class="btn btn-tool" data-widget="maximize">
+				  <i class="fas fa-expand"></i>
+                  </button>
+				  <button type="button" class="btn btn-tool" data-widget="remove">
+					<i class="fas fa-times"></i>
+				  </button-->
+				</div>
+            </div>
+            <!-- /.card-header -->
+            <div class="card-body row">
+
+				<div class="col-1 pt-1 pb-1">主机组：</div>
+				<div class="col-11 pt-1 pb-1">
+				  <div class="form-group">
+                    <select multiple class="form-control select2_multiple" data-placeholder="请选择主机组" id="host-groups" style="width:100%" onchange="groupSelect()">
+					  <option value="0">所有主机</option>
+					  <option value="-1">自定义主机</option>
+					  {% for group in groups %}
+					  <option value="{{ group.id }}">{{ group.group_name }}</option>
+					  {% endfor %}
+                    </select>
+                  </div>
+				</div>
+				
+				<div class="col-1 pt-1 pb-1">主机：</div>
+				<div class="col-11 pt-1 pb-1">
+				  <div class="form-group">
+                    <select multiple class="form-control select2_multiple" data-placeholder="请选择主机" id="hosts" style="width:100%">
+                    </select>
+                  </div>
+				</div>
+				
+				<div class="col-1 pt-1 pb-1">命令：</div><div class="col-11 pt-1 pb-1"><input class="form-control" type="text" id="cmd" onkeyup="check_cmd();" onblur="check_cmd();" placeholder="请输入命令"></div>
+				<div class="offset-1 col-11 pb-1"><small id="cmd_error" style="color:red;"></small></div>
+				
+				<div class="offset-1 col-11 pt-2"><button class="btn btn-success" onclick="runCmd(this);">执行</button><span id="feed_error" class="ml-2" style="color:red;"></span></div>
+            </div>
+            <!-- /.card-body -->
+          </div>
+          <!-- /.card --> 
+		  
+		  <div class="card content-list">
+			<div class="card-body row pb-0">
+<pre id="pre" style="width:100%;background-color: #0c0c0c;color:green;">
+<!--code style="color: white;">开始...</code>
+def hello() {
+	print('hello')
+}
+<code style="color: white;">结束...</code-->
+</pre>
+			</div>
+		  </div>
+		  
+		  {% endblock content %}
+
+{% block js %}
+
+<script>
+	// 校验表单数据
+	check_cmd = function() {
+		var cmd = $('#cmd').val();
+		if (cmd == '') {
+			$('#cmd').removeClass("is-valid");
+			$('#cmd').addClass("is-invalid");
+			$('#cmd_error').text('命令不能未空');
+			return false;
+		} else {
+			$('#cmd').removeClass("is-invalid");
+			$('#cmd').addClass("is-valid");
+			$('#cmd_error').text('');
+			return true;
+		};
+	}
+	// 校验表单数据
+
+	// 选择组
+	groupSelect = function() {
+		toastr.options.closeButton = true;
+		toastr.options.showMethod = 'slideDown';
+		toastr.options.hideMethod = 'fadeOut';
+		toastr.options.closeMethod = 'fadeOut';
+		toastr.options.timeOut = 3000;	
+		toastr.options.extendedTimeOut = 0;	
+		toastr.options.progressBar = true;
+		toastr.options.positionClass = 'toast-top-right'; 
+		
+		var groups = new Array();
+		$("#host-groups option:selected").each(function(){
+			var value = $(this).val();   //获取option值
+			groups.push(value);
+		});
+		groups = groups.join(",");
+		
+		csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
+		
+		var hosts_obj = $('#hosts');
+		hosts_obj.html('');
+		
+		if(groups === "0") {
+			$.ajax({
+				url: "{% url 'batch_api:get_hosts' %}",
+				async: true,
+				type: 'POST',
+				dataType: 'json',
+				data: {
+					'csrfmiddlewaretoken': csrfmiddlewaretoken,
+					'all': true,
+				},
+				timeout: 5000,
+				cache: true,
+				error: function(){
+					toastr.error('获取主机信息错误');
+				},
+				success: function(res){
+					if (res.code != 200) {
+						toastr.error('获取主机信息错误: ' + res.err);
+					} else {
+						let hosts = res.hosts;
+						hosts_obj.val('').trigger('change');
+						for (let i = 0; i < hosts.length; i++) {
+							hosts_obj.append(`<option value=${hosts[i].host_id} selected>${hosts[i].host_hostname}_${hosts[i].host_ip}_${hosts[i].host_username}</option>`);
+						}
+					}
+				},
+			});
+		} else if(groups === "-1") {
+			$.ajax({
+				url: "{% url 'batch_api:get_hosts' %}",
+				async: true,
+				type: 'POST',
+				dataType: 'json',
+				data: {
+					'csrfmiddlewaretoken': csrfmiddlewaretoken,
+					'all': true,
+				},
+				timeout: 5000,
+				cache: true,
+				error: function(){
+					toastr.error('获取主机信息错误');
+				},
+				success: function(res){
+					if (res.code != 200) {
+						toastr.error('获取主机信息错误: ' + res.err);
+					} else {
+						let hosts = res.hosts;
+						hosts_obj.val('').trigger('change');
+						for (let i = 0; i < hosts.length; i++) {
+							hosts_obj.append(`<option value=${hosts[i].host_id}>${hosts[i].host_hostname}_${hosts[i].host_ip}_${hosts[i].host_username}</option>`);
+						}
+					}
+				},
+			});
+		} else if(groups === "0,-1") {
+			$.ajax({
+				url: "{% url 'batch_api:get_hosts' %}",
+				async: true,
+				type: 'POST',
+				dataType: 'json',
+				data: {
+					'csrfmiddlewaretoken': csrfmiddlewaretoken,
+					'all': true,
+				},
+				timeout: 5000,
+				cache: true,
+				error: function(){
+					toastr.error('获取主机信息错误');
+				},
+				success: function(res){
+					if (res.code != 200) {
+						toastr.error('获取主机信息错误: ' + res.err);
+					} else {
+						let hosts = res.hosts;
+						hosts_obj.val('').trigger('change');
+						for (let i = 0; i < hosts.length; i++) {
+							hosts_obj.append(`<option value=${hosts[i].host_id}>${hosts[i].host_hostname}_${hosts[i].host_ip}_${hosts[i].host_username}</option>`);
+						}
+					}
+				},
+			});
+		} else if(groups === "") {
+			//console.log(groups);
+		} else {
+			$.ajax({
+				url: "{% url 'batch_api:get_hosts' %}",
+				async: true,
+				type: 'POST',
+				dataType: 'json',
+				data: {
+					'csrfmiddlewaretoken': csrfmiddlewaretoken,
+					'groups': groups,
+				},
+				timeout: 5000,
+				cache: true,
+				error: function(){
+					toastr.error('获取主机信息错误');
+				},
+				success: function(res){
+					if (res.code != 200) {
+						toastr.error('获取主机信息错误: ' + res.err);
+					} else {
+						let hosts = res.hosts;
+						hosts_obj.val('').trigger('change');
+						for (let i = 0; i < hosts.length; i++) {
+							hosts_obj.append(`<option value=${hosts[i].host_id} selected>${hosts[i].host_hostname}_${hosts[i].host_ip}_${hosts[i].host_username}</option>`);
+						}
+					}
+				},
+			});
+		};
+	};
+	// 选择组
+
+	// 提交命令
+	runCmd = function(event) {
+		toastr.options.closeButton = true;
+		toastr.options.showMethod = 'slideDown';
+		toastr.options.hideMethod = 'fadeOut';
+		toastr.options.closeMethod = 'fadeOut';
+		toastr.options.timeOut = 3000;	
+		toastr.options.extendedTimeOut = 0;	
+		toastr.options.progressBar = true;
+		toastr.options.positionClass = 'toast-top-right'; 
+		
+		$(event).removeAttr("onclick");
+		$(event).attr("disabled", true);
+		
+		var check_right = new Array();
+
+		var cmd = $('#cmd').val();
+		check_right[0] = check_cmd();
+		
+		var hosts = new Array();
+		$("#hosts option:selected").each(function(){
+			var value = $(this).val();   //获取option值
+			hosts.push(value);
+		});
+		hosts = hosts.join(",")
+		
+		if (hosts === "") {
+			$('#feed_error').text('请选择主机');
+			$(event).removeAttr("disabled");
+			$(event).attr("onclick", "runCmd(this);");
+			return false;
+		};
+		
+		if (!/false/.test(check_right)) {
+			$('#feed_error').text('');
+			toastr.options.closeButton = true;
+			toastr.options.showMethod = 'slideDown';
+			toastr.options.hideMethod = 'fadeOut';
+			toastr.options.closeMethod = 'fadeOut';
+			toastr.options.timeOut = 0;	
+			toastr.options.extendedTimeOut = 3000;	
+			toastr.options.progressBar = true;
+			toastr.options.positionClass = 'toast-top-right';
+			let protocol = (location.protocol === 'https:') ? 'wss://' : 'ws://';
+			let socketURL = protocol + location.hostname + ((location.port) ? (':' + location.port) : '') + '/cmd/';
+			let socket = new WebSocket(socketURL);
+			let obj = $('#pre');
+			let data = {
+                "hosts": hosts,
+                "cmd": cmd,
+            };
+			
+			socket.onopen = function () {
+				obj.html('\n开始执行...\n\n');
+				socket.send(JSON.stringify(data));
+				$('#cmd').removeClass("is-invalid");
+				$('#cmd').removeClass("is-valid");
+				$('#cmd').val("");
+				$('#cmd_error').text("");
+            };
+
+            socket.onmessage = function (e) {
+				let data = JSON.parse(e.data);
+				if (data.status === 0) {
+					obj.append(data.message + '\n\n');
+				} else {
+					toastr.error(data.message + '\n\n');
+				}
+            };
+
+            socket.onclose = function () {
+				$(event).removeAttr("disabled");
+				$(event).attr("onclick", "runCmd(this);");
+                //obj.append('\n<code>执行完毕....</code>');
+            };
+		} else {
+			$('#feed_error').text('请输入命令');
+			$(event).removeAttr("disabled");
+			$(event).attr("onclick", "runCmd(this);");
+			return false;
+		};
+	};
+	// 提交命令
+	
+</script>
+{% endblock js %}

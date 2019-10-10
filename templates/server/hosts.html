@@ -82,6 +82,13 @@
 				  <td>{{ host.create_time|date:"Y/m/d H:i:s" }}</td>
 				  <td><a href="{% url 'server:host' host.id %}" class="btn btn-primary btn-sm mb-1"><i class="fas fa-folder"></i> 详细</a>
 				  {% if request.session.issuperuser %}&nbsp;&nbsp;<a href="{% url 'server:host_edit' host.id %}?next={% if request.META.QUERY_STRING %}{{ request.META.PATH_INFO }}?{{ request.META.QUERY_STRING }}{% else %}{{ request.META.PATH_INFO }}{% endif %}" class="btn btn-info btn-sm mb-1"><i class="fas fa-pencil-alt"></i> 编辑</a>&nbsp;&nbsp;<a href="javascript:void(0)" id="{{ host.id }}" title="{{ host.hostname }}" onclick="createdeletemodal(this);" class="btn btn-danger btn-sm mb-1"><i class="fas fa-trash"></i> 删除</a>{% endif %}
+				  {% if request.session.issuperuser %}
+					{% if host.get_platform_display == 'linux' or host.get_platform_display == 'unix' %}
+						{% if host.get_protocol_display == 'ssh' %}
+							&nbsp;&nbsp;<a href="javascript:void(0)" id="{{ host.id }}" title="{{ host.hostname }}" onclick="createupdatemodal(this);" class="btn btn-secondary btn-sm mb-1"><i class="fas fa-trash"></i> 更新</a>
+						{% endif %}
+					{% endif %}
+				  {% endif %}
 				  </td>
                 </tr>
 				{% endfor %}
@@ -278,5 +285,89 @@
 		};
 	}
 	// 删除主机 - end
+	
+	
+	// 更新主机 - start
+	createupdatemodal = function (event) {
+		var thisObj = $(event);	//js对象转jquery对象  
+		var host_id = thisObj.attr('id');
+		var host_name = thisObj.attr("title");
+		// 生成弹出框，使用 \ 换行
+		$("#modal-container").html('<div id="modal-update-' + host_id + '" class="iziModal"><div class="container-fluid"><div class="row">\
+									<div class="col-12 p-3"><h5 class="text-center mt-3">确定要后台更新主机信息 "' + host_name + '" 吗？</h5></div><div class="col-6 p-3">\
+									<button type="button" class="btn btn-block btn-secondary" data-iziModal-close>取消</button></div><div class="col-6 p-3">\
+									<a href="javascript:void(0)"><button type="button" class="btn btn-block btn-success" id="' + host_id + '-yes" title="\
+									' + host_name + '" onclick="updatethis(this);">确定</button></a></div></div></div></div>');
+		
+		// 初始化弹出框
+		$("#modal-update-" + host_id).iziModal({
+			iconClass: 'icon-announcement',
+			width: 450,
+			//padding: 10,
+			overlayClose: false,	// 是否允许点击模态窗口的外部来关闭模态窗口。
+			closeOnEscape: false, 	// 是否允许通过点击ESC键来关闭模态窗口。
+		});
+				
+		// 打开弹出框
+		$('#modal-update-' + host_id).iziModal('open');
+	}
+	
+		
+	updatethis = function(event) {
+		toastr.options.closeButton = true;
+		toastr.options.showMethod = 'slideDown';
+		toastr.options.hideMethod = 'fadeOut';
+		toastr.options.closeMethod = 'fadeOut';
+		toastr.options.timeOut = 4000;	
+		toastr.options.extendedTimeOut = 0;	
+		
+		var thisObj = $(event);	//js对象转jquery对象
+		var host_id = thisObj.attr('id').split("-")[0];
+		var host_name = thisObj.attr("title");
+		csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
+		$.ajax({
+			url: "{% url 'server_api:host_update_info' %}",
+			async: true,
+			type: 'POST',
+			dataType: 'json',
+			data: {
+				'csrfmiddlewaretoken': csrfmiddlewaretoken,
+				'id': host_id,
+			},
+			timeout: 10000,
+			cache: true,
+			beforeSend: LoadFunction, //加载执行方法
+			error: errFunction,  //错误执行方法
+			success: succFunction, //成功执行方法
+		});
+		
+		function LoadFunction() {
+			//$("#aboutcontent").html('删除中...');
+			//alert('删除中');
+		};
+		
+		function errFunction() {
+			// 关闭弹出框
+			$('#modal-update-' + host_id).iziModal('close');
+			// 消息框
+			toastr.error('更新错误 "' + host_name + '"');
+		};
+		
+		function succFunction(res) {
+			if (res.code != 200) {
+				// 关闭弹出框
+				$('#modal-update-' + host_id).iziModal('close');
+				// 消息框
+				toastr.error('更新错误 "' + host_name + '": ' + res.err);
+			} else {
+				// 关闭弹出框
+				$('#modal-update-' + host_id).iziModal('close');
+				
+				// 消息框
+				toastr.success('成功创建后台更新任务 "' + host_name + '"');
+			}
+		};
+	}
+	// 更新主机 - end
 </script>
 {% endblock js %}

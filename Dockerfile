@@ -6,4 +6,5 @@ RUN cd /devops && echo_supervisord_conf > /etc/supervisord.conf && cat deamon.in
 	sed -i 's/nodaemon=false/nodaemon=true/g' /etc/supervisord.conf
 EXPOSE 8000
 EXPOSE 2222
+ENV PYTHONOPTIMIZE 1
 ENTRYPOINT ["supervisord", "-c", "/etc/supervisord.conf"]

@@ -1,9 +1,15 @@
 # devops
-基于 python 3.7 + django 2.2.3 + channels 2.2.0 + celery 4.3.0 + AdminLTE-3.0.0-beta.1 实现的运维 devops 管理系统。具体见 `screenshots` 文件夹中的效果预览图。功能持续完善中。
+基于 python 3.7 + django 2.2.3 + channels 2.2.0 + celery 4.3.0 + ansible 2.8.5 + AdminLTE-3.0.0-beta.1 实现的运维 devops 管理系统。具体见 `screenshots` 文件夹中的效果预览图。功能持续完善中。
 
 
 # 安装
 首先其他依赖服务（docker 方式）
+
+**sshpass**
+```
+yum install -y sshpass
+```
+- ansible 使用密码连接主机时需要 sshpass 支持
 
 **redis**
 ```
@@ -24,8 +30,9 @@ pip install -r requirements.txt
 
 # 运行
 python3 manage.py runserver
-python3 manage.py proxy_sshd
-celery -A devops worker -l info -c 3 --max-tasks-per-child 40
+python3 manage.py sshd
+export PYTHONOPTIMIZE=1     # 解决 celery 不允许创建子进程的问题
+celery -A devops worker -l info -c 3 --max-tasks-per-child 40 --prefetch-multiplier 1
 ```
 
 **docker 方式（Centos 7）**
@@ -41,11 +48,28 @@ sh start_docker.sh
 
 账号： admin     密码：123456
 
+*提醒：* 以上部署方式都是开发环境，正式环境部署为 nginx + daphne，具体方法等后面功能做得差不多了再更新。
+
+
+# 功能
+有点多，看图，不想描述了。
+
 
 # 升级日志
 
+### ver1.8.0
+新增主机组；
+
+新增自动获取主机详细信息，比如CPU，内存等（基于ansible，仅支持liunx主机）；
+
+新增批量执行命令（基于ansible）；
+
+优化 UI 界面，加入 select2 选项框插件；
+
+新增锁定屏幕功能；
+
 ### ver1.7.6
-修正 webssh 与 webtelnet 可能会遇到的中文字符被截断以及遇到乱码字符错误退出的 BUG；
+修正 webssh、webtelnet 和 clissh 可能会遇到的中文字符被截断以及遇到乱码字符错误退出的 BUG；
 
 优化 UI 界面，加入动态效果；
 
@@ -112,10 +136,6 @@ linux 平台下使用 celery 任务保存终端会话日志与录像（windows �
 初始版本
 
 
-# 功能
-有点多，我很懒，不想描述了。
-
-
 # 预览
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/2.PNG?raw=true)
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/3.PNG?raw=true)
@@ -131,10 +151,10 @@ linux 平台下使用 celery 任务保存终端会话日志与录像（windows �
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/14.PNG?raw=true)
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/16.PNG?raw=true)
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/17.PNG?raw=true)
-
+![效果](https://github.com/leffss/devops/blob/master/screenshots/18.PNG?raw=true)
 
 # TODO LISTS
-- [ ] 批量执行命令
+- [ ] 批量执行脚本
 - [ ] 批量上传文件
 - [ ] 集成 ansible，执行 module 与 playbook
 

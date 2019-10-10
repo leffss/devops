@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% load static %}
+
+  {% block title %}
+  <title>主机组编辑</title>
+  {% endblock title %}
+
+	{% block navheader %}
+    <section class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-1">
+          <div class="col-12">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item">主机管理</li>
+			  <li class="breadcrumb-item"><a href="{% url 'server:groups' %}">主机组</a></li>
+			  <li class="breadcrumb-item active">主机组编辑</li>
+            </ol>
+          </div>
+        </div>
+      </div><!-- /.container-fluid -->
+    </section>
+	{% endblock navheader %}
+	
+		  {% block content %}
+          <div class="card card-primary content-list">
+            <div class="card-header">
+              <h3 class="card-title">主机组编辑</h3>
+				<div class="card-tools">
+				  <!--button type="button" class="btn btn-tool" data-widget="collapse">
+					<i class="fas fa-minus"></i>
+				  </button>
+				  <button type="button" class="btn btn-tool" data-widget="maximize">
+				  <i class="fas fa-expand"></i>
+                  </button>
+				  <button type="button" class="btn btn-tool" data-widget="remove">
+					<i class="fas fa-times"></i>
+				  </button-->
+				</div>
+            </div>
+            <!-- /.card-header -->
+            <div class="card-body row">
+				<input type="text" id="groupid" value="{{ group.id }}" hidden>
+				<div class="col-2 pt-1 pb-1">主机组名：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="groupname" value="{{ group.group_name }}" disabled></div>
+				<div class="col-2 pt-1 pb-1">组内主机：</div>
+				<div class="col-10 pt-1 pb-1">
+				  <div class="form-group">
+                    <select multiple class="form-control select2_multiple" data-placeholder="请选择主机" id="host_select_left" style="width:100%">					  
+					  {% for host in group.hosts %}
+						<option value="{{ host.id }}" selected>{{ host.hostname }}_{{ host.ip }}_{{ host.remote_user.username }}</option>
+					  {% endfor %}
+					  
+					  {% for host in other_hosts %}
+					  <option value="{{ host.id }}">{{ host.hostname }}_{{ host.ip }}_{{ host.remote_user.username }}</option>
+					  {% endfor %}
+                    </select>
+                  </div>
+				</div>
+				
+				<div class="col-2 pt-1 pb-1">备注：</div><div class="col-10 pt-1 pb-1"><textarea id="memo" class="form-control">{{ group.memo | default:'' }}</textarea></div>
+				<div class="offset-2 col-10 pt-2"><a class="btn btn-default" href="{% if request.next %}{{ request.next }}{% else %}{% url 'server:groups' %}{% endif %}">返回</a> <button class="btn btn-success ml-2" onclick="changeuserprofile(this);">提交</button></div>
+            </div>
+            <!-- /.card-body -->
+          </div>
+          <!-- /.card --> 
+		  {% endblock content %}
+
+{% block js %}
+
+<script>
+	// 修改主机组信息
+	changeuserprofile = function(event) {
+		toastr.options.closeButton = true;
+		toastr.options.showMethod = 'slideDown';
+		toastr.options.hideMethod = 'fadeOut';
+		toastr.options.closeMethod = 'fadeOut';
+		toastr.options.timeOut = 3000;	
+		toastr.options.extendedTimeOut = 0;	
+		toastr.options.progressBar = true;
+		toastr.options.positionClass = 'toast-top-right'; 
+		
+		$(event).removeAttr("onclick");
+		$(event).attr("disabled", true);
+
+		var groupid = $('#groupid').val();
+		var memo = $('#memo').val();
+		
+		var hosts = new Array();
+		$("#host_select_left option:selected").each(function(){
+			var value = $(this).val();   //获取option值
+			hosts.push(value);
+		});
+		hosts = hosts.join(",")
+		
+		csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
+		
+		$.ajax({
+			url: "{% url 'server_api:group_update' %}",
+			async: true,
+			type: 'POST',
+			dataType: 'json',
+			data: {
+				'csrfmiddlewaretoken': csrfmiddlewaretoken,
+				'groupid': groupid,
+				'memo': memo,
+				'hosts': hosts,
+			},
+			timeout: 5000,
+			cache: true,
+			beforeSend: LoadFunction, //加载执行方法
+			error: errFunction,  //错误执行方法
+			success: succFunction, //成功执行方法
+		});
+		
+		function LoadFunction() {
+			// 提交中
+		};
+		
+		function errFunction() {
+			// 消息框
+			toastr.error('更新主机组信息错误');
+			$(event).removeAttr("disabled");
+			$(event).attr("onclick", "changeuserprofile(this);");
+		};
+		
+		function succFunction(res) {
+			if (res.code != 200) {
+				// 消息框
+				toastr.error('更新主机组信息错误: ' + res.err);
+				$(event).removeAttr("disabled");
+				$(event).attr("onclick", "changeuserprofile(this);");
+			} else {
+				// 消息框
+				toastr.options.timeOut = 1000;
+				toastr.options.onHidden = function() { window.location.href = "{% if request.next %}{{ request.next }}{% else %}{% url 'server:group' group.id %}{% endif %}"; }
+				toastr.success('更新主机组信息成功');
+			}
+		};
+	}
+	// 修改主机组信息
+
+</script>
+{% endblock js %}

@@ -24,10 +24,17 @@ if __name__ == '__main__':
     # main()
     # x = b'\xe8\xb5'
     # print(x.decode('utf-8'))
-    y = '知'
-    print(y.encode('utf-8'))
-    print(y.encode('gbk'))
+    # y = '知'
+    # print(y.encode('utf-8'))
+    # print(y.encode('gbk'))
+    #
+    # a = 'xxxx'
+    # print(a[0:2])
+    # print(a[100:])
 
-    a = 'xxxx'
-    print(a[0:2])
-    print(a[100:])
+    msg = format('PLAY_{}'.format('xx'), '*<50')
+    print(msg)
+
+    msg = format('xx_{}'.format('yyy'), '*<50')
+    print(msg)
+

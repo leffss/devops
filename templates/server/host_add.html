@@ -44,12 +44,14 @@
 				
 				<div class="col-2 pt-1 pb-1">类型：</div>
 				<div class="col-10 pt-1 pb-1">
-					<select class="form-control" id="type" style="width: 100%;">
+					<select class="form-control select2" id="type" style="width: 100%;">
+						<option value="---" selected disabled>请选择类型</option>
 						{% for type in type_choices %}
 						<option value="{{ type.0 }}">{{ type.1 }}</option>
 						{% endfor %}
 					</select>
 				</div>
+
 				<div class="col-2 pt-1 pb-1">主机IP<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="ip" onkeyup="check_ip();" onblur="check_ip();"></div>
 				<div class="offset-2 col-10 pb-1"><small id="ip_error" style="color:red;"></small></div>
 				
@@ -58,7 +60,8 @@
 				
 				<div class="col-2 pt-1 pb-1">协议：</div>
 				<div class="col-10 pt-1 pb-1">
-					<select class="form-control" id="protocol" style="width: 100%;">
+					<select class="form-control select2" id="protocol" style="width: 100%;">
+						<option value="---" selected disabled>请选择协议</option>
 						{% for protocol in protocol_choices %}
 						<option value="{{ protocol.0 }}">{{ protocol.1 }}</option>
 						{% endfor %}
@@ -66,7 +69,8 @@
 				</div>
 				<div class="col-2 pt-1 pb-1">环境：</div>
 				<div class="col-10 pt-1 pb-1">
-					<select class="form-control" id="env" style="width: 100%;">
+					<select class="form-control select2" id="env" style="width: 100%;">
+					    <option value="---" selected disabled>请选择环境</option>
 						{% for env in env_choices %}
 						<option value="{{ env.0 }}">{{ env.1 }}</option>
 						{% endfor %}
@@ -75,12 +79,23 @@
 				<div class="col-2 pt-1 pb-1">端口<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="port" onkeyup="check_port();" onblur="check_port();"></div>
 				<div class="offset-2 col-10 pb-1"><small id="port_error" style="color:red;"></small></div>
 				
+				<div class="col-2 pt-1 pb-1">平台：</div>
+				<div class="col-10 pt-1 pb-1">
+					<select class="form-control select2" id="platform" style="width: 100%;">
+						<option value="---" selected disabled>请选择台</option>
+						{% for platform in platform_choices %}
+						<option value="{{ platform.0 }}">{{ platform.1 }}</option>
+						{% endfor %}
+					</select>
+				</div>
+				
 				<div class="col-2 pt-1 pb-1">系统/型号<span style="color:red;"> * </span>：</div><div class="col-10 pt-1"><input class="form-control" type="text" id="release" onkeyup="check_release();" onblur="check_release();"></div>
 				<div class="offset-2 col-10 pb-1"><small id="release_error" style="color:red;"></small></div>
 				
 				<div class="col-2 pt-1 pb-1">远程用户：</div>
 				<div class="col-10 pt-1 pb-1">
-					<select class="form-control" id="binduserid" style="width: 100%;">
+					<select class="form-control select2" id="binduserid" style="width: 100%;">
+						<option value="---" selected disabled>请选择用户</option>
 						{% for user in all_users %}
 						<option value="{{ user.id }}">{{ user.name }}</option>
 						{% endfor %}
@@ -274,6 +289,7 @@
 		
 		var protocol = $('#protocol').val();
 		var env = $('#env').val();
+		var platform = $('#platform').val();
 		
 		var port = $('#port').val();
 		check_right[3] = check_port();
@@ -307,6 +323,7 @@
 					'wip': wip,
 					'protocol': protocol,
 					'env': env,
+					'platform': platform,
 					'port': port,
 					'release': release,
 					'memo': memo,
@@ -353,4 +370,5 @@
 	}
 	// 添加主机
 </script>
+
 {% endblock js %}

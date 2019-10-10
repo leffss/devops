@@ -48,7 +48,7 @@ ALLOWED_HOSTS = ["*"]
 # Application definition
 
 INSTALLED_APPS = [
-    # 'simpleui',   # 不兼容 debug_toolbar
+    # 'simpleui',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -61,7 +61,8 @@ INSTALLED_APPS = [
     'webssh',
     'webtelnet',
     'webguacamole',
-    # 'debug_toolbar',
+    'tasks',
+    'batch',
 ]
 
 MIDDLEWARE = [
@@ -73,7 +74,10 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'util.middleware.NextMiddleware',
+    'util.middleware.NewNextMiddleware',
+    'util.middleware.BlackListMiddleware',
+    'util.middleware.LockScreenMiddleware',
+    'util.middleware.DebugMiddleware',
 ]
 
 FILE_UPLOAD_HANDLERS = [
@@ -90,7 +94,8 @@ ROOT_URLCONF = 'devops.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')]
+        ,
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -169,28 +174,6 @@ redis_setting = {
 # celery 配置 redis
 CELERY_BROKER_URL = 'redis://{0}:{1}/0'.format(redis_setting['host'], redis_setting['port'])
 
-
-DEBUG_TOOLBAR_PANELS = [
-    'debug_toolbar.panels.versions.VersionsPanel',
-    'debug_toolbar.panels.timer.TimerPanel',
-    'debug_toolbar.panels.settings.SettingsPanel',
-    'debug_toolbar.panels.headers.HeadersPanel',
-    'debug_toolbar.panels.request.RequestPanel',
-    'debug_toolbar.panels.sql.SQLPanel',
-    'debug_toolbar.panels.staticfiles.StaticFilesPanel',
-    'debug_toolbar.panels.templates.TemplatesPanel',
-    'debug_toolbar.panels.cache.CachePanel',
-    'debug_toolbar.panels.signals.SignalsPanel',
-    'debug_toolbar.panels.logging.LoggingPanel',
-    'debug_toolbar.panels.redirects.RedirectsPanel',
-    'debug_toolbar.panels.profiling.ProfilingPanel',
-]
-INTERNAL_IPS = [
-    # ...
-    '127.0.0.1',
-    # ...
-]
-
 # channel_layers 使用 redis
 CHANNEL_LAYERS = {
     "default": {
@@ -216,6 +199,7 @@ CACHES = {
                 'max_connections': 250,
                 'timeout': 10,
             },
+            "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",   # 开启压缩
         },
         'KEY_PREFIX': 'devops',
     }
@@ -238,3 +222,7 @@ GUACD = {
     'port': 4822,
     'timeout': 30,
 }
+
+# 访问黑名单， 需开启 Middleware：util.middleware.BlackListMiddleware
+BLACKLIST = ['192.168.223.220', '192.168.223.221']
+

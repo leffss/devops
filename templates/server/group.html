@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% load static %}
+
+  {% block title %}
+  <title>主机组详细</title>
+  {% endblock title %}
+
+	{% block navheader %}
+    <section class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-1">
+          <div class="col-12">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item">主机管理</li>
+			  <li class="breadcrumb-item"><a href="{% url 'server:groups' %}">主机组</a></li>
+			  <li class="breadcrumb-item active">主机组详细</li>
+            </ol>
+          </div>
+        </div>
+      </div><!-- /.container-fluid -->
+    </section>
+	{% endblock navheader %}
+	
+		  {% block content %}
+          <div class="card card-primary content-list">
+            <div class="card-header">
+              <h3 class="card-title">主机组详细</h3>
+				<div class="card-tools">
+				  <a class="btn btn-tool" href="{% url 'server:groups' %}">返回</a>
+				  <a class="btn btn-tool" href="{% url 'server:group_edit' group.id %}?next={% if request.META.QUERY_STRING %}{{ request.META.PATH_INFO }}?{{ request.META.QUERY_STRING }}{% else %}{{ request.META.PATH_INFO }}{% endif %}" title="编辑">
+					<!--i class="fas fa-wrench"></i-->编辑
+				  </a>
+				  <!--button type="button" class="btn btn-tool" data-widget="collapse">
+					<i class="fas fa-minus"></i>
+				  </button>
+				  <button type="button" class="btn btn-tool" data-widget="maximize">
+				  <i class="fas fa-expand"></i>
+                  </button>
+				  <button type="button" class="btn btn-tool" data-widget="remove">
+					<i class="fas fa-times"></i>
+				  </button-->
+				</div>
+            </div>
+            <!-- /.card-header -->
+            <div class="card-body row">
+				<div class="col-3 pt-1 pb-1 border-bottom">主机组名：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ group.group_name }}</div>
+				
+				<div class="col-3 pt-1 pb-1 border-bottom">组内主机：</div>
+				<div class="col-9 pt-1 pb-1 border-bottom">
+				{% for host in group.hosts %}
+					{{ host.hostname }}_{{ host.ip }}_{{ host.remote_user.username }}<br>
+				{% endfor %}
+				</div>
+				
+				<div class="col-3 pt-1 pb-1 border-bottom">备注：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ group.memo | default:'' }}</div>
+				<div class="col-3 pt-1 pb-1">创建时间：</div><div class="col-9 pt-1 pb-1">{{ group.create_time | date:"Y/m/d H:i:s" }}</div>
+            </div>
+            <!-- /.card-body -->
+          </div>
+          <!-- /.card --> 
+		  {% endblock content %}
+
+{% block js %}
+<!-- DataTables -->
+<script src="{% static 'adminlte/plugins/datatables/jquery.dataTables.js' %}"></script>
+<script src="{% static 'adminlte/plugins/datatables/dataTables.bootstrap4.js' %}"></script>
+<script>
+$("#datatables-lists").DataTable({
+	language: {
+		"sProcessing": "处理中...",
+		"sLengthMenu": "显示 _MENU_ 项结果",
+		"sZeroRecords": "没有匹配结果",
+		"sInfo": "显示第 _START_ 至 _END_ 项结果，共 _TOTAL_ 项",
+		"sInfoEmpty": "显示第 0 至 0 项结果，共 0 项",
+		"sInfoFiltered": "(由 _MAX_ 项结果过滤)",
+		"sInfoPostFix": "",
+		"sSearch": "搜索:",
+		"sUrl": "",
+		"sEmptyTable": "表中数据为空",
+		"sLoadingRecords": "载入中...",
+		"sInfoThousands": ",",
+		"oPaginate": {
+			"sFirst": "首页",
+			"sPrevious": "上页",
+			"sNext": "下页",
+			"sLast": "末页"
+		},
+		"oAria": {
+			"sSortAscending": ": 以升序排列此列",
+			"sSortDescending": ": 以降序排列此列"
+		}
+	},
+	destroy: true,	// 允许重建
+	bProcessing:true,  // 表格数据过多处理时显示: sProcessing
+	lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "全部"]],
+	order: [],
+	 //scrollY: 480,	// 滚动条
+	 //scrollCollapse: true,
+	 //jQueryUI: true,
+	 stateSave: true,	// 保存最后一次分页信息、排序信息，当页面刷新，或者重新进入这个页面，恢复上次的状态。
+	 stateDuration: 86400,	// 本地储存(0~更大)还是session储存(-1) 
+});
+</script>
+{% endblock js %}

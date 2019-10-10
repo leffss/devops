@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+{% load static %}
+
+  {% block title %}
+  <title>主机组添加</title>
+  {% endblock title %}
+
+	{% block navheader %}
+    <section class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-1">
+          <div class="col-12">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item">主机管理</li>
+			  <li class="breadcrumb-item"><a href="{% url 'server:groups' %}">主机组</a></li>
+			  <li class="breadcrumb-item active">主机组添加</li>
+            </ol>
+          </div>
+        </div>
+      </div><!-- /.container-fluid -->
+    </section>
+	{% endblock navheader %}
+	
+		  {% block content %}
+          <div class="card card-primary content-list">
+            <div class="card-header">
+              <h3 class="card-title">主机组添加</h3>
+				<div class="card-tools">
+				  <!--button type="button" class="btn btn-tool" data-widget="collapse">
+					<i class="fas fa-minus"></i>
+				  </button>
+				  <button type="button" class="btn btn-tool" data-widget="maximize">
+				  <i class="fas fa-expand"></i>
+                  </button>
+				  <button type="button" class="btn btn-tool" data-widget="remove">
+					<i class="fas fa-times"></i>
+				  </button-->
+				</div>
+            </div>
+            <!-- /.card-header -->
+            <div class="card-body row">
+				<div class="col-2 pt-1 pb-1">主机组名<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="groupname" onkeyup="check_groupname();" onblur="check_groupname();"></div>
+				<div class="offset-2 col-10 pb-1"><small id="groupname_error" style="color:red;"></small></div>
+				
+				<div class="col-2 pt-1 pb-1">组内主机：</div>
+				<div class="col-10 pt-1 pb-1">
+				  <div class="form-group">
+                    <select multiple class="form-control select2_multiple" data-placeholder="请选择主机" id="host_select_left" style="width:100%">
+					  {% for host in all_hosts %}
+					  <option value="{{ host.id }}">{{ host.hostname }}_{{ host.ip }}_{{ host.remote_user.username }}</option>
+					  {% endfor %}
+                    </select>
+                  </div>
+				</div>
+				
+				<div class="col-2 pt-1 pb-1">备注：</div><div class="col-10 pt-1 pb-1"><textarea id="memo" class="form-control">{{ group.memo | default:'' }}</textarea></div>
+				<div class="offset-2 col-10 pt-2"><a class="btn btn-default" href="{% url 'server:groups' %}">返回</a> <button class="btn btn-success ml-2" onclick="changeuserprofile(this);">提交</button><span id="feed_error" class="ml-2" style="color:red;"></span></div>
+            </div>
+            <!-- /.card-body -->
+          </div>
+          <!-- /.card --> 
+		  {% endblock content %}
+
+{% block js %}
+
+<script>
+	// 校验表单数据
+	check_groupname = function() {
+		var groupname = $('#groupname').val();
+		if (groupname == '') {
+			$('#groupname').removeClass("is-valid");
+			$('#groupname').addClass("is-invalid");
+			$('#groupname_error').text('组名不能未空');
+			return false;
+		} else if(/[^0-9a-zA-Z]+/g.test(groupname)) {	// 正则判断
+			$('#groupname').removeClass("is-valid");
+			$('#groupname').addClass("is-invalid");
+			$('#groupname_error').text('组名不能存在符号');
+			return false;
+		} else {
+			$('#groupname').removeClass("is-invalid");
+			$('#groupname').addClass("is-valid");
+			$('#groupname_error').text('');
+			return true;
+		};
+	}
+	// 校验表单数据
+
+	// 修改个人信息
+	changeuserprofile = function(event) {
+		toastr.options.closeButton = true;
+		toastr.options.showMethod = 'slideDown';
+		toastr.options.hideMethod = 'fadeOut';
+		toastr.options.closeMethod = 'fadeOut';
+		toastr.options.timeOut = 3000;	
+		toastr.options.extendedTimeOut = 0;	
+		toastr.options.progressBar = true;
+		toastr.options.positionClass = 'toast-top-right'; 
+		
+		$(event).removeAttr("onclick");
+		$(event).attr("disabled", true);
+		
+		var check_right = new Array();
+
+		var groupname = $('#groupname').val();
+		check_right[0] = check_groupname();
+		
+		var memo = $('#memo').val();
+
+		var hosts = new Array();
+		$("#host_select_left option:selected").each(function(){
+			var value = $(this).val();   //获取option值
+			hosts.push(value);
+		});
+		hosts = hosts.join(",")
+		
+		csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
+		
+		if (!/false/.test(check_right)) {
+			$('#feed_error').text('');
+			$.ajax({
+				url: "{% url 'server_api:group_add' %}",
+				async: true,
+				type: 'POST',
+				dataType: 'json',
+				data: {
+					'csrfmiddlewaretoken': csrfmiddlewaretoken,
+					'groupname': groupname,
+					'memo': memo,
+					'hosts': hosts,
+				},
+				timeout: 5000,
+				cache: true,
+				beforeSend: LoadFunction, //加载执行方法
+				error: errFunction,  //错误执行方法
+				success: succFunction, //成功执行方法
+			});
+		} else {
+			$('#feed_error').text('信息填写有误，请检查并重新填写');
+			$(event).removeAttr("disabled");
+			$(event).attr("onclick", "changeuserprofile(this);");
+			return false;
+		};
+		
+		function LoadFunction() {
+			// 提交中
+		};
+		
+		function errFunction() {
+			// 消息框
+			toastr.error('添加主机组错误');
+			$(event).removeAttr("disabled");
+			$(event).attr("onclick", "changeuserprofile(this);");
+		};
+		
+		function succFunction(res) {
+			if (res.code != 200) {
+				// 消息框
+				toastr.error('添加主机组错误: ' + res.err);
+				$(event).removeAttr("disabled");
+				$(event).attr("onclick", "changeuserprofile(this);");
+			} else {
+				// 消息框
+				toastr.options.timeOut = 1000;
+				toastr.options.onHidden = function() { window.location.href = "{% url 'server:groups' %}"; }
+				toastr.success('添加主机组成功');
+			}
+		};
+	}
+
+</script>
+{% endblock js %}

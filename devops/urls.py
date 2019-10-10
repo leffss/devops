@@ -15,14 +15,12 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-import debug_toolbar
 from server.views import index
 from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path('__debug__/', include(debug_toolbar.urls)),
-    
+
     path('admin/', admin.site.urls),
     
     path('', index),
@@ -35,13 +33,19 @@ urlpatterns = [
     
     path('webssh/', include('webssh.urls', namespace='webssh')),
     path('api/webssh/', include('webssh.urls_api', namespace='webssh_api')),
-    
+
+    path('tasks/', include('tasks.urls', namespace='tasks')),
+
     path('webtelnet/', include('webtelnet.urls', namespace='webtelnet')),
 
     path('webguacamole/', include('webguacamole.urls', namespace='webguacamole')),
+
+    path('batch/', include('batch.urls', namespace='batch')),
+    path('api/batch/', include('batch.urls_api', namespace='batch_api')),
 
 ]
 
 if settings.DEBUG:
     # static files (images, css, javascript, etc.)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+

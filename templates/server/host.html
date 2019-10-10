@@ -52,10 +52,97 @@
 				<div class="col-3 pt-1 pb-1 border-bottom">协议：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.get_protocol_display }}</div>
 				<div class="col-3 pt-1 pb-1 border-bottom">环境：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.get_env_display }}</div>
 				<div class="col-3 pt-1 pb-1 border-bottom">端口：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.port }}</div>
-				<div class="col-3 pt-1 pb-1 border-bottom">系统/型号：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.release }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">平台：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.get_platform_display }}</div>
+				
+				{% if not host.serverdetail %}
+				<div class="col-3 pt-1 pb-1 border-bottom">操作系统：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.release }}</div>
+				{% endif %}
+				
 				<div class="col-3 pt-1 pb-1 border-bottom">远程用户：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.remote_user.username }}</div>
 				<div class="col-3 pt-1 pb-1 border-bottom">添加时间：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.create_time | date:"Y/m/d H:i:s" }}</div>
 				<div class="col-3 pt-1 pb-1 border-bottom">是否启用：</div><div class="col-9 pt-1 pb-1 border-bottom">{% if host.enabled %}<span class="badge badge-success">启用</span>{% else %}<span class="badge badge-danger">禁用</span>{% endif %}</div>
+				
+				{% if host.serverdetail %}
+				<div class="col-3 pt-1 pb-1 border-bottom">型号：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.serverdetail.server_model | default:'' }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">CPU型号：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.serverdetail.cpu_model }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">物理CPU个数：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.serverdetail.cpu_number }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">逻辑CPU个数：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.serverdetail.vcpu_number }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">磁盘空间：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.serverdetail.disk_total }} GB</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">内存容量：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.serverdetail.ram_total }} GB</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">交换空间容量：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.serverdetail.swap_total }} GB</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">内核版本：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.serverdetail.kernel }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">操作系统：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.serverdetail.system }}</div>
+				
+				<div class="col-3 pt-1 border-bottom">文件系统：</div>
+				<div class="col-9 pt-1 border-bottom">
+					<table class="table table-hover border">
+					  <thead>
+						<tr>
+						  <th>挂载点</th>
+						  <th>总容量</th>
+						  <th>剩余容量</th>
+						  <th>类型</th>
+						</tr>
+					  </thead>
+					  <tbody>
+						{% for filesystem in host.serverdetail.filesystems %}
+						<tr>
+						  <td>{{ filesystem.mount }}</td>
+						  <td>{{ filesystem.size_total }}</td>
+						  <td>{{ filesystem.size_available }}</td>
+						  <td>{{ filesystem.fstype }}</td>
+						</tr>
+						{% endfor %}
+					  </tbody>
+					</table>
+				</div>
+				
+				<div class="col-3 pt-1 pb-1 border-bottom">网卡信息：</div>
+				<div class="col-9 pt-1 pb-1 border-bottom">
+					<table class="table table-hover border">
+					  <thead>
+						<tr>
+						  <th>名称</th>
+						  <th>MAC地址</th>
+						  <th>类型</th>
+						  <th>MTU</th>
+						  <th>速度(mbps)</th>
+						  <th>IPV4</th>
+						  <th>IPV6</th>
+						  <th>状态</th>
+						</tr>
+					  </thead>
+					  <tbody>
+						{% for interface in host.serverdetail.interfaces %}
+						<tr>
+						  <td>{{ interface.network_card_name }}</td>
+						  <td>{{ interface.network_card_mac | default:"" }}</td>
+						  <td>{{ interface.network_card_model | default:"" }}</td>
+						  <td>{{ interface.network_card_mtu | default:"" }}</td>
+						  <td>{{ interface.network_card_speed | default:"" }}</td>
+						  <td>
+						  {{ interface.network_card_ipv4.address }}<br>
+						  {% if interface.network_card_ipv4_secondaries != 'unknown' %}
+							{% for x in interface.network_card_ipv4_secondaries %}
+								{{ x.address }}<br>
+							{% endfor %}
+						  {% endif %}
+						  </td>
+						  <td>
+						  {% if interface.network_card_ipv6 != 'unknown' %}
+							{% for x in interface.network_card_ipv6 %}
+								{{ x.address }}<br>
+							{% endfor %}
+						  {% endif %}
+						  </td>
+						  <td>{% if interface.network_card_status %}<span class="badge badge-success">正常</span>{% else %}<span class="badge badge-danger">禁用</span>{% endif %}</td>
+						</tr>
+						{% endfor %}
+					  </tbody>
+					</table>
+				</div>
+				{% endif %}
+				
 				<div class="col-3 pt-1 pb-1">备注：</div><div class="col-9 pt-1 pb-1">{{ host.memo | default:'' }}</div>
             </div>
             <!-- /.card-body -->

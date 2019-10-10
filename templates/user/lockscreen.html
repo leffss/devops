@@ -1,0 +1,101 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>锁定屏幕</title>
+  <!-- Tell the browser to be responsive to screen width -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Font Awesome -->
+  <link href="https://cdn.bootcss.com/font-awesome/5.10.0-11/css/all.min.css" rel="stylesheet">
+  
+  <!-- Ionicons -->
+  <link href="https://cdn.bootcss.com/ionicons/2.0.1/css/ionicons.min.css" rel="stylesheet">
+  
+  <!-- Theme style -->
+  <link rel="stylesheet" href="{% static 'adminlte/dist/css/adminlte.min.css' %}">
+  
+  <!-- Google Font: Source Sans Pro -->
+  <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
+  
+  <style>
+	/* 页面加载完后再显示，更好的显示特效 */
+	body {
+		display : none;
+	}
+  </style>
+  
+</head>
+<body class="hold-transition lockscreen content-list">
+<!-- Automatic element centering -->
+<div class="lockscreen-wrapper">
+  <div class="lockscreen-logo">
+    运维管理系统
+  </div>
+  <!-- User name -->
+  <div class="lockscreen-name" title="{{ request.session.username }}">{{ request.session.nickname }}</div>
+
+  <!-- START LOCK SCREEN ITEM -->
+  <div class="lockscreen-item">
+    <!-- lockscreen image -->
+    <div class="lockscreen-image">
+      <img src="{% static 'adminlte/dist/img/timg.jpg' %}">
+    </div>
+    <!-- /.lockscreen-image -->
+
+    <!-- lockscreen credentials (contains the form) -->
+    <form class="lockscreen-credentials" method="post" action="{% url 'user:lockscreen' %}">
+	  {% csrf_token %}
+      <div class="input-group">
+        <input type="password" class="form-control" name="password" placeholder="password">
+        <div class="input-group-append">
+          <button type="submit" class="btn"><i class="fas fa-arrow-right text-muted"></i></button>
+        </div>
+      </div>
+    </form>
+    <!-- /.lockscreen credentials -->
+
+  </div>
+  <!-- /.lockscreen-item -->
+  <div class="help-block text-center">
+	{% if error_message %}
+		<span style="color:red;">{{ error_message }}</span>
+	{% else %}
+		请输入您的登陆密码解锁
+	{% endif %}
+  </div>
+  <div class="text-center mt-2">
+    <a href="{% url 'user:logout' %}">或者登陆其他用户</a>
+  </div>
+  <div class="lockscreen-footer text-center">
+    </strong>Copyright &copy; 2019 <a href="//www.cnblogs.com/leffss" class="text-black" target="_blank">leffss</a>.</strong> All rights reserved
+  </div>
+</div>
+<!-- /.center -->
+
+<!-- jQuery -->
+<script src="{% static 'adminlte/plugins/jquery/jquery.min.js' %}"></script>
+
+<!-- Bootstrap 4 -->
+<script src="{% static 'adminlte/plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+
+<!-- 动画特效 -->
+<script src="//cdn.bootcss.com/velocity/1.5.2/velocity.min.js"></script>
+<script src="//cdn.bootcss.com/velocity/1.5.2/velocity.ui.min.js"></script>
+<script>
+	$(".content-list").velocity("transition.slideUpBigIn", { stagger: 150, drag: true });
+	//$(".content-list").velocity("transition.slideRightBigIn", { stagger: 120, drag: true });	
+</script>
+
+<!-- 页面加载完后再显示，更好的显示特效 -->
+<script>
+	document.addEventListener("DOMContentLoaded", function(){
+		$("body").css("display", "block");
+	});
+</script>
+
+</body>
+</html>

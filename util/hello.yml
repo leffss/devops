@@ -1,0 +1,16 @@
+---
+
+- name: say 'hello world'
+  hosts:
+    #- all
+    - k8s
+    #- group1
+  # playbook默认会运行setup模块，速度较慢，如无需要可以关闭
+  gather_facts: no
+  tasks:
+    - name: echo "hello world"
+      command: echo "hello world"
+      register: result
+    
+    - name: ls -l /tmp
+      shell: ls -l /tmp

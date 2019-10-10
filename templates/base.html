@@ -26,6 +26,8 @@
   <!-- DataTables -->
   <link rel="stylesheet" href="{% static 'adminlte/plugins/datatables/dataTables.bootstrap4.css' %}">
 
+  <link rel="stylesheet" href="{% static 'adminlte/plugins/select2/css/select2.min.css' %}">
+
   <!-- Theme style -->
   <link rel="stylesheet" href="{% static 'adminlte/dist/css/adminlte.min.css' %}">
   
@@ -80,14 +82,22 @@
     <ul class="navbar-nav ml-auto">
 	 <li class="nav-item dropdown">
 		<a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" aria-expanded="false">
-		  <img src="{% static 'adminlte/dist/img/timg.jpg' %}" class="img-circle elevation-1" style="max-width:100%;height:100%;"> <small>{{ request.session.nickname }}</small>
+		  <img src="{% static 'adminlte/dist/img/timg.jpg' %}" class="img-circle elevation-1" style="max-width:100%;height:100%;"> <small title="{{ request.session.username }}">{{ request.session.nickname }}</small>
 		</a>
 		<div class="dropdown-menu" x-placement="bottom-start" style="position: absolute; will-change: transform; top: 0px; left: 0px; transform: translate3d(0px, 40px, 0px);">
 		  <a class="dropdown-item personinfo" tabindex="-1" href="{% url 'user:profile' %}?next={% if request.META.QUERY_STRING %}{{ request.META.PATH_INFO }}?{{ request.META.QUERY_STRING }}{% else %}{{ request.META.PATH_INFO }}{% endif %}" ><small>个人信息</small></a>
 		  <a class="dropdown-item changepasswd" tabindex="-1" href="javascript:void(0);"><small>修改密码</small></a>
+		  <!--div class="dropdown-divider"></div>
+		  <a class="dropdown-item" tabindex="-1" href="{% url 'user:lockscreen' %}"><small>锁定屏幕</small></a-->
 		</div>
 	  </li>
-	 
+
+	  <li class="nav-item">
+        <a class="nav-link x" href="{% url 'user:lockscreen' %}">
+           <small>锁定屏幕</small>
+        </a>
+      </li>
+	  
 	  <li class="nav-item">
         <a class="nav-link logout" href="{% url 'user:logout' %}">
            <small>退出</small>
@@ -222,6 +232,11 @@
                   <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;主机</p>
                 </a>
               </li>
+			  <li class="nav-item items">
+                <a href="{% url 'server:groups' %}" class="nav-link">
+                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;主机组</p>
+                </a>
+              </li>
 			  {% if request.session.issuperuser %}
               <li class="nav-item items">
                 <a href="{% url 'server:users' %}" class="nav-link">
@@ -235,7 +250,7 @@
             <a href="#" class="nav-link">
               <i class="nav-icon fas fa-coffee fa-xs"></i>
               <p>
-                作业中心
+                远程终端
                 <i class="right fas fa-angle-left"></i>
               </p>
             </a>
@@ -254,6 +269,31 @@
 			  {% endif %}
             </ul>
           </li>
+		  
+		  <li class="nav-item has-treeview menu-open">
+            <a href="#" class="nav-link">
+              <i class="nav-icon fas fa-coffee fa-xs"></i>
+              <p>
+                批量处理
+                <i class="right fas fa-angle-left"></i>
+              </p>
+            </a>
+            <ul class="nav nav-treeview">
+              <li class="nav-item items">
+                <a href="{% url 'batch:cmd' %}" class="nav-link">
+                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;执行命令</p>
+                </a>
+              </li>
+			  {% if request.session.issuperuser %}
+              <li class="nav-item items">
+                <a href="{% url 'batch:cmd' %}" class="nav-link">
+                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;上传文件</p>
+                </a>
+              </li>
+			  {% endif %}
+            </ul>
+          </li>
+		  
 		  {% if request.session.issuperuser %}
 		  <li class="nav-item has-treeview menu-open">
             <a href="#" class="nav-link">
@@ -562,8 +602,8 @@
 <script src="//cdn.bootcss.com/velocity/1.5.2/velocity.min.js"></script>
 <script src="//cdn.bootcss.com/velocity/1.5.2/velocity.ui.min.js"></script>
 <script>
-	$(".content-list").velocity("transition.slideUpBigIn", { stagger: 150, drag: true });
-	//$(".content-list").velocity("transition.slideRightBigIn", { stagger: 120, drag: true });	
+	$(".content-list").velocity("transition.slideUpBigIn", { stagger: 130, drag: true });
+	//$(".content-list").velocity("transition.slideRightBigIn", { stagger: 120, drag: true });
 </script>
 
 <!-- 页面加载完后再显示，更好的显示特效 -->
@@ -573,9 +613,59 @@
 	});
 </script>
 
+
+<!-- 点击鼠标出现文字特效 -->
+<script>
+	var f_idx = 0;
+	var c_idx = 0;
+	jQuery(document).ready(function($) {
+		$("section").click(function(e) {
+			var font = new Array("富强", "民主", "文明", "和谐", "自由", "平等", "公正" ,"法治", "爱国", "敬业", "诚信", "友善");
+			var color = new Array('#ff0000','#eb4310','#f6941d','#fbb417','#ffff00','#cdd541','#99cc33','#3f9337','#219167','#239676','#24998d','#1f9baa','#0080ff','#3366cc','#333399','#003366','#800080','#a1488e','#c71585','#bd2158');
+			var $i = $("<span />").text(font[f_idx]);
+			f_idx = (f_idx + 1) % font.length;
+			c_idx = (c_idx + 1) % color.length;
+			var x = e.pageX,
+				y = e.pageY;
+			$i.css({
+				"z-index": 9999,
+				"top": y - 20,
+				"left": x,
+				"position": "absolute",
+				"font-weight": "bold",
+				"color": color[c_idx]
+			});
+			$("body").append($i);
+			$i.animate({
+					"top": y - 250,
+					"opacity": 0
+				},
+				1500,
+				function() {
+					$i.remove();
+				});
+		});
+	});
+</script>
+
 {% block js %}
 
 {% endblock js %}
+
+<!-- Select2 -->
+<script src="{% static 'adminlte/plugins/select2/js/select2.full.min.js' %}"></script>
+<script>
+	$(function () {
+		//Initialize Select2 Elements
+		$('.select2').select2();
+	});
+	$(function () {
+		//Initialize Select2 Elements
+		$('.select2_multiple').select2({
+			allowClear: true,
+		});
+	});
+</script>
 
 </body>
 </html>
