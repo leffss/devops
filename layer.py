@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-""" 初始化创建 admin 账号"""
 import os
 import sys
 

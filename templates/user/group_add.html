@@ -83,11 +83,11 @@
 			$('#groupname').addClass("is-invalid");
 			$('#groupname_error').text('组名不能未空');
 			return false;
-		} else if(/[^0-9a-zA-Z]+/g.test(groupname)) {	// 正则判断
-			$('#groupname').removeClass("is-valid");
-			$('#groupname').addClass("is-invalid");
-			$('#groupname_error').text('组名不能存在符号');
-			return false;
+		//} else if(/[^0-9a-zA-Z]+/g.test(groupname)) {	// 正则判断
+		//	$('#groupname').removeClass("is-valid");
+		//	$('#groupname').addClass("is-invalid");
+		//	$('#groupname_error').text('组名不能存在符号');
+		//	return false;
 		} else {
 			$('#groupname').removeClass("is-invalid");
 			$('#groupname').addClass("is-valid");

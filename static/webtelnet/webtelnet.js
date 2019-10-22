@@ -43,7 +43,7 @@ function websocket() {
         }
         ),
         protocol = (location.protocol === 'https:') ? 'wss://' : 'ws://',
-        socketURL = protocol + location.hostname + ((location.port) ? (':' + location.port) : '') + '/webtelnet/?' + connect_info;
+        socketURL = protocol + location.hostname + ((location.port) ? (':' + location.port) : '') + '/ws/webtelnet/?' + connect_info;
 
     //var sock;
     sock = new WebSocket(socketURL);

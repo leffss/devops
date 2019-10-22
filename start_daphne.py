@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-""" 初始化创建 admin 账号"""
 import subprocess
 
 
@@ -14,7 +13,8 @@ def __external_cmd(cmd, code="utf8"):
 
 
 if __name__ == '__main__':
-    listen = '127.0.0.1'
-    port = 8000
+    # listen = '127.0.0.1'
+    listen = '0.0.0.0'
+    port = 8001
     __external_cmd('/home/python372/bin/daphne -b {} -p {} devops.asgi:application'.format(listen, port))
 

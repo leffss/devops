@@ -7,6 +7,8 @@ import socket
 from django.conf import settings
 import json
 import time
+import sys
+import os
 import traceback
 from util.tool import gen_rand_char, res as save_res
 import logging
@@ -30,7 +32,12 @@ class SSH:
         self.tab_mode = False   # 使用tab命令补全时需要读取返回数据然后添加到当前输入命令后
         self.history_mode = False
         self.start_time = time.time()
-        self.res_file = 'webssh_' + time.strftime("%Y%m%d%H%M%S", time.localtime(int(self.start_time))) + '_' + gen_rand_char(16) + '.txt'
+        tmp_date1 = time.strftime("%Y-%m-%d", time.localtime(int(self.start_time)))
+        tmp_date2 = time.strftime("%Y%m%d%H%M%S", time.localtime(int(self.start_time)))
+        if not os.path.isdir(os.path.join(settings.RECORD_ROOT, tmp_date1)):
+            os.makedirs(os.path.join(settings.RECORD_ROOT, tmp_date1))
+        self.res_file = settings.RECORD_DIR + '/' + tmp_date1 + '/' + 'webssh_' + \
+                        tmp_date2 + '_' + gen_rand_char(8) + '.txt'
         self.last_save_time = self.start_time
         self.res_asciinema = []
     
@@ -184,12 +191,13 @@ class SSH:
                 delay = round(time.time() - self.start_time, 6)
                 self.res_asciinema.append(json.dumps([delay, 'o', data]))
 
-                # 250条结果或者指定秒数就保存一次
-                if len(self.res_asciinema) > 250 or int(time.time() - self.last_save_time) > 30:
+                # 指定条结果或者指定秒数或者占用指定内存就保存一次
+                if len(self.res_asciinema) > 2000 or int(time.time() - self.last_save_time) > 60 or \
+                        sys.getsizeof(self.res_asciinema) > 20971752:
                     tmp = list(self.res_asciinema)
                     self.res_asciinema = []
                     self.last_save_time = time.time()
-                    save_res(settings.MEDIA_ROOT + '/' + self.res_file, tmp)
+                    save_res(self.res_file, tmp)
 
                 if self.tab_mode:
                     tmp = data.split(' ')

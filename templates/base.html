@@ -272,7 +272,7 @@
 		  
 		  <li class="nav-item has-treeview menu-open">
             <a href="#" class="nav-link">
-              <i class="nav-icon fas fa-coffee fa-xs"></i>
+              <i class="nav-icon fas fa-align-justify fa-xs"></i>
               <p>
                 批量处理
                 <i class="right fas fa-angle-left"></i>
@@ -281,16 +281,19 @@
             <ul class="nav nav-treeview">
               <li class="nav-item items">
                 <a href="{% url 'batch:cmd' %}" class="nav-link">
-                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;执行命令</p>
+                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;批量命令</p>
                 </a>
               </li>
-			  {% if request.session.issuperuser %}
               <li class="nav-item items">
-                <a href="{% url 'batch:cmd' %}" class="nav-link">
+                <a href="{% url 'batch:script' %}" class="nav-link">
+                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;批量脚本</p>
+                </a>
+              </li>
+              <li class="nav-item items">
+                <a href="{% url 'batch:file' %}" class="nav-link">
                   <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;上传文件</p>
                 </a>
               </li>
-			  {% endif %}
             </ul>
           </li>
 		  
@@ -312,6 +315,11 @@
               <li class="nav-item items">
                 <a href="{% url 'webssh:logs' %}" class="nav-link">
                   <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;终端日志</p>
+                </a>
+              </li>
+              <li class="nav-item items">
+                <a href="{% url 'batch:logs' %}" class="nav-link">
+                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;批量日志</p>
                 </a>
               </li>
             </ul>
@@ -602,8 +610,8 @@
 <script src="//cdn.bootcss.com/velocity/1.5.2/velocity.min.js"></script>
 <script src="//cdn.bootcss.com/velocity/1.5.2/velocity.ui.min.js"></script>
 <script>
-	$(".content-list").velocity("transition.slideUpBigIn", { stagger: 130, drag: true });
-	//$(".content-list").velocity("transition.slideRightBigIn", { stagger: 120, drag: true });
+	//$(".content-list").velocity("transition.slideUpBigIn", { stagger: 130, drag: true });
+	$(".content-list").velocity("transition.slideDownIn", { stagger: 150, drag: true });
 </script>
 
 <!-- 页面加载完后再显示，更好的显示特效 -->

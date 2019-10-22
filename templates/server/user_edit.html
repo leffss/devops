@@ -87,10 +87,10 @@
 			$('#username').addClass("is-invalid");
 			$('#username_error').text('用户名不能未空');
 			return false;
-		} else if(/[@#\$%\^&\*]+/g.test(username)) {	// 正则判断
+		} else if(/[^0-9a-zA-Z\.\-\_]+/g.test(username)) {	// 正则判断
 			$('#username').removeClass("is-valid");
 			$('#username').addClass("is-invalid");
-			$('#username_error').text('用户名不能存在特殊符号');
+			$('#username_error').text('用户名必须为数字、字母、 -、 _ 或者 .');
 			return false;
 		} else {
 			$('#username').removeClass("is-invalid");
@@ -127,10 +127,10 @@
 			$('#superusername').addClass("is-invalid");
 			$('#superusername_error').text('超级用户名不能未空');
 			return false;
-		} else if(/[@#\$%\^&\*]+/g.test(superusername)) {	// 正则判断
+		} else if(/[^0-9a-zA-Z\.\-\_]+/g.test(superusername)) {	// 正则判断
 			$('#superusername').removeClass("is-valid");
 			$('#superusername').addClass("is-invalid");
-			$('#superusername_error').text('超级用户名不能存在特殊符号');
+			$('#superusername_error').text('超级用户名必须为数字、字母、 -、 _ 或者 .');
 			return false;
 		} else {
 			$('#superusername').removeClass("is-invalid");

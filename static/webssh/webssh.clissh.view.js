@@ -40,7 +40,7 @@ function websocket() {
         }
         ),
         protocol = (location.protocol === 'https:') ? 'wss://' : 'ws://',
-        socketURL = protocol + location.hostname + ((location.port) ? (':' + location.port) : '') + '/clissh/view/?' + connect_info;
+        socketURL = protocol + location.hostname + ((location.port) ? (':' + location.port) : '') + '/ws/clissh/view/?' + connect_info;
 
     var sock;
     sock = new WebSocket(socketURL);

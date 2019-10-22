@@ -1,8 +1,15 @@
-from util.tool import login_required, post_required
+from util.tool import login_required, post_required, file_combine
 from django.http import JsonResponse
 from server.models import HostGroup, RemoteUserBindHost
 from user.models import User
 from django.db.models import Q
+from django.conf import settings
+import traceback
+import os
+import hashlib
+import logging
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s] - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 # Create your views here.
 
 
@@ -49,4 +56,39 @@ def get_hosts(request):
         } for host in hosts
     ]
     return JsonResponse({'code': 200, 'hosts': hosts})
+
+
+@login_required
+@post_required
+def upload(request):
+    try:
+        upload_file = request.FILES.get('fileBlob')
+        file_name = request.POST.get('fileName')
+        # 使用md5后的文件名保存分段，防止合并时因为文件名的原因出错
+        file_name_md5 = hashlib.md5(file_name.encode(encoding='UTF-8')).hexdigest()
+        file_chunk_count = request.POST.get('chunkCount')
+        file_chunk_index = request.POST.get('chunkIndex')
+        file_size = request.POST.get('fileSize')
+        if int(file_size) > 5 * 1024 * 1024 * 1024:
+            error_message = '文件过大!'
+            return JsonResponse({"code": 400, "error": error_message})
+        local_file_path = settings.TMP_ROOT
+        local_file = '{}/{}'.format(local_file_path, '{}_{}_{}'.format(
+            file_name_md5, file_chunk_count, int(file_chunk_index) + 1)
+        )
+        with open(local_file, 'wb') as f:
+            for chunk in upload_file.chunks():
+                f.write(chunk)
+        complete = file_combine(int(file_size), int(file_chunk_count), local_file_path, file_name, file_name_md5)
+        mess = {
+            "code": 200,
+            "chunkIndex": file_chunk_index,
+            "filename": '{}/{}'.format(local_file_path, file_name),
+            "complete": complete,
+        }
+        return JsonResponse(mess)      # fileinput 分片上传
+    except Exception:
+        logger.error(traceback.format_exc())
+        error_message = '上传文件错误!'
+        return JsonResponse({"code": 401, "error": error_message})
 

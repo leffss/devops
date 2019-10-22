@@ -79,11 +79,11 @@
 				  <td>{{ user.create_time|date:"Y/m/d H:i:s" }}</td>
 				  <td>{{ user.last_login_time|date:"Y/m/d H:i:s"|default:''}}</td>
 				  <td>
-				  <a href="{% url 'user:user' user.id %}" class="btn btn-primary btn-sm mb-1"><i class="fas fa-folder"></i> 详细</a>&nbsp;&nbsp;<a href="{% url 'user:user_edit' user.id %}?next={% if request.META.QUERY_STRING %}{{ request.META.PATH_INFO }}?{{ request.META.QUERY_STRING }}{% else %}{{ request.META.PATH_INFO }}{% endif %}" class="btn btn-info btn-sm mb-1"><i class="fas fa-pencil-alt"></i> 编辑</a>
+				  <a href="{% url 'user:user' user.id %}" class="btn btn-primary btn-sm mb-1"><i class="fas fa-list"></i> 详细</a>&nbsp;&nbsp;<a href="{% url 'user:user_edit' user.id %}?next={% if request.META.QUERY_STRING %}{{ request.META.PATH_INFO }}?{{ request.META.QUERY_STRING }}{% else %}{{ request.META.PATH_INFO }}{% endif %}" class="btn btn-info btn-sm mb-1"><i class="far fa-edit"></i> 编辑</a>
 				  {% if user.groups.all.count == 0 and user.remote_user_bind_hosts.all.count == 0 %}
-				  &nbsp;&nbsp;<a href="javascript:void(0)" id="{{ user.id }}" title="{{ user.username }}" onclick="createdeletemodal(this);" class="btn btn-danger btn-sm mb-1"><i class="fas fa-trash"></i> 删除</a>
+				  &nbsp;&nbsp;<a href="javascript:void(0)" id="{{ user.id }}" title="{{ user.username }}" onclick="createdeletemodal(this);" class="btn btn-danger btn-sm mb-1"><i class="far fa-trash-alt"></i> 删除</a>
 				  {% else %}
-				  &nbsp;&nbsp;<a href="javascript:void(0)" class="btn btn-danger btn-sm disabled mb-1"><i class="fas fa-trash"></i> 删除</a>
+				  &nbsp;&nbsp;<a href="javascript:void(0)" class="btn btn-danger btn-sm disabled mb-1"><i class="far fa-trash-alt"></i> 删除</a>
 				  {% endif %}
 				  </td>
                 </tr>

@@ -212,7 +212,7 @@ class WebSSH(WebsocketConsumer):
                 if self.ssh.cmd:
                     tmp = list(self.ssh.res_asciinema)
                     self.ssh.res_asciinema = []
-                    res(settings.MEDIA_ROOT + '/' + self.ssh.res_file, tmp)
+                    res(self.ssh.res_file, tmp)
             except Exception:
                 print(traceback.format_exc())
 

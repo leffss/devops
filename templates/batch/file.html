@@ -1,0 +1,485 @@
+{% extends 'base.html' %}
+{% load static %}
+
+  {% block title %}
+  <title>上传文件</title>
+  {% endblock title %}
+
+  {% block css %}
+  <!-- bootstrap-fileinput -->
+  <link rel="stylesheet" href="{% static 'bootstrap-fileinput/css/fileinput.min.css' %}">
+  {% endblock css %}
+  
+	{% block navheader %}
+    <section class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-1">
+          <div class="col-12">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item">批量处理</li>
+			  <li class="breadcrumb-item active">上传文件</li>
+            </ol>
+          </div>
+        </div>
+      </div><!-- /.container-fluid -->
+    </section>
+	{% endblock navheader %}
+	
+		  {% block content %}
+          <div class="card card-primary content-list">
+            <div class="card-header">
+              <h3 class="card-title">上传文件</h3>
+				<div class="card-tools">
+				  <!--button type="button" class="btn btn-tool" data-widget="collapse">
+					<i class="fas fa-minus"></i>
+				  </button>
+				  <button type="button" class="btn btn-tool" data-widget="maximize">
+				  <i class="fas fa-expand"></i>
+                  </button>
+				  <button type="button" class="btn btn-tool" data-widget="remove">
+					<i class="fas fa-times"></i>
+				  </button-->
+				</div>
+            </div>
+            <!-- /.card-header -->
+            <div class="card-body row">
+
+				<div class="col-1 pt-1 pb-1">主机组：</div>
+				<div class="col-11 pt-1 pb-1">
+				  <div class="form-group">
+                    <select multiple class="form-control select2_multiple" data-placeholder="请选择主机组" id="host-groups" style="width:100%" onchange="groupSelect()">
+					  <option value="0">所有主机</option>
+					  <option value="-1">自定义主机</option>
+					  {% for group in groups %}
+					  <option value="{{ group.id }}">{{ group.group_name }}</option>
+					  {% endfor %}
+                    </select>
+                  </div>
+				</div>
+				
+				<div class="col-1 pt-1 pb-1">主机：</div>
+				<div class="col-11 pt-1 pb-1">
+				  <div class="form-group">
+                    <select multiple class="form-control select2_multiple" data-placeholder="请选择主机" id="hosts" style="width:100%">
+                    </select>
+                  </div>
+				</div>
+				
+				<div class="col-1 pt-1 pb-1">远程目录/文件：</div><div class="col-11 pt-1 pb-1"><input class="form-control" type="text" id="path" onkeyup="check_path();" onblur="check_path();" placeholder="请输入远程目录/文件，默认/tmp"></div>
+				<div class="offset-1 col-11 pb-1"><small id="path_error" style="color:red;"></small></div>
+
+				<div class="col-1 pt-1 pb-1">选择文件：</div>
+				<div class="col-11 pt-1 pb-1"><input type="file" id="upload_file" class="file pb-2" name="upload_file" required></div>
+				
+				<div class="offset-1 col-10 pt-1 pb-1">
+					<div class="custom-switch custom-switch-on-success">
+                      <input type="checkbox" class="custom-control-input" id="backup" checked>
+                      <label class="custom-control-label" for="backup">
+						  备份文件
+					  </label>
+					  <a href="#" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="right" data-content="如果远程主机已存在文件，备份原文件">
+						<i class="far fa-question-circle"></i>
+					  </a>
+                    </div>
+				</div>
+				
+				<div class="offset-1 col-11 pt-2"><button class="btn btn-success" onclick="uploadFile(this);" id="go">执行</button><span id="feed_error" class="ml-2" style="color:red;"></span></div>
+            </div>
+            <!-- /.card-body -->
+          </div>
+          <!-- /.card --> 
+		  
+		  <div class="card content-list">
+			<div class="card-body row pb-0">
+<pre id="pre" style="width:100%;max-height:0px;background-color: #0c0c0c;color:green;">
+<!--code style="color: white;">开始...</code>
+def hello() {
+	print('hello')
+}
+<code style="color: white;">结束...</code-->
+</pre>
+			</div>
+		  </div>
+		  
+		  {% endblock content %}
+
+{% block js %}
+<!-- ace 编辑器 -->
+<script src="{% static 'ace-new/src-min-noconflict/ace.js' %}"></script>
+<script src="{% static 'ace-new/src-min-noconflict/ext-language_tools.js' %}"></script>
+
+<script>
+	// 校验表单数据
+	check_path = function() {
+		var path = $('#path').val();
+		if (path == '') {
+			$('#path').removeClass("is-invalid");
+			$('#path').removeClass("is-valid");
+			$('#path_error').text('');
+			return true;
+		} else if (!/^\/(\w+\/?)*$/.test(path)) {
+			$('#path').removeClass("is-valid");
+			$('#path').addClass("is-invalid");
+			$('#path_error').text('请输入正确的执行目录');
+			return false;
+		} else {
+			$('#path').removeClass("is-invalid");
+			$('#path').addClass("is-valid");
+			$('#path_error').text('');
+			return true;
+		};
+	}
+
+	// 校验表单数据
+
+	// 选择组
+	groupSelect = function() {
+		toastr.options.closeButton = true;
+		toastr.options.showMethod = 'slideDown';
+		toastr.options.hideMethod = 'fadeOut';
+		toastr.options.closeMethod = 'fadeOut';
+		toastr.options.timeOut = 3000;	
+		toastr.options.extendedTimeOut = 0;	
+		toastr.options.progressBar = true;
+		toastr.options.positionClass = 'toast-top-right'; 
+		
+		var groups = new Array();
+		$("#host-groups option:selected").each(function(){
+			var value = $(this).val();   //获取option值
+			groups.push(value);
+		});
+		groups = groups.join(",");
+		
+		csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
+		
+		var hosts_obj = $('#hosts');
+		hosts_obj.html('');
+		
+		if(groups === "0") {
+			$.ajax({
+				url: "{% url 'batch_api:get_hosts' %}",
+				async: true,
+				type: 'POST',
+				dataType: 'json',
+				data: {
+					'csrfmiddlewaretoken': csrfmiddlewaretoken,
+					'all': true,
+				},
+				timeout: 5000,
+				cache: true,
+				error: function(){
+					toastr.error('获取主机信息错误');
+				},
+				success: function(res){
+					if (res.code != 200) {
+						toastr.error('获取主机信息错误: ' + res.err);
+					} else {
+						let hosts = res.hosts;
+						hosts_obj.val('').trigger('change');
+						for (let i = 0; i < hosts.length; i++) {
+							hosts_obj.append(`<option value=${hosts[i].host_id} selected>${hosts[i].host_hostname}_${hosts[i].host_ip}_${hosts[i].host_username}</option>`);
+						}
+					}
+				},
+			});
+		} else if(groups === "-1") {
+			$.ajax({
+				url: "{% url 'batch_api:get_hosts' %}",
+				async: true,
+				type: 'POST',
+				dataType: 'json',
+				data: {
+					'csrfmiddlewaretoken': csrfmiddlewaretoken,
+					'all': true,
+				},
+				timeout: 5000,
+				cache: true,
+				error: function(){
+					toastr.error('获取主机信息错误');
+				},
+				success: function(res){
+					if (res.code != 200) {
+						toastr.error('获取主机信息错误: ' + res.err);
+					} else {
+						let hosts = res.hosts;
+						hosts_obj.val('').trigger('change');
+						for (let i = 0; i < hosts.length; i++) {
+							hosts_obj.append(`<option value=${hosts[i].host_id}>${hosts[i].host_hostname}_${hosts[i].host_ip}_${hosts[i].host_username}</option>`);
+						}
+					}
+				},
+			});
+		} else if(groups === "0,-1") {
+			$.ajax({
+				url: "{% url 'batch_api:get_hosts' %}",
+				async: true,
+				type: 'POST',
+				dataType: 'json',
+				data: {
+					'csrfmiddlewaretoken': csrfmiddlewaretoken,
+					'all': true,
+				},
+				timeout: 5000,
+				cache: true,
+				error: function(){
+					toastr.error('获取主机信息错误');
+				},
+				success: function(res){
+					if (res.code != 200) {
+						toastr.error('获取主机信息错误: ' + res.err);
+					} else {
+						let hosts = res.hosts;
+						hosts_obj.val('').trigger('change');
+						for (let i = 0; i < hosts.length; i++) {
+							hosts_obj.append(`<option value=${hosts[i].host_id}>${hosts[i].host_hostname}_${hosts[i].host_ip}_${hosts[i].host_username}</option>`);
+						}
+					}
+				},
+			});
+		} else if(groups === "") {
+			//console.log(groups);
+		} else {
+			$.ajax({
+				url: "{% url 'batch_api:get_hosts' %}",
+				async: true,
+				type: 'POST',
+				dataType: 'json',
+				data: {
+					'csrfmiddlewaretoken': csrfmiddlewaretoken,
+					'groups': groups,
+				},
+				timeout: 5000,
+				cache: true,
+				error: function(){
+					toastr.error('获取主机信息错误');
+				},
+				success: function(res){
+					if (res.code != 200) {
+						toastr.error('获取主机信息错误: ' + res.err);
+					} else {
+						let hosts = res.hosts;
+						hosts_obj.val('').trigger('change');
+						for (let i = 0; i < hosts.length; i++) {
+							hosts_obj.append(`<option value=${hosts[i].host_id} selected>${hosts[i].host_hostname}_${hosts[i].host_ip}_${hosts[i].host_username}</option>`);
+						}
+					}
+				},
+			});
+		};
+	};
+	// 选择组
+
+	// 提交文件
+	uploadFile = function(event) {
+		toastr.options.closeButton = true;
+		toastr.options.showMethod = 'slideDown';
+		toastr.options.hideMethod = 'fadeOut';
+		toastr.options.closeMethod = 'fadeOut';
+		toastr.options.timeOut = 3000;	
+		toastr.options.extendedTimeOut = 0;	
+		toastr.options.progressBar = true;
+		toastr.options.positionClass = 'toast-top-right'; 
+		
+		$(event).removeAttr("onclick");
+		$(event).attr("disabled", true);
+		
+		var files = $('#upload_file').fileinput('getFileStack');
+		fstack = new Array();
+		$.each(files, function(fileId, fileObj) {
+			if (fileObj !== undefined) {
+				fstack.push(fileObj);
+			}
+		});
+		if (fstack.length == 0) {
+			$('#feed_error').text('请选择正确的文件');
+			$(event).removeAttr("disabled");
+			$(event).attr("onclick", "uploadFile(this);");
+			return false;
+		};
+				
+		var check_right = new Array();
+
+		//var path = $('#path').val();
+		check_right[0] = check_path();
+		
+		var hosts = new Array();
+		$("#hosts option:selected").each(function(){
+			var value = $(this).val();   //获取option值
+			hosts.push(value);
+		});
+		hosts = hosts.join(",")
+		
+		if (hosts === "") {
+			$('#feed_error').text('请选择主机');
+			$(event).removeAttr("disabled");
+			$(event).attr("onclick", "uploadFile(this);");
+			return false;
+		};
+		
+		if (!/false/.test(check_right)) {
+			$('#feed_error').text('');
+			$("#upload_file").fileinput('upload');
+		} else {
+			$('#feed_error').text('请输入正确的参数');
+			$(event).removeAttr("disabled");
+			$(event).attr("onclick", "uploadFile(this);");
+			return false;
+		};
+	};
+	// 提交文件
+	
+</script>
+
+<!-- bootstrap-fileinput -->
+<script src="{% static 'bootstrap-fileinput/js/fileinput.min.js' %}"></script>
+<!--script src="{% static 'bootstrap-fileinput/js/locales/zh.js' %}"></script-->
+<script>
+	// 选择脚本 -- start
+	$("#upload_file").fileinput({
+        language: 'zh',
+        showUpload: false,
+		uploadAsync: false,
+        dropZoneEnabled: false,
+        msgPlaceholder: '选择文件，最大支持5GB',
+        showPreview: false,
+		autoReplace: true,
+        showCaption: true,
+		showCancel: false,
+        maxFileSize: 5242880,	// 单位kb，最大文件5GB，
+        maxFileCount: 1,
+		//allowedFileExtensions: ["sh", "py", "pl", "rb"],
+        uploadUrl: "{% url 'batch_api:upload' %}",
+		enableResumableUpload: true,
+		resumableUploadOptions: {
+            chunkSize: 25600, // 分片大小 25 MB，设置更大速度更块一些，但是服务器侧占用资源也较多
+        },
+		mergeAjaxCallbacks: true,
+		ajaxSettings: {
+			headers: {'X-CSRFToken': '{{ csrf_token }}'},
+			success: function (response) {
+				if (response.code != 200) {
+					console.log("上传错误", response);
+					toastr.options.closeButton = true;
+					toastr.options.showMethod = 'slideDown';
+					toastr.options.hideMethod = 'fadeOut';
+					toastr.options.closeMethod = 'fadeOut';
+					toastr.options.timeOut = 0;	
+					toastr.options.extendedTimeOut = 3000;	
+					toastr.options.progressBar = true;
+					toastr.options.positionClass = 'toast-top-right';
+					toastr.error("上传错误：" + response.error);
+				} else if (response.code == 200 && response.complete == true) {
+					console.log("上传成功", response);
+					toastr.options.closeButton = true;
+					toastr.options.showMethod = 'slideDown';
+					toastr.options.hideMethod = 'fadeOut';
+					toastr.options.closeMethod = 'fadeOut';
+					toastr.options.timeOut = 0;	
+					toastr.options.extendedTimeOut = 3000;	
+					toastr.options.progressBar = true;
+					toastr.options.positionClass = 'toast-top-right';
+					
+					var path = $('#path').val();
+					var hosts = new Array();
+					$("#hosts option:selected").each(function(){
+						var value = $(this).val();   //获取option值
+						hosts.push(value);
+					});
+					hosts = hosts.join(",");
+					
+					var backup;
+					if ($("#backup").is(':checked')) {
+						backup = true;
+					} else {
+						backup = false;
+					}
+					
+					filename = response.filename;
+					
+					let protocol = (location.protocol === 'https:') ? 'wss://' : 'ws://';
+					let socketURL = protocol + location.hostname + ((location.port) ? (':' + location.port) : '') + '/ws/file/';
+					let socket = new WebSocket(socketURL);
+					let obj = $('#pre');
+					let data = {
+						"hosts": hosts,
+						"dst": path,
+						"backup": backup,
+						"src": filename
+					};
+					//console.log(data);
+					socket.onopen = function () {
+						obj.css("max-height","720px");
+						obj.html('\n开始执行...\n\n');
+						socket.send(JSON.stringify(data));
+						$('#path').removeClass("is-invalid");
+						$('#path').removeClass("is-valid");
+						$('#path').val("");
+						$('#path_error').text("");
+					};
+
+					socket.onmessage = function (e) {
+						let data = JSON.parse(e.data);
+						if (data.status === 0) {
+							obj.append(data.message + '\n\n');
+						} else {
+							toastr.error(data.message + '\n\n');
+						}
+					};
+
+					socket.onclose = function () {
+						$('#go').removeAttr("disabled");
+						$('#go').attr("onclick", "uploadFile(this);");
+						$("#upload_file").fileinput('clear');
+						// obj.append('\n<code>执行完毕....</code>');
+					};
+				} else {
+					//
+				}
+            },
+			error: function (response) {
+				console.log("上传失败", response);
+				toastr.options.closeButton = true;
+				toastr.options.showMethod = 'slideDown';
+				toastr.options.hideMethod = 'fadeOut';
+				toastr.options.closeMethod = 'fadeOut';
+				toastr.options.timeOut = 0;	
+				toastr.options.extendedTimeOut = 3000;
+				toastr.options.progressBar = true;
+				toastr.options.positionClass = 'toast-top-right';
+				toastr.error('文件上传失败');
+				$('#feed_error').text('文件上传失败');
+				$('#go').removeAttr("disabled");
+				$('#go').attr("onclick", "uploadFile(this);");
+			},
+		},
+        browseLabel: '选择',
+        removeLabel: '清空',
+        uploadLabel: '上传',
+    }).on('fileuploaderror', function(event, data, msg) {	// ajax上传时触发，并且主要针对ajax上传时遇到上载或文件输入验证错误(大小、格式不正确)
+		toastr.options.closeButton = true;
+		toastr.options.showMethod = 'slideDown';
+		toastr.options.hideMethod = 'fadeOut';
+		toastr.options.closeMethod = 'fadeOut';
+		toastr.options.timeOut = 0;	
+		toastr.options.extendedTimeOut = 3000;
+		toastr.options.progressBar = true;
+		toastr.options.positionClass = 'toast-top-right';
+		if (data.files[0].size > 5 * 1024 * 1024 * 1024) {
+			toastr.error('文件大小不能超过5GB');
+		} else {
+			toastr.error('文件读取错误');
+		};
+    }).on('fileloaded', function(event, file, previewId, index, reader) {
+		//
+	}).on('fileclear', function(event) {
+		//
+    });
+	// 选择脚本 -- end
+</script>
+
+<script>
+	$(document).ready(function(){
+		$('[data-toggle="popover"]').popover();   
+	});
+</script>
+{% endblock js %}

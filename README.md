@@ -48,7 +48,64 @@ sh start_docker.sh
 
 账号： admin     密码：123456
 
-*提醒：* 以上部署方式都是开发环境，正式环境部署为 nginx + daphne，具体方法等后面功能做得差不多了再更新。
+**提醒：** 以上部署方式都是开发环境，正式环境部署一般为 nginx(静态资源处理和请求的分发) + uwsgi/gunicorn(处理http) + daphne(处理websocket)，具体方法等后面功能做得差不多了再更新。
+
+**使用 mysql 数据库**
+以上是使用的 django 默认的数据库是 sqlite3，如果需要使用 mysql 数据库，方法如下：
+首先安装pymysql：
+```
+pip install pymysql
+```
+修改 devops/settings.py 中的 `DATABASES` 配置：
+```
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'devops',
+        'USER':'devops',
+        'PASSWORD':'devops',
+        'HOST':'192.168.223.111',
+        'PORT':'3306',
+        'OPTIONS': {
+            # 'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            'init_command': "SET sql_mode=''",
+         },
+    }
+}
+```
+- 数据库 devops 以及账号 devops 必须事先在 mysql 数据库中创建好并授权。
+
+在 devops/____init____.py 中添加配置：
+```
+import pymysql
+
+pymysql.install_as_MySQLdb()
+```
+然后执行数据库迁移时不出意外会出现以下提示
+```
+django.core.exceptions.ImproperlyConfigured: mysqlclient 1.3.13 or newer is required; you have 0.9.3.
+```
+原因是 django 2.2 默认使用 `MySQLdb` 连接 mysql，但是 python3 已经摒弃这个库，改用 `pymysql`。网上解决方法一般2种：
+- 将 django 降低到 2.14 以下即可：这个不用想，降你妹，老子就要用最新的！
+- 修改 django 代码支持，就选它了。
+
+修改方法：
+
+**首先**在`[python安装目录内]/site-packages/django/db/backends/mysql/base.py` 中找到以下代码并**注释**：
+```
+if version < (1, 3, 13):
+    raise ImproperlyConfigured('mysqlclient 1.3.13 or newer is required; you have %s.' % Database.__version__)
+```
+
+**然后**将`[python安装目录内]/site-packages/django/db/backends/mysql/operations.py` 中 146 行找到以下代码：
+```
+query = query.decode(errors='replace')
+```
+修改为
+```
+query = query.encode(errors='replace')
+```
+再次运行就 ok 了。
 
 
 # 功能
@@ -57,12 +114,19 @@ sh start_docker.sh
 
 # 升级日志
 
+### ver1.8.1
+完善批量执行命令（增加日志记录）；
+
+新增批量执行脚本（基于 ansible）；
+
+新增批量上传文件（基于 ansible）；
+
 ### ver1.8.0
 新增主机组；
 
-新增自动获取主机详细信息，比如CPU，内存等（基于ansible，仅支持liunx主机）；
+新增自动获取主机详细信息，比如 CPU，内存等（基于 ansible，仅支持 liunx 主机）；
 
-新增批量执行命令（基于ansible）；
+新增批量执行命令（基于 ansible）；
 
 优化 UI 界面，加入 select2 选项框插件；
 
@@ -152,11 +216,14 @@ linux 平台下使用 celery 任务保存终端会话日志与录像（windows �
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/16.PNG?raw=true)
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/17.PNG?raw=true)
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/18.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/19.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/20.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/21.PNG?raw=true)
 
 # TODO LISTS
-- [ ] 批量执行脚本
-- [ ] 批量上传文件
 - [ ] 集成 ansible，执行 module 与 playbook
+- [ ] docker 容器管理
+- [ ] k8s 集群管理
 
 
 更多新功能不断探索发现中.

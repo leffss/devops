@@ -1,7 +1,8 @@
 #!/usr/bin/env python
-""" 初始化创建 admin 账号"""
 import os
 import sys
+import datetime
+import time
 
 
 def main():
@@ -18,8 +19,22 @@ def main():
     print(type(cache.get('test_123')))
     
     cache.delete('leffss')
-    
-    
+
+
+def convert_byte(byte):
+    byte = int(byte)
+    if byte <= 1024:
+        return '{} B'.format(byte)
+    elif 1024 < byte <= 1048576:
+        return '{} KB'.format('%.2f' % (byte / 1024))
+    elif 1048576 < byte <= 1073741824:
+        return '{} MB'.format('%.2f' % (byte / 1024 / 1024))
+    elif 1073741824 < byte <= 1099511627776:
+        return '{} GB'.format('%.2f' % (byte / 1024 / 1024 / 1024))
+    elif byte > 1099511627776:
+        return '{} TB'.format('%.2f' % (byte / 1024 / 1024 / 1024 / 1024))
+
+
 if __name__ == '__main__':
     # main()
     # x = b'\xe8\xb5'
@@ -32,9 +47,17 @@ if __name__ == '__main__':
     # print(a[0:2])
     # print(a[100:])
 
-    msg = format('PLAY_{}'.format('xx'), '*<50')
-    print(msg)
+    # msg = format('PLAY_{}'.format('xx'), '*<50')
+    # print(msg)
+    #
+    # msg = format('xx_{}'.format('yyy'), '*<50')
+    # print(msg)
+    #
+    # a = {'hosts': '5,4,3,2,1', 'dst': '', 'backup': True, 'src': '/devops/media/tmp/hello.yml'}
+    # if 'hosts' not in a:
+    #     print('hosts not in')
 
-    msg = format('xx_{}'.format('yyy'), '*<50')
-    print(msg)
+    # a = 2588262400
+    a = 1048576
+    print(convert_byte(a))
 

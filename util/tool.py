@@ -25,7 +25,10 @@ except Exception:
 def login_required(func):
     @wraps(func)    # 保留原函数信息，重要
     def wrapper(request, *args, **kwargs):
-        if not request.session.get('islogin', None):
+        try:
+            if not request.session.get('islogin', None):
+                return redirect(reverse('user:login'))
+        except Exception:
             return redirect(reverse('user:login'))
         lasttime = int(request.session.get('lasttime'))
         now = int(time.time())
@@ -96,6 +99,7 @@ def terminal_log(user, hostname, ip, protocol, port, username, cmd, detail, addr
 
 
 def res(res_file, res, enter=True):
+    res_file = settings.MEDIA_ROOT + '/' + res_file
     if platform.system().lower() in ['linux', 'unix']:
         task_save_res.delay(res_file, res, enter)
     else:
@@ -151,4 +155,18 @@ def file_combine(file_size, file_count, file_path, file_name, file_name_md5):
                 return False
     except Exception:
         return False
+
+
+def convert_byte(byte):
+    byte = int(byte)
+    if byte <= 1024:
+        return '{} B'.format(byte)
+    elif 1024 < byte <= 1048576:
+        return '{} KB'.format('%.2f' % (byte / 1024))
+    elif 1048576 < byte <= 1073741824:
+        return '{} MB'.format('%.2f' % (byte / 1024 / 1024))
+    elif 1073741824 < byte <= 1099511627776:
+        return '{} GB'.format('%.2f' % (byte / 1024 / 1024 / 1024))
+    elif byte > 1099511627776:
+        return '{} TB'.format('%.2f' % (byte / 1024 / 1024 / 1024 / 1024))
 

@@ -43,7 +43,7 @@ function websocket() {
         }
         ),
         protocol = (location.protocol === 'https:') ? 'wss://' : 'ws://';
-        socketURL = protocol + location.hostname + ((location.port) ? (':' + location.port) : '') + '/webssh/?' + connect_info + '&width=' + cols + '&height=' + rows;
+        socketURL = protocol + location.hostname + ((location.port) ? (':' + location.port) : '') + '/ws/webssh/?' + connect_info + '&width=' + cols + '&height=' + rows;
 
 	//var sock;
 	sock = new WebSocket(socketURL);

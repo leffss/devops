@@ -1,10 +1,21 @@
 from devops.celery import app
-from util.ansible_api import BaseInventory, AnsibleAPI, SetupCallbackModule, ModuleCallbackModule
+from util.ansible_api import AnsibleAPI
+from util.callback import SetupCallbackModule, ModuleCallbackModule, CopyCallbackModule
+from util.inventory import BaseInventory
 from server.models import RemoteUserBindHost, ServerDetail
 from webssh.models import TerminalLog
 from user.models import LoginLog
+from django.conf import settings
 import json
 import traceback
+import os
+import time
+import random
+
+
+# 生成随机字符串
+def gen_rand_char(length=10, chars='0123456789zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA'):
+    return ''.join(random.sample(chars, length))
 
 
 @app.task()
@@ -69,9 +80,11 @@ def task_host_update_info(hostinfo):
 
 
 @app.task()
-def task_run_cmd(hosts, group, cmd, issuperuser=False):
+def task_run_cmd(hosts, group, cmd, user, user_agent, client, issuperuser=False):
     host_data = list()
+    _hosts = ''
     for host in hosts:
+        _hosts += '{}_{}_{}\n'.format(host['hostname'], host['ip'], host['username'])
         hostinfo = dict()
         hostinfo['hostname'] = host['hostname']
         hostinfo['ip'] = host['ip']
@@ -87,12 +100,102 @@ def task_run_cmd(hosts, group, cmd, issuperuser=False):
                 }
         host_data.append(hostinfo)
     inventory = BaseInventory(host_data)
-    callback = ModuleCallbackModule(group=group, cmd=cmd)
+    callback = ModuleCallbackModule(group, cmd=cmd, user=user, user_agent=user_agent, client=client, _hosts=_hosts)
     ansible_api = AnsibleAPI(
         dynamic_inventory=inventory,
         callback=callback
     )
     ansible_api.run_cmd(cmds=cmd, hosts='all', group=group)
+
+
+@app.task()
+def task_run_script(hosts, group, data, user, user_agent, client, issuperuser=False):
+    host_data = list()
+    _hosts = ''
+    for host in hosts:
+        _hosts += '{}_{}_{}\n'.format(host['hostname'], host['ip'], host['username'])
+        hostinfo = dict()
+        hostinfo['hostname'] = host['hostname']
+        hostinfo['ip'] = host['ip']
+        hostinfo['port'] = host['port']
+        hostinfo['username'] = host['username']
+        hostinfo['password'] = host['password']
+        if issuperuser:
+            if host['superusername']:
+                hostinfo['become'] = {
+                    'method': 'su',
+                    'user': host['superusername'],
+                    'pass': host['superpassword']
+                }
+        host_data.append(hostinfo)
+    inventory = BaseInventory(host_data)
+    callback = ModuleCallbackModule(group, cmd=data['script_name'], user=user, user_agent=user_agent, client=client, _hosts=_hosts)
+    ansible_api = AnsibleAPI(
+        dynamic_inventory=inventory,
+        callback=callback
+    )
+    path = data.get('path', '/tmp')
+    if path == '':
+        path = '/tmp'
+    exec = data.get('exec', '')
+    script_name = data.get('script_name', '')
+    script = data.get('script', '')
+
+    now = time.time()
+    tmp_date = time.strftime("%Y-%m-%d", time.localtime(int(now)))
+    if not os.path.isdir(os.path.join(settings.SCRIPT_ROOT, tmp_date)):
+        os.makedirs(os.path.join(settings.SCRIPT_ROOT, tmp_date))
+    script_file = settings.SCRIPT_DIR + '/' + tmp_date + '/' + gen_rand_char(16) + '_' + script_name
+    res_file = settings.MEDIA_ROOT + '/' + script_file
+    with open(res_file, 'w+') as f:
+        f.write(script)
+    cmds = '{}'.format(res_file)
+    cmds = cmds + ' ' + 'chdir={}'.format(path)
+    if exec:
+        cmds = cmds + ' ' + 'executable={}'.format(exec)
+    else:
+        if script_name.split('.')[-1] == 'py':
+            cmds = cmds + ' ' + 'executable=/usr/bin/python'
+        elif script_name.split('.')[-1] == 'pl':
+            cmds = cmds + ' ' + 'executable=/usr/bin/perl'
+        elif script_name.split('.')[-1] == 'rb':
+            cmds = cmds + ' ' + 'executable=/usr/bin/ruby'
+    ansible_api.run_script(cmds=cmds, hosts='all', group=group, script=script_file)
+
+
+@app.task()
+def task_run_file(hosts, group, data, user, user_agent, client, issuperuser=False):
+    host_data = list()
+    _hosts = ''
+    for host in hosts:
+        _hosts += '{}_{}_{}\n'.format(host['hostname'], host['ip'], host['username'])
+        hostinfo = dict()
+        hostinfo['hostname'] = host['hostname']
+        hostinfo['ip'] = host['ip']
+        hostinfo['port'] = host['port']
+        hostinfo['username'] = host['username']
+        hostinfo['password'] = host['password']
+        if issuperuser:
+            if host['superusername']:
+                hostinfo['become'] = {
+                    'method': 'su',
+                    'user': host['superusername'],
+                    'pass': host['superpassword']
+                }
+        host_data.append(hostinfo)
+    src = data.get('src')
+    dst = data.get('dst', '/tmp')
+    if dst == '':
+        dst = '/tmp'
+    backup = data.get('backup', True)
+    cmds = 'src={} dest={} backup={} decrypt=False'.format(src, dst, backup)
+    inventory = BaseInventory(host_data)
+    callback = CopyCallbackModule(group, src=src, dst=dst, user=user, user_agent=user_agent, client=client, _hosts=_hosts)
+    ansible_api = AnsibleAPI(
+        dynamic_inventory=inventory,
+        callback=callback
+    )
+    ansible_api.run_copy(cmds=cmds, hosts='all', group=group)
 
 
 @app.task(ignore_result=True)
@@ -193,4 +296,5 @@ def task_test():
     # ansible_api.run_module(module_name='setup', module_args='', hosts='k8s')
     # ansible_api.run_module(module_name='shell', module_args='echo "1" >> /tmp/test.txt', hosts='k8s')
     ansible_api.get_result()
+
 

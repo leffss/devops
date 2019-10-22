@@ -1,0 +1,502 @@
+{% extends 'base.html' %}
+{% load static %}
+
+  {% block title %}
+  <title>批量脚本</title>
+  {% endblock title %}
+
+  {% block css %}
+  <!-- bootstrap-fileinput -->
+  <link rel="stylesheet" href="{% static 'bootstrap-fileinput/css/fileinput.min.css' %}">
+  {% endblock css %}
+  
+	{% block navheader %}
+    <section class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-1">
+          <div class="col-12">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item">批量处理</li>
+			  <li class="breadcrumb-item active">批量脚本</li>
+            </ol>
+          </div>
+        </div>
+      </div><!-- /.container-fluid -->
+    </section>
+	{% endblock navheader %}
+	
+		  {% block content %}
+          <div class="card card-primary content-list">
+            <div class="card-header">
+              <h3 class="card-title">批量脚本</h3>
+				<div class="card-tools">
+				  <!--button type="button" class="btn btn-tool" data-widget="collapse">
+					<i class="fas fa-minus"></i>
+				  </button>
+				  <button type="button" class="btn btn-tool" data-widget="maximize">
+				  <i class="fas fa-expand"></i>
+                  </button>
+				  <button type="button" class="btn btn-tool" data-widget="remove">
+					<i class="fas fa-times"></i>
+				  </button-->
+				</div>
+            </div>
+            <!-- /.card-header -->
+            <div class="card-body row">
+
+				<div class="col-1 pt-1 pb-1">主机组：</div>
+				<div class="col-11 pt-1 pb-1">
+				  <div class="form-group">
+                    <select multiple class="form-control select2_multiple" data-placeholder="请选择主机组" id="host-groups" style="width:100%" onchange="groupSelect()">
+					  <option value="0">所有主机</option>
+					  <option value="-1">自定义主机</option>
+					  {% for group in groups %}
+					  <option value="{{ group.id }}">{{ group.group_name }}</option>
+					  {% endfor %}
+                    </select>
+                  </div>
+				</div>
+				
+				<div class="col-1 pt-1 pb-1">主机：</div>
+				<div class="col-11 pt-1 pb-1">
+				  <div class="form-group">
+                    <select multiple class="form-control select2_multiple" data-placeholder="请选择主机" id="hosts" style="width:100%">
+                    </select>
+                  </div>
+				</div>
+				
+				<div class="col-1 pt-1 pb-1">执行目录：</div><div class="col-11 pt-1 pb-1"><input class="form-control" type="text" id="path" onkeyup="check_path();" onblur="check_path();" placeholder="请输入脚本执行目录，默认/tmp"></div>
+				<div class="offset-1 col-11 pb-1"><small id="path_error" style="color:red;"></small></div>
+
+				<div class="col-1 pt-1 pb-1">执行程序：</div><div class="col-11 pt-1 pb-1"><input class="form-control" type="text" id="exec" onkeyup="check_exec();" onblur="check_exec();" placeholder="请输入脚本执行程序，默认/bin/sh"></div>
+				<div class="offset-1 col-11 pb-1"><small id="exec_error" style="color:red;"></small></div>
+				
+				<div class="col-1 pt-1 pb-1">选择脚本：</div>
+				<div class="col-11 pt-1 pb-1"><input type="file" id="upload_file" class="file pb-2" name="upload_file" required></div>
+				<div class="offset-1 col-11 pb-1 pt-1"><div id="script-content"></div><div id="script-name" hidden></div></div>
+				
+				<div class="offset-1 col-11 pt-2"><button class="btn btn-success" onclick="runScript(this);">执行</button><span id="feed_error" class="ml-2" style="color:red;"></span></div>
+            </div>
+            <!-- /.card-body -->
+          </div>
+          <!-- /.card --> 
+		  
+		  <div class="card content-list">
+			<div class="card-body row pb-0">
+<pre id="pre" style="width:100%;max-height:0px;background-color: #0c0c0c;color:green;">
+<!--code style="color: white;">开始...</code>
+def hello() {
+	print('hello')
+}
+<code style="color: white;">结束...</code-->
+</pre>
+			</div>
+		  </div>
+		  
+		  {% endblock content %}
+
+{% block js %}
+
+
+<!-- ace 编辑器 -->
+<script src="{% static 'ace-new/src-min-noconflict/ace.js' %}"></script>
+<script src="{% static 'ace-new/src-min-noconflict/ext-language_tools.js' %}"></script>
+
+<script>
+	// 校验表单数据
+	check_path = function() {
+		var path = $('#path').val();
+		if (path == '') {
+			$('#path').removeClass("is-invalid");
+			$('#path').removeClass("is-valid");
+			$('#path_error').text('');
+			return true;
+		} else if (!/^\/(\w+\/?)*$/.test(path)) {
+			$('#path').removeClass("is-valid");
+			$('#path').addClass("is-invalid");
+			$('#path_error').text('请输入正确的执行目录');
+			return false;
+		} else {
+			$('#path').removeClass("is-invalid");
+			$('#path').addClass("is-valid");
+			$('#path_error').text('');
+			return true;
+		};
+	}
+	
+	check_exec = function() {
+		var exec = $('#exec').val();
+		if (exec == '') {
+			$('#exec').removeClass("is-invalid");
+			$('#exec').removeClass("is-valid");
+			$('#exec_error').text('');
+			return true;
+		} else if (!/^\/(\w+\/?)+$/.test(exec)) {
+			$('#exec').removeClass("is-valid");
+			$('#exec').addClass("is-invalid");
+			$('#exec_error').text('请输入正确的执行程序');
+			return false;
+		} else {
+			$('#exec').removeClass("is-invalid");
+			$('#exec').addClass("is-valid");
+			$('#exec_error').text('');
+			return true;
+		};
+	}
+	// 校验表单数据
+
+	// 选择组
+	groupSelect = function() {
+		toastr.options.closeButton = true;
+		toastr.options.showMethod = 'slideDown';
+		toastr.options.hideMethod = 'fadeOut';
+		toastr.options.closeMethod = 'fadeOut';
+		toastr.options.timeOut = 3000;	
+		toastr.options.extendedTimeOut = 0;	
+		toastr.options.progressBar = true;
+		toastr.options.positionClass = 'toast-top-right'; 
+		
+		var groups = new Array();
+		$("#host-groups option:selected").each(function(){
+			var value = $(this).val();   //获取option值
+			groups.push(value);
+		});
+		groups = groups.join(",");
+		
+		csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
+		
+		var hosts_obj = $('#hosts');
+		hosts_obj.html('');
+		
+		if(groups === "0") {
+			$.ajax({
+				url: "{% url 'batch_api:get_hosts' %}",
+				async: true,
+				type: 'POST',
+				dataType: 'json',
+				data: {
+					'csrfmiddlewaretoken': csrfmiddlewaretoken,
+					'all': true,
+				},
+				timeout: 5000,
+				cache: true,
+				error: function(){
+					toastr.error('获取主机信息错误');
+				},
+				success: function(res){
+					if (res.code != 200) {
+						toastr.error('获取主机信息错误: ' + res.err);
+					} else {
+						let hosts = res.hosts;
+						hosts_obj.val('').trigger('change');
+						for (let i = 0; i < hosts.length; i++) {
+							hosts_obj.append(`<option value=${hosts[i].host_id} selected>${hosts[i].host_hostname}_${hosts[i].host_ip}_${hosts[i].host_username}</option>`);
+						}
+					}
+				},
+			});
+		} else if(groups === "-1") {
+			$.ajax({
+				url: "{% url 'batch_api:get_hosts' %}",
+				async: true,
+				type: 'POST',
+				dataType: 'json',
+				data: {
+					'csrfmiddlewaretoken': csrfmiddlewaretoken,
+					'all': true,
+				},
+				timeout: 5000,
+				cache: true,
+				error: function(){
+					toastr.error('获取主机信息错误');
+				},
+				success: function(res){
+					if (res.code != 200) {
+						toastr.error('获取主机信息错误: ' + res.err);
+					} else {
+						let hosts = res.hosts;
+						hosts_obj.val('').trigger('change');
+						for (let i = 0; i < hosts.length; i++) {
+							hosts_obj.append(`<option value=${hosts[i].host_id}>${hosts[i].host_hostname}_${hosts[i].host_ip}_${hosts[i].host_username}</option>`);
+						}
+					}
+				},
+			});
+		} else if(groups === "0,-1") {
+			$.ajax({
+				url: "{% url 'batch_api:get_hosts' %}",
+				async: true,
+				type: 'POST',
+				dataType: 'json',
+				data: {
+					'csrfmiddlewaretoken': csrfmiddlewaretoken,
+					'all': true,
+				},
+				timeout: 5000,
+				cache: true,
+				error: function(){
+					toastr.error('获取主机信息错误');
+				},
+				success: function(res){
+					if (res.code != 200) {
+						toastr.error('获取主机信息错误: ' + res.err);
+					} else {
+						let hosts = res.hosts;
+						hosts_obj.val('').trigger('change');
+						for (let i = 0; i < hosts.length; i++) {
+							hosts_obj.append(`<option value=${hosts[i].host_id}>${hosts[i].host_hostname}_${hosts[i].host_ip}_${hosts[i].host_username}</option>`);
+						}
+					}
+				},
+			});
+		} else if(groups === "") {
+			//console.log(groups);
+		} else {
+			$.ajax({
+				url: "{% url 'batch_api:get_hosts' %}",
+				async: true,
+				type: 'POST',
+				dataType: 'json',
+				data: {
+					'csrfmiddlewaretoken': csrfmiddlewaretoken,
+					'groups': groups,
+				},
+				timeout: 5000,
+				cache: true,
+				error: function(){
+					toastr.error('获取主机信息错误');
+				},
+				success: function(res){
+					if (res.code != 200) {
+						toastr.error('获取主机信息错误: ' + res.err);
+					} else {
+						let hosts = res.hosts;
+						hosts_obj.val('').trigger('change');
+						for (let i = 0; i < hosts.length; i++) {
+							hosts_obj.append(`<option value=${hosts[i].host_id} selected>${hosts[i].host_hostname}_${hosts[i].host_ip}_${hosts[i].host_username}</option>`);
+						}
+					}
+				},
+			});
+		};
+	};
+	// 选择组
+
+	// 提交脚本
+	runScript = function(event) {
+		toastr.options.closeButton = true;
+		toastr.options.showMethod = 'slideDown';
+		toastr.options.hideMethod = 'fadeOut';
+		toastr.options.closeMethod = 'fadeOut';
+		toastr.options.timeOut = 3000;	
+		toastr.options.extendedTimeOut = 0;	
+		toastr.options.progressBar = true;
+		toastr.options.positionClass = 'toast-top-right'; 
+		
+		$(event).removeAttr("onclick");
+		$(event).attr("disabled", true);
+		
+		var files = $('#upload_file').fileinput('getFileStack');
+		fstack = new Array();
+		$.each(files, function(fileId, fileObj) {
+			if (fileObj !== undefined) {
+				fstack.push(fileObj);
+			}
+		});
+		if (fstack.length == 0) {
+			$('#feed_error').text('请选择正确的脚本');
+			$(event).removeAttr("disabled");
+			$(event).attr("onclick", "runScript(this);");
+			return false;
+		};
+				
+		var check_right = new Array();
+
+		var path = $('#path').val();
+		check_right[0] = check_path();
+		
+		var exec = $('#exec').val();
+		check_right[1] = check_exec();
+		
+		// script = $('#script-content').text();
+		script = ace.edit("script-content").getSession().getValue();	// 获取ace编辑器内容
+		script_name = $('#script-name').text();
+
+		var hosts = new Array();
+		$("#hosts option:selected").each(function(){
+			var value = $(this).val();   //获取option值
+			hosts.push(value);
+		});
+		hosts = hosts.join(",")
+		
+		if (hosts === "") {
+			$('#feed_error').text('请选择主机');
+			$(event).removeAttr("disabled");
+			$(event).attr("onclick", "runScript(this);");
+			return false;
+		};
+		
+		if (!/false/.test(check_right)) {
+			$('#feed_error').text('');
+			toastr.options.closeButton = true;
+			toastr.options.showMethod = 'slideDown';
+			toastr.options.hideMethod = 'fadeOut';
+			toastr.options.closeMethod = 'fadeOut';
+			toastr.options.timeOut = 0;	
+			toastr.options.extendedTimeOut = 3000;	
+			toastr.options.progressBar = true;
+			toastr.options.positionClass = 'toast-top-right';
+			let protocol = (location.protocol === 'https:') ? 'wss://' : 'ws://';
+			let socketURL = protocol + location.hostname + ((location.port) ? (':' + location.port) : '') + '/ws/script/';
+			let socket = new WebSocket(socketURL);
+			let obj = $('#pre');
+			let data = {
+                "hosts": hosts,
+                "path": path,
+				"exec": exec,
+				"script": script,
+				"script_name": script_name,
+            };
+			
+			socket.onopen = function () {
+				obj.css("max-height","720px");
+				obj.html('\n开始执行...\n\n');
+				socket.send(JSON.stringify(data));
+				$('#path').removeClass("is-invalid");
+				$('#path').removeClass("is-valid");
+				$('#path').val("");
+				$('#exec').removeClass("is-invalid");
+				$('#exec').removeClass("is-valid");
+				$('#exec').val("");
+				$('#path_error').text("");
+            };
+
+            socket.onmessage = function (e) {
+				let data = JSON.parse(e.data);
+				if (data.status === 0) {
+					obj.append(data.message + '\n\n');
+				} else {
+					toastr.error(data.message + '\n\n');
+				}
+            };
+
+            socket.onclose = function () {
+				$(event).removeAttr("disabled");
+				$(event).attr("onclick", "runScript(this);");
+				$("#upload_file").fileinput('clear');
+                // obj.append('\n<code>执行完毕....</code>');
+            };
+		} else {
+			$('#feed_error').text('请输入正确的参数');
+			$(event).removeAttr("disabled");
+			$(event).attr("onclick", "runScript(this);");
+			return false;
+		};
+	};
+	// 提交脚本
+	
+</script>
+
+<!-- bootstrap-fileinput -->
+<script src="{% static 'bootstrap-fileinput/js/fileinput.min.js' %}"></script>
+<!--script src="{% static 'bootstrap-fileinput/js/locales/zh.js' %}"></script-->
+<script>
+	// 选择脚本 -- start
+	$("#upload_file").fileinput({
+        language: 'zh',
+        showUpload: false,
+		uploadAsync: false,
+        dropZoneEnabled: false,
+        msgPlaceholder: '选择脚本，支持 sh、py、pl、rb 类型，最大支持2MB',
+        showPreview: false,
+		autoReplace: true,
+        showCaption: true,
+		showCancel: false,
+        maxFileSize: 2048,	// 单位kb，最大文件5MB，
+        maxFileCount: 1,
+		allowedFileExtensions: ["sh", "py", "pl", "rb"],
+        uploadUrl: "/nothing",
+		mergeAjaxCallbacks: true,
+		ajaxSettings: {
+			headers: {'X-CSRFToken': '{{ csrf_token }}'},
+			success: function (response) {
+				console.log("上传成功", response);
+            },
+			error: function (response) {
+				console.log("上传失败", response);
+			},
+		},
+        browseLabel: '选择',
+        removeLabel: '清空',
+        uploadLabel: '上传',
+    }).on('fileuploaderror', function(event, data, msg) {	// ajax上传时触发，并且主要针对ajax上传时遇到上载或文件输入验证错误(大小、格式不正确)
+		toastr.options.closeButton = true;
+		toastr.options.showMethod = 'slideDown';
+		toastr.options.hideMethod = 'fadeOut';
+		toastr.options.closeMethod = 'fadeOut';
+		toastr.options.timeOut = 0;	
+		toastr.options.extendedTimeOut = 3000;
+		toastr.options.progressBar = true;
+		toastr.options.positionClass = 'toast-top-right';
+		file_type = data.files[0].name.split('.').pop();
+		support_file_type = ["sh", "py", "pl", "rb"];
+		if(support_file_type.indexOf(file_type) == -1) {
+			toastr.error('不支持的脚本类型');
+		} else {
+			if (data.files[0].size >= 2 * 1024 * 1024) {
+				toastr.error('脚本大小不能超过2MB');
+			} else {
+				toastr.error('脚本读取错误');
+			};
+		};
+    }).on('fileloaded', function(event, file, previewId, index, reader) {
+		var upload_file = document.getElementById('upload_file').files[0];
+		var name = upload_file.name;	//读取选中文件的文件名
+		var file_type = name.split('.').pop();
+		var size = upload_file.size;	//读取选中文件的大小
+		var reader = new FileReader();	//读取文件内容
+		reader.readAsText(upload_file, 'utf-8');
+		reader.onload = function () {
+			//当读取完成后回调这个函数,然后此时文件的内容存储到了result中,直接操作即可
+			//$("#script-content").css("width","100%");
+			//$("#script-content").css("height","0px");
+			
+			ace.require("ace/ext/language_tools");
+			let editor = ace.edit("script-content", {
+				// theme: "ace/theme/tomorrow_night_blue",	# monokai dracula gruvbox tomorrow_night_eighties
+				theme: "ace/theme/tomorrow_night_eighties",
+				// mode: "ace/mode/html",
+				autoScrollEditorIntoView: true,
+				maxLines: 30,
+				minLines: 20
+			});
+			if (file_type == "sh") {
+				editor.session.setMode("ace/mode/sh");
+			} else if (file_type == "py") {
+				editor.session.setMode("ace/mode/python");
+			} else if (file_type == "pl") {
+				editor.session.setMode("ace/mode/perl");
+			} else if (file_type == "rb") {
+				editor.session.setMode("ace/mode/ruby");
+			} else {
+				editor.session.setMode("ace/mode/sh");
+			};
+			editor.setShowPrintMargin(false);
+			//editor.setReadOnly(true);
+			editor.setValue(this.result, -1);
+			$('#script-name').text(name);
+		};
+		
+	}).on('fileclear', function(event) {
+		$('#script-content').text('');
+		$('#script-name').text('');
+		$("#script-content").css("width","100%");
+		$("#script-content").css("height","0");
+		let editor = ace.edit("script-content");
+		editor.destroy();
+    });
+	// 选择脚本 -- end
+</script>
+
+
+{% endblock js %}

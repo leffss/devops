@@ -12,3 +12,9 @@ django-redis==4.10.0
 pyguacamole==0.8
 ansible==2.8.5
 daphne==2.3.0
+# 使用 pip 安装 gunicorn 目前可能只能安装到19.6.0，无法使用 -k gevent ,需要源码安装19.9.0
+# pip install https://github.com/benoitc/gunicorn/archive/19.9.0.tar.gz
+gunicorn==19.9.0
+gevent==1.4.0
+async==0.6.2
+pymysql==0.9.3

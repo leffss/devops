@@ -13,15 +13,15 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.contrib import admin
-from django.urls import path, include
+# from django.contrib import admin
+from django.urls import path, include, re_path
 from server.views import index
 from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
 
-    path('admin/', admin.site.urls),
+    # path('admin/', admin.site.urls),
     
     path('', index),
     
@@ -45,7 +45,12 @@ urlpatterns = [
 
 ]
 
-if settings.DEBUG:
-    # static files (images, css, javascript, etc.)
+"""
+正式部署时一般静态文件直接用 nginx 转发，django 本身处理动态请求
+"""
+if settings.DEBUG:  # debug 模式下加载 /media 静态资源
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+if not settings.DEBUG:  # 非 debug 模式下加载 /static 静态资源，debug 模式下 django 开发服务器会默认加载静态资源
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS)
 

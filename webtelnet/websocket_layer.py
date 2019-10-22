@@ -180,7 +180,7 @@ class WebTelnet(WebsocketConsumer):
                 if self.telnet.cmd:
                     tmp = list(self.telnet.res_asciinema)
                     self.telnet.res_asciinema = []
-                    res(settings.MEDIA_ROOT + '/' + self.telnet.res_file, tmp)
+                    res(self.telnet.res_file, tmp)
             except Exception:
                 print(traceback.format_exc())
                 

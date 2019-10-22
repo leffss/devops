@@ -38,12 +38,17 @@ class NewNextMiddleware:                 # 新版 2.2 写法
         return response
 
 
-class BlackListMiddleware:      # 黑名单中间件，可以在 settings.py 中添加一个BLACKLIST（全大写）列表
+class GetRealClientMiddleware:
+    """
+    前端有 nginx 代理时，配置：
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    """
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        if request.META.get('HTTP_X_REAL_IP', None):     # 前端有 nginx 代理时，配置了 proxy_set_header X-Real-IP $remote_addr
+        if request.META.get('HTTP_X_REAL_IP', None):
             try:
                 request.META['REMOTE_ADDR'] = request.META['HTTP_X_REAL_IP']
             except Exception:
@@ -54,6 +59,18 @@ class BlackListMiddleware:      # 黑名单中间件，可以在 settings.py 中
                     request.META['REMOTE_ADDR'] = request.META['HTTP_X_FORWARDED_FOR'].split(',')[0]
             except Exception:
                 pass
+        response = self.get_response(request)
+        return response
+
+
+class BlackListMiddleware:
+    """
+    黑名单中间件，可以在 settings.py 中添加一个 BLACKLIST（全大写）列表
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
         if request.META['REMOTE_ADDR'] in getattr(settings, "BLACKLIST", []):
             return HttpResponseForbidden('<h1>该IP地址被限制访问！</h1>')
         response = self.get_response(request)

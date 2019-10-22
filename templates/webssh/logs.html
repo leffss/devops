@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load my_tags %}
 {% load static %}
 
   {% block css %}
@@ -58,6 +59,8 @@
                 <tbody>
 				{% for log in logs %}
                 <tr>
+				  {% set lencmd =  len(log.cmd) %}
+				  {% set lenuseragent =  len(log.useragent) %}
 				  <td>{{ log.user | default:'' }}</td>
 				  <td>{{ log.hostname }}</td>
 				  <td>{{ log.username }}@{{ log.ip }}:{{ log.port }}</td>
@@ -72,19 +75,19 @@
 				    <span class="badge badge-secondary">{{ log.protocol }}</span>
 				  {% endif %}
 				  </td>
-				  <td>{{ log.cmd | linebreaksbr | truncatechars_html:10 | default:'' }}<br>...</td>
+				  <td>{{ log.cmd | linebreaksbr | truncatechars_html:25 }}{% if lencmd > 25 %}<br>...{% endif %}</td>
 				  <td>{{ log.address | default:'' }}</td>
-				  <td>{{ log.useragent | truncatechars_html:25 | default:'' }}...</td>
+				  <td>{{ log.useragent | truncatechars_html:25 | default:'' }}{% if lenuseragent > 25 %}...{% endif %}</td>
 				  <td>{{ log.start_time | date:"Y/m/d H:i:s" }}</td>
 				  <td>{{ log.create_time | date:"Y/m/d H:i:s" }}</td>
 				  <td>
 				  {% if log.protocol == 'ssh' or log.protocol == 'telnet' %}
-					  <a href="javascript:void(0)" class="btn btn-primary btn-sm mb-1" info="{{ log.user }}-{{ log.hostname }}-{{ log.username }}@{{ log.ip }}:{{ log.port }}" type="{{ log.protocol }}" onclick="viewcmd(this);"><cmd hidden>{{ log.cmd | linebreaksbr }}</cmd><i class="fas fa-folder"></i> 命令详情</a>&nbsp;&nbsp;
-					  <a href="javascript:void(0)" class="btn btn-info btn-sm mb-1" id="{{ log.detail }}" info="{{ log.user }}-{{ log.hostname }}-{{ log.username }}@{{ log.ip }}:{{ log.port }}" onclick="viewsshvideo(this);"><i class="fas fa-video"></i> 录像</a>
+					  <a href="javascript:void(0)" class="btn btn-primary btn-sm mb-1" info="{{ log.user }}-{{ log.hostname }}-{{ log.username }}@{{ log.ip }}:{{ log.port }}" type="{{ log.protocol }}" onclick="viewcmd(this);"><cmd hidden>{{ log.cmd }}</cmd><i class="fas fa-list"></i> 命令详情</a>&nbsp;&nbsp;
+					  <a href="javascript:void(0)" class="btn btn-info btn-sm mb-1" id="{{ log.detail }}" info="{{ log.user }}-{{ log.hostname }}-{{ log.username }}@{{ log.ip }}:{{ log.port }}" onclick="viewsshvideo(this);"><i class="fas fa-video"></i> 回放</a>
 				  {% elif log.protocol == 'sftp' %}
-					  <a href="javascript:void(0)" class="btn btn-primary btn-sm mb-1" info="{{ log.user }}-{{ log.hostname }}-{{ log.username }}@{{ log.ip }}:{{ log.port }}" type="{{ log.protocol }}" onclick="viewcmd(this);"><cmd hidden>{{ log.cmd | linebreaksbr }}</cmd><i class="fas fa-folder"></i> 命令详情</a>&nbsp;&nbsp;
+					  <a href="javascript:void(0)" class="btn btn-primary btn-sm mb-1" info="{{ log.user }}-{{ log.hostname }}-{{ log.username }}@{{ log.ip }}:{{ log.port }}" type="{{ log.protocol }}" onclick="viewcmd(this);"><cmd hidden>{{ log.cmd }}</cmd><i class="fas fa-list"></i> 命令详情</a>&nbsp;&nbsp;
 				  {% elif log.protocol == 'rdp' or log.protocol == 'vnc' %}
-					  <a href="javascript:void(0)" class="btn btn-info btn-sm mb-1" id="{{ log.detail }}" info="{{ log.user }}-{{ log.hostname }}-{{ log.username }}@{{ log.ip }}:{{ log.port }}" onclick="viewrdpvideo(this);"><i class="fas fa-video"></i> 录像</a>
+					  <a href="javascript:void(0)" class="btn btn-info btn-sm mb-1" id="{{ log.detail }}" info="{{ log.user }}-{{ log.hostname }}-{{ log.username }}@{{ log.ip }}:{{ log.port }}" onclick="viewrdpvideo(this);"><i class="fas fa-video"></i> 回放</a>
 				  {% endif %}
 				  </td>
                 </tr>
@@ -122,9 +125,9 @@
 					  <div class="col-10"><h5 class="mb-3" id="view_cmd_info">命令</h5></div>
 					  <div class="col-2"><a href="javascript:void(0)" class="iziModal-button-close float-right" data-izimodal-close="" style="color:black;vertical-align:middle"><i class="fas fa-times fa-lg"></i></a></div>
 					  <div class="col-12" id="view_cmd_container">demo</div>
-					  <div class="col-12">
-						<div class="alert alert-info alert-dismissible mt-2 mb-0"><button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>提示：如存在特殊字符无法分辨命令，请尝试查看录像。</div>
-					  </div>
+					  <!--div class="col-12">
+						<div class="alert alert-info alert-dismissible mt-2 mb-0"><button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>提示：如存在特殊字符无法分辨命令，请尝试查看回放。</div>
+					  </div-->
 				  </div>
 				</div>
 			</div>
@@ -133,9 +136,9 @@
 			<div id="modal-view" class="iziModal">
 				<div class="card-body">
 				  <div class="row">
-					  <div class="col-10"><h5 class="mb-3" id="view_info">录像</h5></div>
+					  <div class="col-10"><h5 class="mb-3" id="view_info">回放</h5></div>
 					  <div class="col-2"><a href="javascript:void(0)" class="iziModal-button-close float-right" data-izimodal-close="" style="color:black;vertical-align:middle"><i class="fas fa-times fa-lg"></i></a></div>
-					  <div class="col-12" id="view_container"><asciinema-player src="/media/demo.txt" theme="monokai" title="demo" rows="30"></asciinema-player></div>
+					  <div class="col-12" id="view_container"><asciinema-player src="/media/demo.txt" theme="monokai" title="demo" rows="45" cols="250"></asciinema-player></div>
 					  <div class="col-12">
 						<div class="alert alert-info alert-dismissible mt-2 mb-0"><button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>提示：如无法看清某些操作，请尝试全屏查看。</div>
 					  </div>
@@ -190,6 +193,10 @@
 
 <script src="{% static 'asciinema-player/asciinema-player.js' %}"></script>
 
+<!-- ace 编辑器 -->
+<script src="{% static 'ace-new/src-min-noconflict/ace.js' %}"></script>
+<script src="{% static 'ace-new/src-min-noconflict/ext-language_tools.js' %}"></script>
+
 <!-- Guacamole JavaScript API -->
 <script src="{% static 'guacamole/js/all.min.js' %}"></script>
 <script src="{% static 'guacamole/js/playback.js' %}"></script>
@@ -200,19 +207,28 @@
 		var thisObj = $(event);	//js对象转jquery对象
 		var info = thisObj.attr('info');
 		var type = thisObj.attr('type');
-		var cmd = thisObj.find('cmd').html();
+		var cmd = thisObj.find('cmd').text();
 		$("#view_cmd_info").text("命令详情：" + info);
-		$("#view_cmd_container").html(cmd);
-		if (type == 'sftp') {
-			//$("#modal-view-cmd .alert-dismissible").remove();
-		};
+		//$("#view_cmd_container").text(cmd);
 		$("#modal-view-cmd").iziModal({
 			iconClass: 'icon-announcement',
-			width: 580,
+			width: 1080,
 			overlayClose: false,	// 是否允许点击模态窗口的外部来关闭模态窗口。
 			closeOnEscape: false, 	// 是否允许通过点击ESC键来关闭模态窗口。
 		});
 		$('#modal-view-cmd').iziModal('open');
+		
+		ace.require("ace/ext/language_tools");
+		let editor = ace.edit("view_cmd_container", {
+			theme: "ace/theme/tomorrow_night_eighties",
+			mode: "ace/mode/sh",
+			autoScrollEditorIntoView: true,
+			maxLines: 30,
+			minLines: 20,
+		});
+		editor.setShowPrintMargin(false);
+		editor.setReadOnly(true);
+		editor.setValue(cmd, -1);
 	};
 	
 	$(document).on('closed', '#modal-view-cmd', function (e) {
@@ -225,13 +241,13 @@
 		// var info = thisObj.attr('id').split("-")[0];
 		var info = thisObj.attr('info');
 		var file = thisObj.attr("id");
-		$("#view_info").text("录像：" + info);
+		$("#view_info").text("回放：" + info);
 		//var res = '<asciinema-player src="/media/' + file + '" theme="monokai" title="' + info + '" rows="30" idle-time-limit="1"></asciinema-player>';
-		var res = '<asciinema-player src="/media/' + file + '" theme="monokai" title="' + info + '" rows="30"></asciinema-player>';
+		var res = '<asciinema-player src="/media/' + file + '" theme="monokai" title="' + info + '" rows="45" cols="250"></asciinema-player>';
 		$("#view_container").html(res);
 		$("#modal-view").iziModal({
 			iconClass: 'icon-announcement',
-			width: 580,
+			width: 1080,
 			overlayClose: false,	// 是否允许点击模态窗口的外部来关闭模态窗口。
 			closeOnEscape: false, 	// 是否允许通过点击ESC键来关闭模态窗口。
 		});
@@ -248,19 +264,19 @@
 		// var info = thisObj.attr('id').split("-")[0];
 		var info = thisObj.attr('info');
 		var file = thisObj.attr("id");
-		$("#view_info").text("录像：" + info);
+		$("#view_info").text("回放：" + info);
 		var res = '<div class="player"><div id="display"></div><div class="controls"><button id="play-pause">播放</button><label for="position-slider"></label><input id="position-slider" type="range"><span id="position">00:00</span><span>/</span><span id="duration">00:00</span></div></div>';
 		$("#view_container").html(res);
 		$("#modal-view").iziModal({
 			iconClass: 'icon-announcement',
-			width: 1320,
+			width: 1600,
 			overlayClose: false,	// 是否允许点击模态窗口的外部来关闭模态窗口。
 			closeOnEscape: false, 	// 是否允许通过点击ESC键来关闭模态窗口。
 		});
 		$('#modal-view').iziModal('open');
 		
 		$(function () {
-			$('.player').css({'width': 1280})
+			$('.player').css({'width': 1560})
 		});
 		initExamplePlayer('/media/' + file);
 	};

@@ -109,7 +109,7 @@
 
     //http://guacamole.apache.org/doc/guacamole-common-js/Guacamole.WebSocketTunnel.html
     var protocol = (location.protocol === 'https:') ? 'wss://' : 'ws://';
-    var ws_path = protocol + location.hostname + ((location.port) ? (':' + location.port) : '') + '/webguacamole/';
+    var ws_path = protocol + location.hostname + ((location.port) ? (':' + location.port) : '') + '/ws/webguacamole/';
 	
     //var guac = new Guacamole.Client(
 	guac = new Guacamole.Client(

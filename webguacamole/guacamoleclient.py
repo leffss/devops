@@ -5,6 +5,7 @@ import time
 import traceback
 from util.tool import gen_rand_char, res
 from guacamole.client import GuacamoleClient
+import sys
 import os
 
 
@@ -13,7 +14,12 @@ class Client:
         self.websocker = websocker
         self.start_time = time.time()
         self.last_save_time = self.start_time
-        self.res_file = 'webguacamole_' + time.strftime("%Y%m%d%H%M%S", time.localtime(int(self.start_time))) + '_' + gen_rand_char(16) + '.txt'
+        tmp_date1 = time.strftime("%Y-%m-%d", time.localtime(int(self.start_time)))
+        tmp_date2 = time.strftime("%Y%m%d%H%M%S", time.localtime(int(self.start_time)))
+        if not os.path.isdir(os.path.join(settings.RECORD_ROOT, tmp_date1)):
+            os.makedirs(os.path.join(settings.RECORD_ROOT, tmp_date1))
+        self.res_file = settings.RECORD_DIR + '/' + tmp_date1 + '/' + 'webguacamole_' + \
+                        tmp_date2 + '_' + gen_rand_char(8) + '.txt'
         self.res = []
         self.guacamoleclient = None
 
@@ -58,7 +64,7 @@ class Client:
     def websocket_to_django(self):
         try:
             while True:
-                time.sleep(0.001)
+                time.sleep(0.0001)
                 data = self.guacamoleclient.receive()
                 if not data:
                     return
@@ -71,11 +77,12 @@ class Client:
                     })
                 self.res.append(data)
                 # 指定条结果或者指定秒数就保存一次
-                if len(self.res) > 1000 or int(time.time() - self.last_save_time) > 50:
+                if len(self.res) > 2000 or int(time.time() - self.last_save_time) > 60 or \
+                        sys.getsizeof(self.res) > 2097152:
                     tmp = list(self.res)
                     self.res = []
                     self.last_save_time = time.time()
-                    res(settings.MEDIA_ROOT + '/' + self.res_file, tmp, False)
+                    res(self.res_file, tmp, False)
         except Exception:
             print(traceback.format_exc())
             if self.websocker.send_flag == 0:

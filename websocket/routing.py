@@ -4,14 +4,15 @@ from webssh.websocket_layer import WebSSH, WebSSH_view, CliSSH_view
 # from webtelnet.websocket import WebTelnet
 from webtelnet.websocket_layer import WebTelnet
 from webguacamole.websocket_layer import WebGuacamole
-from batch.websocket_layer import Cmd
+from batch.websocket_layer import Cmd, Script, File
 
 websocket_urlpatterns = [
-    path('webssh/', WebSSH),
-    path('webssh/view/', WebSSH_view),
-    path('clissh/view/', CliSSH_view),
-    path('webtelnet/', WebTelnet),
-    path('webguacamole/', WebGuacamole),
-    path('cmd/', Cmd),
+    path('ws/webssh/', WebSSH),
+    path('ws/webssh/view/', WebSSH_view),
+    path('ws/clissh/view/', CliSSH_view),
+    path('ws/webtelnet/', WebTelnet),
+    path('ws/webguacamole/', WebGuacamole),
+    path('ws/cmd/', Cmd),
+    path('ws/script/', Script),
+    path('ws/file/', File),
 ]
-

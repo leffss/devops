@@ -1,14 +1,15 @@
 """
 基于 ansible v2.8.5 的 api，低于 v2.8 不适用
 """
-
+import os
 import json
 import shutil
 import re
 import traceback
-import multiprocessing
+import random
+from django.conf import settings
+from batch.models import BatchCmdLog
 from multiprocessing import cpu_count
-from ansible.plugins.callback import CallbackBase  # 回调基类，处理ansible的成功失败信息，这部分对于二次开发自定义可以做比较多的自定义
 from ansible import constants as C  # 用于获取ansible内置的一些常量
 from ansible.module_utils.common.collections import ImmutableDict  # 用于自定制一些选项
 from ansible import context  # 上下文管理器，他就是用来接收 ImmutableDict 的示例对象
@@ -16,291 +17,42 @@ from ansible.parsing.dataloader import DataLoader  # 解析 json/ymal/ini 格式
 from ansible.vars.manager import VariableManager  # 管理主机和主机组的变量
 from ansible.playbook.play import Play  # 用于执行 Ad-hoc 的核心类，即ansible相关模块，命令行的ansible -m方式
 from ansible.executor.task_queue_manager import TaskQueueManager  # ansible 底层用到的任务队列管理器
-from ansible.executor.playbook_executor import PlaybookExecutor  # 执行 playbook 的核心类，即命令行的ansible-playbook *.yml
-from ansible.inventory.manager import InventoryManager  # 管理资产文件（动态资产、静态资产）或者主机列表
-from ansible.inventory.host import Host     # 单台主机类
+# 执行 playbook 的核心类，即命令行的ansible-playbook *.yml
+from ansible.executor.playbook_executor import PlaybookExecutor
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 channel_layer = get_channel_layer()
 
 
-class CallbackModule(CallbackBase):
-    """
-    回调函数
-    """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.host_ok = []
-        self.host_unreachable = []
-        self.host_failed = []
-        self.error = ''
-
-    def v2_runner_on_unreachable(self, result):
-        print(result)
-        self.host_unreachable.append({'host': result._host.name, 'task_name': result.task_name, 'result': result._result, 'success': False, 'msg': 'unreachable'})
-
-    def v2_runner_on_ok(self, result, *args, **kwargs):
-        print(result)
-        self.host_ok.append({'host': result._host.name, 'task_name': result.task_name,  'result': result._result, 'success': True, 'msg': 'ok'})
-
-    def v2_runner_on_failed(self, result, *args, **kwargs):
-        print(result)
-        self.host_failed.append({'host': result._host.name, 'task_name': result.task_name, 'result': result._result, 'success': False, 'msg': 'failed'})
-
-    def v2_playbook_on_no_hosts_matched(self):
-        self.error = 'skipping: No match hosts.'
-
-    def get_res(self):
-        return self.host_ok, self.host_failed, self.host_unreachable, self.error
+# 生成随机字符串
+def gen_rand_char(length=10, chars='0123456789zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA'):
+    return ''.join(random.sample(chars, length))
 
 
-class ModuleCallbackModule(CallbackBase):
-    """
-    回调函数
-    """
-    def __init__(self, group, cmd=None, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.group = group
-        self.cmd = cmd
-        self.message = dict()
-
-    def v2_runner_on_unreachable(self, result):
-        if 'msg' in result._result:
-            data = '<code style="color: #FF0000">主机：{host}_{ip}_{user} | 命令： {cmd} | 状态：不可达 | 状态码：{rc} >> \n{stdout}</code>'.format(
-                host=result._host.name, rc=result._result.get('rc'),
-                ip=result._host.host_data['ip'],
-                user=result._host.host_data['username'],
-                cmd=self.cmd,
-                stdout=result._result.get('msg').strip())
-        else:
-            data = '<code style="color: #FF0000">主机：{host}_{ip}_{user} | 命令： {cmd} | 状态：不可达 >> \n{stdout}</code>'.format(
-                host=result._host.name,
-                ip=result._host.host_data['ip'],
-                user=result._host.host_data['username'],
-                cmd=self.cmd,
-                stdout=json.dumps(result._result, indent=4, ensure_ascii=False))
-        self.message['status'] = 0
-        self.message['message'] = data
-        message = json.dumps(self.message)
-        async_to_sync(channel_layer.group_send)(self.group, {
-            "type": "send.message",
-            "text": message,
-        })
-
-    def v2_runner_on_ok(self, result, *args, **kwargs):
-        if 'rc' in result._result and 'stdout' in result._result:
-            if result._result['stderr']:
-                data = '<code style="color: #008000">主机：{host}_{ip}_{user} | 命令： {cmd} | 状态：成功 | 状态码：{rc} >> \n{stdout}\n{stderr}</code>'.format(
-                    host=result._host.name, rc=result._result.get('rc'),
-                    ip=result._host.host_data['ip'],
-                    user=result._host.host_data['username'],
-                    cmd=self.cmd,
-                    stdout=result._result.get('stdout').strip(),
-                    stderr=result._result.get('stderr').strip())
-            else:
-                data = '<code style="color: #008000">主机：{host}_{ip}_{user} | 命令： {cmd} | 状态：成功 | 状态码：{rc} >> \n{stdout}</code>'.format(
-                    host=result._host.name, rc=result._result.get('rc'),
-                    ip=result._host.host_data['ip'],
-                    user=result._host.host_data['username'],
-                    cmd=self.cmd,
-                    stdout=result._result.get('stdout').strip())
-        elif 'results' in result._result and 'rc' in result._result:
-            data = '<code style="color: #008000">主机：{host}_{ip}_{user} | 命令： {cmd} | 状态：成功 | 状态码：{rc} >> \n{stdout}</code>'.format(
-                host=result._host.name, rc=result._result.get('rc'),
-                ip=result._host.host_data['ip'],
-                user=result._host.host_data['username'],
-                cmd=self.cmd,
-                stdout=result._result.get('results')[0].strip())
-        elif 'module_stdout' in result._result and 'rc' in result._result:
-            data = '<code style="color: #008000">主机：{host}_{ip}_{user} | 命令： {cmd} | 状态：成功 | 状态码：{rc} >> \n{stdout}</code>'.format(
-                host=result._host.name, rc=result._result.get('rc'),
-                ip=result._host.host_data['ip'],
-                user=result._host.host_data['username'],
-                cmd=self.cmd,
-                stdout=result._result.get('module_stdout').strip())
-        else:
-            data = '<code style="color: #008000">主机：{host}_{ip}_{user} | 命令： {cmd} | 状态：成功 >> \n{stdout}</code>'.format(
-                host=result._host.name,
-                ip=result._host.host_data['ip'],
-                user=result._host.host_data['username'],
-                cmd=self.cmd,
-                stdout=json.dumps(result._result, indent=4, ensure_ascii=False))
-        self.message['status'] = 0
-        self.message['message'] = data
-        message = json.dumps(self.message)
-        async_to_sync(channel_layer.group_send)(self.group, {
-            "type": "send.message",
-            "text": message,
-        })
-
-    def v2_runner_on_failed(self, result, *args, **kwargs):
-        if 'stderr' in result._result:
-            if result._result['stdout']:
-                data = '<code style="color: #FF0000">主机：{host}_{ip}_{user} | 命令： {cmd} | 状态：失败 | 状态码：{rc} >> \n{stdout}\n{stderr}</code>'.format(
-                    host=result._host.name,
-                    rc=result._result.get('rc'),
-                    ip=result._host.host_data['ip'],
-                    user=result._host.host_data['username'],
-                    cmd=self.cmd,
-                    stdout=result._result.get('stdout').strip(),
-                    stderr=result._result.get('stderr').strip())
-            else:
-                data = '<code style="color: #FF0000">主机：{host}_{ip}_{user} | 命令： {cmd} | 状态：失败 | 状态码：{rc} >> \n{stderr}</code>'.format(
-                    host=result._host.name,
-                    rc=result._result.get('rc'),
-                    ip=result._host.host_data['ip'],
-                    user=result._host.host_data['username'],
-                    cmd=self.cmd,
-                    stderr=result._result.get('stderr').strip())
-        elif 'module_stdout' in result._result:
-            data = '<code style="color: #FF0000">主机：{host}_{ip}_{user} | 命令： {cmd} | 状态：失败 | 状态码：{rc} >> \n{stdout}</code>'.format(
-                host=result._host.name,
-                rc=result._result.get('rc'),
-                ip=result._host.host_data['ip'],
-                user=result._host.host_data['username'],
-                cmd=self.cmd,
-                stdout=result._result.get('module_stdout').strip())
-        else:
-            data = '<code style="color: #FF0000">主机：{host}_{ip}_{user} | 命令： {cmd} | 状态：失败 >> \n{stdout}</code>'.format(
-                host=result._host.name,
-                ip=result._host.host_data['ip'],
-                user=result._host.host_data['username'],
-                cmd=self.cmd,
-                stdout=json.dumps(result._result, indent=4, ensure_ascii=False))
-        self.message['status'] = 0
-        self.message['message'] = data
-        message = json.dumps(self.message)
-        async_to_sync(channel_layer.group_send)(self.group, {
-            "type": "send.message",
-            "text": message,
-        })
-
-    def v2_playbook_on_no_hosts_matched(self):
-        self.message['status'] = 0
-        self.message['message'] = '<code style="color: #FF0000">skipping: No match hosts.</code>'
-        message = json.dumps(self.message)
-        async_to_sync(channel_layer.group_send)(self.group, {
-            "type": "send.message",
-            "text": message,
-        })
+def save_res(res_file, res):
+    with open(settings.MEDIA_ROOT + '/' + res_file, 'a+') as f:
+        for line in res:
+            f.write('{}\n'.format(line))
 
 
-class SetupCallbackModule(CallbackBase):
-    """
-    回调函数
-    """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.host_ok = []
-        self.host_unreachable = []
-        self.host_failed = []
-        self.error = ''
-
-    def v2_runner_on_unreachable(self, result):
-        self.host_unreachable.append({'host': result._host.name, 'task_name': result.task_name, 'result': result._result, 'success': False, 'msg': 'unreachable'})
-
-    def v2_runner_on_ok(self, result, *args, **kwargs):
-        self.host_ok.append({'host': result._host.name, 'task_name': result.task_name,  'result': result._result, 'success': True, 'msg': 'ok'})
-
-    def v2_runner_on_failed(self, result, *args, **kwargs):
-        self.host_failed.append({'host': result._host.name, 'task_name': result.task_name, 'result': result._result, 'success': False, 'msg': 'failed'})
-
-    def get_res(self):
-        return self.host_ok, self.host_failed, self.host_unreachable, self.error
-
-
-class BaseHost(Host):
-    """
-    处理单个主机
-    """
-    def __init__(self, host_data):
-        self.host_data = host_data
-        hostname = host_data.get('hostname') or host_data.get('ip')
-        port = host_data.get('port') or 22
-        super().__init__(hostname, port)
-        self.__set_required_variables()
-        self.__set_extra_variables()
-
-    def __set_required_variables(self):
-        host_data = self.host_data
-        self.set_variable('ansible_host', host_data['ip'])
-        self.set_variable('ansible_port', host_data['port'])
-
-        if host_data.get('username'):
-            self.set_variable('ansible_user', host_data['username'])
-
-        # 添加密码和秘钥
-        if host_data.get('password'):
-            self.set_variable('ansible_ssh_pass', host_data['password'])
-        if host_data.get('private_key'):
-            self.set_variable('ansible_ssh_private_key_file', host_data['private_key'])
-
-        # 添加become支持
-        become = host_data.get('become', False)
-        if become:
-            self.set_variable('ansible_become', True)
-            self.set_variable('ansible_become_method', become.get('method', 'sudo'))
-            self.set_variable('ansible_become_user', become.get('user', 'root'))
-            self.set_variable('ansible_become_pass', become.get('pass', ''))
-        else:
-            self.set_variable('ansible_become', False)
-
-    def __set_extra_variables(self):
-        for k, v in self.host_data.get('vars', {}).items():
-            self.set_variable(k, v)
-
-    def __repr__(self):
-        return self.name
-
-
-class BaseInventory(InventoryManager):
-    """
-    生成Ansible inventory对象的
-    """
-    loader_class = DataLoader
-    variable_manager_class = VariableManager
-    host_manager_class = BaseHost
-
-    def __init__(self, host_list=None):
-        if host_list is None:
-            host_list = []
-        self.host_list = host_list
-        assert isinstance(host_list, list)
-        self.loader = self.loader_class()
-        self.variable_manager = self.variable_manager_class()
-        super().__init__(self.loader)
-
-    def get_groups(self):
-        return self._inventory.groups
-
-    def get_group(self, name):
-        return self._inventory.groups.get(name, None)
-
-    def parse_sources(self, cache=False):
-        group_all = self.get_group('all')
-        ungrouped = self.get_group('ungrouped')
-
-        for host_data in self.host_list:
-            host = self.host_manager_class(host_data=host_data)
-            self.hosts[host_data['hostname']] = host
-            groups_data = host_data.get('groups')
-            if groups_data:
-                for group_name in groups_data:
-                    group = self.get_group(group_name)
-                    if group is None:
-                        self.add_group(group_name)
-                        group = self.get_group(group_name)
-                    group.add_host(host)
-            else:
-                ungrouped.add_host(host)
-            group_all.add_host(host)
-
-    def get_matched_hosts(self, pattern):
-        return self.get_hosts(pattern)
+def batchcmd_log(user, hosts, cmd, detail, address, useragent, start_time, type=1, script=None):
+    event = BatchCmdLog()
+    event.user = user
+    event.hosts = hosts
+    event.cmd = cmd
+    event.detail = detail
+    event.address = address
+    event.useragent = useragent
+    event.cmd = cmd
+    event.start_time = start_time
+    event.type = type
+    if script:
+        event.script = script
+    event.save()
 
 
 class AnsibleAPI:
-    def __init__(self, check=False, remote_user='root', private_key_file=None, forks=cpu_count(),
+    def __init__(self, check=False, remote_user='root', private_key_file=None, forks=cpu_count() * 2,
                  extra_vars=None, dynamic_inventory=None, callback=None):
         """
         可以选择性的针对业务场景在初始化中加入用户定义的参数
@@ -443,6 +195,84 @@ class AnsibleAPI:
                 "type": "close.channel",
                 "text": message,
             })
+            if self.results_callback.res:
+                save_res(self.results_callback.res_file, self.results_callback.res)
+                batchcmd_log(
+                    user=self.results_callback.user,
+                    hosts=self.results_callback.hosts,
+                    cmd=self.results_callback.cmd,
+                    detail=self.results_callback.res_file,
+                    address=self.results_callback.client,
+                    useragent=self.results_callback.user_agent,
+                    start_time=self.results_callback.start_time_django,
+                )
+
+    def run_script(self, cmds, hosts='all', group=None, script=None):
+        """
+        运行命令有三种 raw 、command 、shell
+        1.command 模块不是调用的shell的指令，所以没有bash的环境变量
+        2.raw很多地方和shell类似，更多的地方建议使用shell和command模块。
+        3.但是如果是使用老版本python，需要用到raw，又或者是客户端是路由器，因为没有安装python模块，那就需要使用raw模块了
+        """
+        module_name = 'script'
+        self.run_module(module_name, cmds, hosts)
+        if group:
+            message = dict()
+            message['status'] = 0
+            message['message'] = '执行完毕...'
+            message = json.dumps(message)
+            async_to_sync(channel_layer.group_send)(group, {
+                "type": "close.channel",
+                "text": message,
+            })
+            if self.results_callback.res:
+                save_res(self.results_callback.res_file, self.results_callback.res)
+                batchcmd_log(
+                    user=self.results_callback.user,
+                    hosts=self.results_callback.hosts,
+                    cmd=self.results_callback.cmd,
+                    detail=self.results_callback.res_file,
+                    address=self.results_callback.client,
+                    useragent=self.results_callback.user_agent,
+                    start_time=self.results_callback.start_time_django,
+                    type=2,
+                    script=script,
+                )
+
+    def run_copy(self, cmds, hosts='all', group=None):
+        """
+        运行命令有三种 raw 、command 、shell
+        1.command 模块不是调用的shell的指令，所以没有bash的环境变量
+        2.raw很多地方和shell类似，更多的地方建议使用shell和command模块。
+        3.但是如果是使用老版本python，需要用到raw，又或者是客户端是路由器，因为没有安装python模块，那就需要使用raw模块了
+        """
+        module_name = 'copy'
+        self.run_module(module_name, cmds, hosts)
+        if group:
+            message = dict()
+            message['status'] = 0
+            message['message'] = '执行完毕...'
+            message = json.dumps(message)
+            async_to_sync(channel_layer.group_send)(group, {
+                "type": "close.channel",
+                "text": message,
+            })
+            if self.results_callback.res:
+                save_res(self.results_callback.res_file, self.results_callback.res)
+                batchcmd_log(
+                    user=self.results_callback.user,
+                    hosts=self.results_callback.hosts,
+                    cmd='上传 {} --> {}'.format(self.results_callback.src.split('/')[-1], self.results_callback.dst),
+                    detail=self.results_callback.res_file,
+                    address=self.results_callback.client,
+                    useragent=self.results_callback.user_agent,
+                    start_time=self.results_callback.start_time_django,
+                    type=3,
+                )
+        try:
+            os.remove(self.results_callback.src)
+        except Exception:
+            print(traceback.format_exc())
 
     def get_server_info(self, hosts='all'):
         """
@@ -602,7 +432,9 @@ if __name__ == '__main__':
     extra_vars = {
         'var': 'test'
     }
+    from .inventory import BaseInventory
     inventory = BaseInventory(host_data)
+    from .callback import CallbackModule
     callback = CallbackModule()
     ansible_api = AnsibleAPI(
         private_key_file=private_key_file,

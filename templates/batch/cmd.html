@@ -2,7 +2,7 @@
 {% load static %}
 
   {% block title %}
-  <title>执行命令</title>
+  <title>批量命令</title>
   {% endblock title %}
 
 	{% block navheader %}
@@ -12,7 +12,7 @@
           <div class="col-12">
             <ol class="breadcrumb">
               <li class="breadcrumb-item">批量处理</li>
-			  <li class="breadcrumb-item active">执行命令</li>
+			  <li class="breadcrumb-item active">批量命令</li>
             </ol>
           </div>
         </div>
@@ -23,7 +23,7 @@
 		  {% block content %}
           <div class="card card-primary content-list">
             <div class="card-header">
-              <h3 class="card-title">执行命令</h3>
+              <h3 class="card-title">批量命令</h3>
 				<div class="card-tools">
 				  <!--button type="button" class="btn btn-tool" data-widget="collapse">
 					<i class="fas fa-minus"></i>
@@ -71,7 +71,7 @@
 		  
 		  <div class="card content-list">
 			<div class="card-body row pb-0">
-<pre id="pre" style="width:100%;background-color: #0c0c0c;color:green;">
+<pre id="pre" style="width:100%;max-height:0px;background-color: #0c0c0c;color:green;">
 <!--code style="color: white;">开始...</code>
 def hello() {
 	print('hello')
@@ -92,7 +92,7 @@ def hello() {
 		if (cmd == '') {
 			$('#cmd').removeClass("is-valid");
 			$('#cmd').addClass("is-invalid");
-			$('#cmd_error').text('命令不能未空');
+			$('#cmd_error').text('请输入命令');
 			return false;
 		} else {
 			$('#cmd').removeClass("is-invalid");
@@ -284,7 +284,7 @@ def hello() {
 			toastr.options.progressBar = true;
 			toastr.options.positionClass = 'toast-top-right';
 			let protocol = (location.protocol === 'https:') ? 'wss://' : 'ws://';
-			let socketURL = protocol + location.hostname + ((location.port) ? (':' + location.port) : '') + '/cmd/';
+			let socketURL = protocol + location.hostname + ((location.port) ? (':' + location.port) : '') + '/ws/cmd/';
 			let socket = new WebSocket(socketURL);
 			let obj = $('#pre');
 			let data = {
@@ -293,6 +293,7 @@ def hello() {
             };
 			
 			socket.onopen = function () {
+				obj.css("max-height","720px");
 				obj.html('\n开始执行...\n\n');
 				socket.send(JSON.stringify(data));
 				$('#cmd').removeClass("is-invalid");

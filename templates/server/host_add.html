@@ -164,11 +164,11 @@
 			$('#hostname').addClass("is-invalid");
 			$('#hostname_error').text('主机名不能未空');
 			return false;
-		} else if(/[^0-9a-zA-Z\.@\-\_]+/g.test(hostname)) {	// 正则判断
-			$('#hostname').removeClass("is-valid");
-			$('#hostname').addClass("is-invalid");
-			$('#hostname_error').text('主机名必须为数字、字母、 @、 -、 _ 或者 .');
-			return false;
+		//} else if(/[^0-9a-zA-Z\.@\-\_]+/g.test(hostname)) {	// 正则判断
+		//	$('#hostname').removeClass("is-valid");
+		//	$('#hostname').addClass("is-invalid");
+		//	$('#hostname_error').text('主机名必须为数字、字母、 @、 -、 _ 或者 .');
+		//	return false;
 		} else {
 			$('#hostname').removeClass("is-invalid");
 			$('#hostname').addClass("is-valid");

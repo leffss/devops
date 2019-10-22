@@ -131,7 +131,7 @@ class WebGuacamole(WebsocketConsumer):
                     try:
                         tmp = list(self.guacamoleclient.res)
                         self.guacamoleclient.res = []
-                        res(settings.MEDIA_ROOT + '/' + self.guacamoleclient.res_file, tmp, False)
+                        res(self.guacamoleclient.res_file, tmp, False)
                     except Exception:
                         pass
 

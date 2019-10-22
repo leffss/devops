@@ -11,7 +11,7 @@ from django.core.cache import cache
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from util.tool import gen_rand_char, terminal_log, res
-from tasks.tasks import task_run_cmd
+from tasks.tasks import task_run_cmd, task_run_script, task_run_file
 import os
 import json
 import time
@@ -33,6 +33,8 @@ class Cmd(WebsocketConsumer):
         self.group = 'session_' + gen_rand_char()
         self.session = dict()
         self.message = dict()
+        self.client = None
+        self.user_agent = None
 
     def connect(self):
         self.accept()
@@ -46,6 +48,18 @@ class Cmd(WebsocketConsumer):
                 "type": "close.channel",
                 "text": message,
             })
+        for i in self.scope['headers']:
+            if i[0].decode('utf-8') == 'user-agent':
+                self.user_agent = i[1].decode('utf-8')
+                break
+        for i in self.scope['headers']:
+            if i[0].decode('utf-8') == 'x-real-ip':
+                self.client = i[1].decode('utf-8')
+                break
+            if i[0].decode('utf-8') == 'x-forwarded-for':
+                self.client = i[1].decode('utf-8').split(',')[0]
+                break
+            self.client = self.scope['client'][0]
 
     def disconnect(self, close_code):
         try:
@@ -102,9 +116,251 @@ class Cmd(WebsocketConsumer):
                 ansible_hosts.append(hostinfo)
             task_run_cmd.delay(
                 hosts=ansible_hosts, group=self.group,
-                cmd=data['cmd'], issuperuser=self.session.get('issuperuser', False)
+                cmd=data['cmd'],
+                user=self.session.get('username'),
+                user_agent=self.user_agent,
+                client=self.client,
+                issuperuser=self.session.get('issuperuser', False),
             )  # 执行
 
+        else:
+            self.message['status'] = 1
+            self.message['message'] = '提交的数据格式错误'
+            message = json.dumps(self.message)
+            async_to_sync(self.channel_layer.group_send)(self.group, {
+                "type": "close.channel",
+                "text": message,
+            })
+
+    def send_message(self, data):
+        try:
+            self.send(data['text'])
+        except Exception:
+            print(traceback.format_exc())
+
+    def close_channel(self, data):
+        try:
+            self.send(data['text'])
+            time.sleep(0.3)
+            self.close()
+        except Exception:
+            print(traceback.format_exc())
+
+
+class Script(WebsocketConsumer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.group = 'session_' + gen_rand_char()
+        self.session = dict()
+        self.message = dict()
+        self.client = None
+        self.user_agent = None
+
+    def connect(self):
+        self.accept()
+        async_to_sync(self.channel_layer.group_add)(self.group, self.channel_name)  # 加入组
+        self.session = self.scope.get('session', dict())
+        if not self.session.get('islogin', None):    # 未登录直接断开 websocket 连接
+            self.message['status'] = 1
+            self.message['message'] = '未登录'
+            message = json.dumps(self.message)
+            async_to_sync(self.channel_layer.group_send)(self.group, {
+                "type": "close.channel",
+                "text": message,
+            })
+        for i in self.scope['headers']:
+            if i[0].decode('utf-8') == 'user-agent':
+                self.user_agent = i[1].decode('utf-8')
+                break
+        for i in self.scope['headers']:
+            if i[0].decode('utf-8') == 'x-real-ip':
+                self.client = i[1].decode('utf-8')
+                break
+            if i[0].decode('utf-8') == 'x-forwarded-for':
+                self.client = i[1].decode('utf-8').split(',')[0]
+                break
+            self.client = self.scope['client'][0]
+
+    def disconnect(self, close_code):
+        try:
+            async_to_sync(self.channel_layer.group_discard)(self.group, self.channel_name)  # 退出组
+        except Exception:
+            print(traceback.format_exc())
+
+    def receive(self, text_data=None, bytes_data=None):
+        data = dict()
+        try:
+            data = json.loads(text_data)
+        except Exception:
+            self.message['status'] = 1
+            self.message['message'] = '提交的数据格式错误'
+            message = json.dumps(self.message)
+            async_to_sync(self.channel_layer.group_send)(self.group, {
+                "type": "close.channel",
+                "text": message,
+            })
+        if data.get('hosts', None) and data.get('script', None) and data.get('script_name', None):
+            if self.session.get('issuperuser', None):
+                hosts = RemoteUserBindHost.objects.filter(
+                    Q(id__in=data['hosts'].split(',')),
+                )
+            else:
+                hosts = RemoteUserBindHost.objects.filter(
+                    Q(user__username=self.session['username']) | Q(
+                        group__user__username=self.session['username']),
+                    Q(id__in=data['hosts'].split(',')),
+                )
+            if not hosts:
+                self.message['status'] = 1
+                self.message['message'] = '未找到主机'
+                message = json.dumps(self.message)
+                async_to_sync(self.channel_layer.group_send)(self.group, {
+                    "type": "close.channel",
+                    "text": message,
+                })
+
+            ansible_hosts = list()
+            for host in hosts:
+                hostinfo = dict()
+                hostinfo['id'] = host.id
+                hostinfo['hostname'] = host.hostname
+                hostinfo['ip'] = host.ip
+                hostinfo['port'] = host.port
+                hostinfo['username'] = host.remote_user.username
+                hostinfo['password'] = host.remote_user.password
+                if host.remote_user.enabled:
+                    hostinfo['superusername'] = host.remote_user.superusername
+                    hostinfo['superpassword'] = host.remote_user.superpassword
+                else:
+                    hostinfo['superusername'] = None
+                ansible_hosts.append(hostinfo)
+            task_run_script.delay(
+                hosts=ansible_hosts, group=self.group,
+                data=data,
+                user=self.session.get('username'),
+                user_agent=self.user_agent,
+                client=self.client,
+                issuperuser=self.session.get('issuperuser', False),
+            )  # 执行
+
+        else:
+            self.message['status'] = 1
+            self.message['message'] = '提交的数据格式错误'
+            message = json.dumps(self.message)
+            async_to_sync(self.channel_layer.group_send)(self.group, {
+                "type": "close.channel",
+                "text": message,
+            })
+
+    def send_message(self, data):
+        try:
+            self.send(data['text'])
+        except Exception:
+            print(traceback.format_exc())
+
+    def close_channel(self, data):
+        try:
+            self.send(data['text'])
+            time.sleep(0.3)
+            self.close()
+        except Exception:
+            print(traceback.format_exc())
+
+
+class File(WebsocketConsumer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.group = 'session_' + gen_rand_char()
+        self.session = dict()
+        self.message = dict()
+        self.client = None
+        self.user_agent = None
+
+    def connect(self):
+        self.accept()
+        async_to_sync(self.channel_layer.group_add)(self.group, self.channel_name)  # 加入组
+        self.session = self.scope.get('session', dict())
+        if not self.session.get('islogin', None):    # 未登录直接断开 websocket 连接
+            self.message['status'] = 1
+            self.message['message'] = '未登录'
+            message = json.dumps(self.message)
+            async_to_sync(self.channel_layer.group_send)(self.group, {
+                "type": "close.channel",
+                "text": message,
+            })
+        for i in self.scope['headers']:
+            if i[0].decode('utf-8') == 'user-agent':
+                self.user_agent = i[1].decode('utf-8')
+                break
+        for i in self.scope['headers']:
+            if i[0].decode('utf-8') == 'x-real-ip':
+                self.client = i[1].decode('utf-8')
+                break
+            if i[0].decode('utf-8') == 'x-forwarded-for':
+                self.client = i[1].decode('utf-8').split(',')[0]
+                break
+            self.client = self.scope['client'][0]
+
+    def disconnect(self, close_code):
+        try:
+            async_to_sync(self.channel_layer.group_discard)(self.group, self.channel_name)  # 退出组
+        except Exception:
+            print(traceback.format_exc())
+
+    def receive(self, text_data=None, bytes_data=None):
+        data = dict()
+        try:
+            data = json.loads(text_data)
+        except Exception:
+            self.message['status'] = 1
+            self.message['message'] = '提交的数据格式错误'
+            message = json.dumps(self.message)
+            async_to_sync(self.channel_layer.group_send)(self.group, {
+                "type": "close.channel",
+                "text": message,
+            })
+        if ('hosts' in data) and ('src' in data) and ('dst' in data) and ('backup' in data):
+            if self.session.get('issuperuser', None):
+                hosts = RemoteUserBindHost.objects.filter(
+                    Q(id__in=data['hosts'].split(',')),
+                )
+            else:
+                hosts = RemoteUserBindHost.objects.filter(
+                    Q(user__username=self.session['username']) | Q(group__user__username=self.session['username']),
+                    Q(id__in=data['hosts'].split(',')),
+                )
+            if not hosts:
+                self.message['status'] = 1
+                self.message['message'] = '未找到主机'
+                message = json.dumps(self.message)
+                async_to_sync(self.channel_layer.group_send)(self.group, {
+                    "type": "close.channel",
+                    "text": message,
+                })
+
+            ansible_hosts = list()
+            for host in hosts:
+                hostinfo = dict()
+                hostinfo['id'] = host.id
+                hostinfo['hostname'] = host.hostname
+                hostinfo['ip'] = host.ip
+                hostinfo['port'] = host.port
+                hostinfo['username'] = host.remote_user.username
+                hostinfo['password'] = host.remote_user.password
+                if host.remote_user.enabled:
+                    hostinfo['superusername'] = host.remote_user.superusername
+                    hostinfo['superpassword'] = host.remote_user.superpassword
+                else:
+                    hostinfo['superusername'] = None
+                ansible_hosts.append(hostinfo)
+            task_run_file.delay(
+                hosts=ansible_hosts, group=self.group,
+                data=data,
+                user=self.session.get('username'),
+                user_agent=self.user_agent,
+                client=self.client,
+                issuperuser=self.session.get('issuperuser', False),
+            )  # 执行
         else:
             self.message['status'] = 1
             self.message['message'] = '提交的数据格式错误'

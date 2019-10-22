@@ -142,7 +142,6 @@
         maxFileSize: 5242880,	// 单位kb，最大文件5GB，
         maxFileCount: 1,
         uploadUrl: "{% url 'webssh_api:session_upload' host.id %}",
-		
 		enableResumableUpload: true,
 		resumableUploadOptions: {
             chunkSize: 25600, // 分片大小 25 MB，设置更大速度更块一些，但是服务器侧占用资源也较多

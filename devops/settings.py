@@ -23,11 +23,22 @@ if not os.path.isdir(MEDIA_ROOT):
     os.makedirs(MEDIA_ROOT)
 MEDIA_URL = '/media/'
 
+RECORD_DIR = 'record'   # 存放终端结果文件
+RECORD_ROOT = os.path.join(MEDIA_ROOT, RECORD_DIR)
+if not os.path.isdir(RECORD_ROOT):
+    os.makedirs(RECORD_ROOT)
+
+SCRIPT_DIR = 'script'   # 存放脚本
+SCRIPT_ROOT = os.path.join(MEDIA_ROOT, SCRIPT_DIR)
+if not os.path.isdir(SCRIPT_ROOT):
+    os.makedirs(SCRIPT_ROOT)
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 
-TMP_DIR = os.path.join(MEDIA_ROOT, 'tmp')
-if not os.path.isdir(TMP_DIR):
-    os.makedirs(TMP_DIR)
+TMP_DIR = 'tmp'
+TMP_ROOT = os.path.join(MEDIA_ROOT, TMP_DIR)
+if not os.path.isdir(TMP_ROOT):
+    os.makedirs(TMP_ROOT)
 
 FILE_UPLOAD_MAX_MEMORY_SIZE = 27262976    # 上传的文件保存在内存中的大小限制  26MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 27262976    # 上传的数据保存在内存中的大小限制  26MB
@@ -49,7 +60,7 @@ ALLOWED_HOSTS = ["*"]
 
 INSTALLED_APPS = [
     # 'simpleui',
-    'django.contrib.admin',
+    # 'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -75,9 +86,10 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'util.middleware.NewNextMiddleware',
-    'util.middleware.BlackListMiddleware',
-    'util.middleware.LockScreenMiddleware',
-    'util.middleware.DebugMiddleware',
+    'util.middleware.GetRealClientMiddleware',  # 前端有代理，获取真实 IP
+    'util.middleware.BlackListMiddleware',  # IP 黑名单
+    'util.middleware.LockScreenMiddleware',     # 锁屏
+    'util.middleware.DebugMiddleware',      # 管理员显示 DEBUG 页面
 ]
 
 FILE_UPLOAD_HANDLERS = [
@@ -120,6 +132,21 @@ DATABASES = {
     }
 }
 
+DATABASES_mysql = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'devops',
+        'USER': 'devops',
+        'PASSWORD': 'devops',
+        'HOST': '192.168.223.111',
+        'PORT': '3306',
+        'OPTIONS': {
+            # 'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            'init_command': "SET sql_mode=''",
+         },
+    }
+}
+
 # Password validation
 # https://docs.djangoproject.com/en/2.2/ref/settings/#auth-password-validators
 
@@ -158,16 +185,16 @@ STATICFILES_DIRS = [
 ]
 
 # simpleui 使用本地css和js
-SIMPLEUI_STATIC_OFFLINE = True
+# SIMPLEUI_STATIC_OFFLINE = True
 
 # session 如果在此期间未做任何操作，则退出， django 本身要么设置固定时间，要么关闭浏览器失效
-CUSTOM_SESSION_EXIPRY_TIME = 60 * 30    # 30 分钟
+CUSTOM_SESSION_EXIPRY_TIME = 60 * 120    # 30 分钟
 
 # 终端过期时间，最好小于等于 CUSTOM_SESSION_EXIPRY_TIME
-CUSTOM_TERMINAL_EXIPRY_TIME = 60 * 30
+CUSTOM_TERMINAL_EXIPRY_TIME = 60 * 120
 
 redis_setting = {
-    'host': '127.0.0.1',
+    'host': '192.168.223.111',
     'port': 6379,
 }
 
@@ -196,8 +223,8 @@ CACHES = {
             'PARSER_CLASS': 'redis.connection.HiredisParser',
             'CONNECTION_POOL_CLASS': 'redis.BlockingConnectionPool',
             'CONNECTION_POOL_CLASS_KWARGS': {
-                'max_connections': 250,
-                'timeout': 10,
+                'max_connections': 500,
+                'timeout': 15,
             },
             "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",   # 开启压缩
         },
@@ -213,16 +240,15 @@ SESSION_COOKIE_HTTPONLY = True
 PROXY_SSHD = {
     'listen_host': '0.0.0.0',
     'listen_port': 2222,
-    'cons': 100,
+    'cons': 500,
 }
 
 # guacd 配置
 GUACD = {
     'host': '192.168.223.111',
     'port': 4822,
-    'timeout': 30,
+    'timeout': 15,
 }
 
 # 访问黑名单， 需开启 Middleware：util.middleware.BlackListMiddleware
 BLACKLIST = ['192.168.223.220', '192.168.223.221']
-
