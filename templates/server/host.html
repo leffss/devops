@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load server_tags %}
 {% load static %}
 
   {% block title %}
@@ -80,7 +81,9 @@
 						<tr>
 						  <th>挂载点</th>
 						  <th>总容量</th>
+						  <th>已用容量</th>
 						  <th>剩余容量</th>
+						  <th>剩余百分比</th>
 						  <th>类型</th>
 						</tr>
 					  </thead>
@@ -88,8 +91,10 @@
 						{% for filesystem in host.serverdetail.filesystems %}
 						<tr>
 						  <td>{{ filesystem.mount }}</td>
-						  <td>{{ filesystem.size_total }}</td>
-						  <td>{{ filesystem.size_available }}</td>
+						  <td>{{ filesystem.size_total | convert_byte:2 }}</td>
+						  <td>{{ filesystem.size_total | minus:filesystem.size_available | convert_byte:2 }}</td>
+						  <td>{{ filesystem.size_available | convert_byte:2 }}</td>
+						  <td>{{ filesystem.size_available | precent:filesystem.size_total }}</td>
 						  <td>{{ filesystem.fstype }}</td>
 						</tr>
 						{% endfor %}

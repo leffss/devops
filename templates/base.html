@@ -294,9 +294,21 @@
                   <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;上传文件</p>
                 </a>
               </li>
+			  {% if request.session.issuperuser %}
+			  <li class="nav-item items">
+                <a href="{% url 'batch:module' %}" class="nav-link">
+                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;module</p>
+                </a>
+              </li>
+			  <li class="nav-item items">
+                <a href="{% url 'batch:playbook' %}" class="nav-link">
+                  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;playbook</p>
+                </a>
+              </li>
+			  {% endif %}
             </ul>
           </li>
-		  
+		  		  
 		  {% if request.session.issuperuser %}
 		  <li class="nav-item has-treeview menu-open">
             <a href="#" class="nav-link">

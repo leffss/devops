@@ -1,6 +1,6 @@
 from devops.celery import app
 from util.ansible_api import AnsibleAPI
-from util.callback import SetupCallbackModule, ModuleCallbackModule, CopyCallbackModule
+from util.callback import SetupCallbackModule, ModuleCallbackModule, CopyCallbackModule, PlayBookCallbackModule
 from util.inventory import BaseInventory
 from server.models import RemoteUserBindHost, ServerDetail
 from webssh.models import TerminalLog
@@ -161,6 +161,78 @@ def task_run_script(hosts, group, data, user, user_agent, client, issuperuser=Fa
         elif script_name.split('.')[-1] == 'rb':
             cmds = cmds + ' ' + 'executable=/usr/bin/ruby'
     ansible_api.run_script(cmds=cmds, hosts='all', group=group, script=script_file)
+
+
+@app.task()
+def task_run_playbook(hosts, group, data, user, user_agent, client, issuperuser=False):
+    host_data = list()
+    _hosts = ''
+    for host in hosts:
+        _hosts += '{}_{}_{}\n'.format(host['hostname'], host['ip'], host['username'])
+        hostinfo = dict()
+        hostinfo['hostname'] = host['hostname']
+        hostinfo['ip'] = host['ip']
+        hostinfo['port'] = host['port']
+        hostinfo['username'] = host['username']
+        hostinfo['password'] = host['password']
+        if issuperuser:
+            if host['superusername']:
+                hostinfo['become'] = {
+                    'method': 'su',
+                    'user': host['superusername'],
+                    'pass': host['superpassword']
+                }
+        host_data.append(hostinfo)
+    inventory = BaseInventory(host_data)
+    callback = PlayBookCallbackModule(group, playbook=data['playbook_name'], user=user, user_agent=user_agent,
+                                      client=client, _hosts=_hosts)
+    ansible_api = AnsibleAPI(
+        dynamic_inventory=inventory,
+        callback=callback
+    )
+    playbook_name = data.get('playbook_name', '')
+    playbook = data.get('playbook', '')
+    now = time.time()
+    tmp_date = time.strftime("%Y-%m-%d", time.localtime(int(now)))
+    if not os.path.isdir(os.path.join(settings.SCRIPT_ROOT, tmp_date)):
+        os.makedirs(os.path.join(settings.SCRIPT_ROOT, tmp_date))
+    script_file = settings.SCRIPT_DIR + '/' + tmp_date + '/' + gen_rand_char(16) + '_' + playbook_name
+    playbook_file = settings.MEDIA_ROOT + '/' + script_file
+    with open(playbook_file, 'w+') as f:
+        f.write(playbook)
+    ansible_api.run_playbook(playbook_yml=playbook_file, group=group, script=script_file)
+
+
+@app.task()
+def task_run_module(hosts, group, data, user, user_agent, client, issuperuser=False):
+    host_data = list()
+    _hosts = ''
+    for host in hosts:
+        _hosts += '{}_{}_{}\n'.format(host['hostname'], host['ip'], host['username'])
+        hostinfo = dict()
+        hostinfo['hostname'] = host['hostname']
+        hostinfo['ip'] = host['ip']
+        hostinfo['port'] = host['port']
+        hostinfo['username'] = host['username']
+        hostinfo['password'] = host['password']
+        if issuperuser:
+            if host['superusername']:
+                hostinfo['become'] = {
+                    'method': 'su',
+                    'user': host['superusername'],
+                    'pass': host['superpassword']
+                }
+        host_data.append(hostinfo)
+    inventory = BaseInventory(host_data)
+    module = data.get('module', 'command')
+    args = data.get('args', '')
+    cmd = 'module: {0} args: {1}'.format(module, args)
+    callback = ModuleCallbackModule(group, cmd=cmd, user=user, user_agent=user_agent, client=client, _hosts=_hosts)
+    ansible_api = AnsibleAPI(
+        dynamic_inventory=inventory,
+        callback=callback
+    )
+    ansible_api.run_modules(cmds=args, module=module, hosts='all', group=group)
 
 
 @app.task()

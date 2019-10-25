@@ -29,6 +29,22 @@ def file(request):
 
 @login_required
 @admin_required
+def playbook(request):
+    user = User.objects.get(id=int(request.session.get('userid')))
+    groups = HostGroup.objects.filter(user=user)
+    return render(request, 'batch/playbook.html', locals())
+
+
+@login_required
+@admin_required
+def module(request):
+    user = User.objects.get(id=int(request.session.get('userid')))
+    groups = HostGroup.objects.filter(user=user)
+    return render(request, 'batch/module.html', locals())
+
+
+@login_required
+@admin_required
 def logs(request):
     logs = BatchCmdLog.objects.all()
     return render(request, 'batch/logs.html', locals())

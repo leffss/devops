@@ -2,7 +2,7 @@
 {% load static %}
 
   {% block title %}
-  <title>批量脚本</title>
+  <title>playbook</title>
   {% endblock title %}
 
   {% block css %}
@@ -17,7 +17,7 @@
           <div class="col-12">
             <ol class="breadcrumb">
               <li class="breadcrumb-item">批量处理</li>
-			  <li class="breadcrumb-item active">批量脚本</li>
+			  <li class="breadcrumb-item active">playbook</li>
             </ol>
           </div>
         </div>
@@ -28,7 +28,7 @@
 		  {% block content %}
           <div class="card content-list">
             <div class="card-header">
-              <h3 class="card-title">批量脚本</h3>
+              <h3 class="card-title">playbook</h3>
 				<div class="card-tools">
 				  <!--button type="button" class="btn btn-tool" data-widget="collapse">
 					<i class="fas fa-minus"></i>
@@ -65,17 +65,11 @@
                   </div>
 				</div>
 				
-				<div class="col-1 pt-1 pb-1">执行目录：</div><div class="col-11 pt-1 pb-1"><input class="form-control" type="text" id="path" onkeyup="check_path();" onblur="check_path();" placeholder="请输入脚本执行目录，默认/tmp"></div>
-				<div class="offset-1 col-11 pb-1"><small id="path_error" style="color:red;"></small></div>
-
-				<div class="col-1 pt-1 pb-1">执行程序：</div><div class="col-11 pt-1 pb-1"><input class="form-control" type="text" id="exec" onkeyup="check_exec();" onblur="check_exec();" placeholder="请输入脚本执行程序，默认/bin/sh"></div>
-				<div class="offset-1 col-11 pb-1"><small id="exec_error" style="color:red;"></small></div>
-				
 				<div class="col-1 pt-1 pb-1">选择脚本：</div>
 				<div class="col-11 pt-1 pb-1"><input type="file" id="upload_file" class="file pb-2" name="upload_file" required></div>
 				<div class="offset-1 col-11 pb-1 pt-1"><div id="script-content"></div><div id="script-name" hidden></div></div>
 				
-				<div class="offset-1 col-11 pt-2"><button class="btn btn-success" onclick="runScript(this);">执行</button><span id="feed_error" class="ml-2" style="color:red;"></span></div>
+				<div class="offset-1 col-11 pt-2"><button class="btn btn-success" onclick="runPlaybook(this);">执行</button><span id="feed_error" class="ml-2" style="color:red;"></span></div>
             </div>
             <!-- /.card-body -->
           </div>
@@ -103,48 +97,6 @@ def hello() {
 <script src="{% static 'ace-new/src-min-noconflict/ext-language_tools.js' %}"></script>
 
 <script>
-	// 校验表单数据
-	check_path = function() {
-		var path = $('#path').val();
-		if (path == '') {
-			$('#path').removeClass("is-invalid");
-			$('#path').removeClass("is-valid");
-			$('#path_error').text('');
-			return true;
-		} else if (!/^\/(\w+\/?)*$/.test(path)) {
-			$('#path').removeClass("is-valid");
-			$('#path').addClass("is-invalid");
-			$('#path_error').text('请输入正确的执行目录');
-			return false;
-		} else {
-			$('#path').removeClass("is-invalid");
-			$('#path').addClass("is-valid");
-			$('#path_error').text('');
-			return true;
-		};
-	}
-	
-	check_exec = function() {
-		var exec = $('#exec').val();
-		if (exec == '') {
-			$('#exec').removeClass("is-invalid");
-			$('#exec').removeClass("is-valid");
-			$('#exec_error').text('');
-			return true;
-		} else if (!/^\/(\w+\/?)+$/.test(exec)) {
-			$('#exec').removeClass("is-valid");
-			$('#exec').addClass("is-invalid");
-			$('#exec_error').text('请输入正确的执行程序');
-			return false;
-		} else {
-			$('#exec').removeClass("is-invalid");
-			$('#exec').addClass("is-valid");
-			$('#exec_error').text('');
-			return true;
-		};
-	}
-	// 校验表单数据
-
 	// 选择组
 	groupSelect = function() {
 		toastr.options.closeButton = true;
@@ -282,8 +234,8 @@ def hello() {
 	};
 	// 选择组
 
-	// 提交脚本
-	runScript = function(event) {
+	// 提交playbook
+	runPlaybook = function(event) {
 		toastr.options.closeButton = true;
 		toastr.options.showMethod = 'slideDown';
 		toastr.options.hideMethod = 'fadeOut';
@@ -304,23 +256,15 @@ def hello() {
 			}
 		});
 		if (fstack.length == 0) {
-			$('#feed_error').text('请选择正确的脚本');
+			$('#feed_error').text('请选择正确的playbook');
 			$(event).removeAttr("disabled");
-			$(event).attr("onclick", "runScript(this);");
+			$(event).attr("onclick", "runPlaybook(this);");
 			return false;
 		};
-				
-		var check_right = new Array();
 
-		var path = $('#path').val();
-		check_right[0] = check_path();
-		
-		var exec = $('#exec').val();
-		check_right[1] = check_exec();
-		
 		// script = $('#script-content').text();
-		script = ace.edit("script-content").getSession().getValue();	// 获取ace编辑器内容
-		script_name = $('#script-name').text();
+		var script = ace.edit("script-content").getSession().getValue();	// 获取ace编辑器内容
+		var script_name = $('#script-name').text();
 
 		var hosts = new Array();
 		$("#hosts option:selected").each(function(){
@@ -332,69 +276,52 @@ def hello() {
 		if (hosts === "") {
 			$('#feed_error').text('请选择主机');
 			$(event).removeAttr("disabled");
-			$(event).attr("onclick", "runScript(this);");
+			$(event).attr("onclick", "runPlaybook(this);");
 			return false;
 		};
 		
-		if (!/false/.test(check_right)) {
-			$('#feed_error').text('');
-			toastr.options.closeButton = true;
-			toastr.options.showMethod = 'slideDown';
-			toastr.options.hideMethod = 'fadeOut';
-			toastr.options.closeMethod = 'fadeOut';
-			toastr.options.timeOut = 0;	
-			toastr.options.extendedTimeOut = 3000;	
-			toastr.options.progressBar = true;
-			toastr.options.positionClass = 'toast-top-right';
-			let protocol = (location.protocol === 'https:') ? 'wss://' : 'ws://';
-			let socketURL = protocol + location.hostname + ((location.port) ? (':' + location.port) : '') + '/ws/script/';
-			let socket = new WebSocket(socketURL);
-			let obj = $('#pre');
-			let data = {
-                "hosts": hosts,
-                "path": path,
-				"exec": exec,
-				"script": script,
-				"script_name": script_name,
-            };
-			
-			socket.onopen = function () {
-				obj.css("max-height","720px");
-				obj.html('\n开始执行...\n\n');
-				socket.send(JSON.stringify(data));
-				$('#path').removeClass("is-invalid");
-				$('#path').removeClass("is-valid");
-				$('#path').val("");
-				$('#path_error').text("");
-				$('#exec').removeClass("is-invalid");
-				$('#exec').removeClass("is-valid");
-				$('#exec').val("");
-				$('#exec_error').text("");
-            };
+		$('#feed_error').text('');
+		toastr.options.closeButton = true;
+		toastr.options.showMethod = 'slideDown';
+		toastr.options.hideMethod = 'fadeOut';
+		toastr.options.closeMethod = 'fadeOut';
+		toastr.options.timeOut = 0;	
+		toastr.options.extendedTimeOut = 3000;	
+		toastr.options.progressBar = true;
+		toastr.options.positionClass = 'toast-top-right';
+		let protocol = (location.protocol === 'https:') ? 'wss://' : 'ws://';
+		let socketURL = protocol + location.hostname + ((location.port) ? (':' + location.port) : '') + '/ws/playbook/';
+		let socket = new WebSocket(socketURL);
+		let obj = $('#pre');
+		let data = {
+			"hosts": hosts,
+			"playbook": script,
+			"playbook_name": script_name,
+		};
+		
+		socket.onopen = function () {
+			obj.css("max-height","720px");
+			obj.html('\n开始执行 ' + script_name + ' ...\n\n');
+			socket.send(JSON.stringify(data));
+		};
 
-            socket.onmessage = function (e) {
-				let data = JSON.parse(e.data);
-				if (data.status === 0) {
-					obj.append(data.message + '\n\n');
-				} else {
-					toastr.error(data.message + '\n\n');
-				}
-            };
+		socket.onmessage = function (e) {
+			let data = JSON.parse(e.data);
+			if (data.status === 0) {
+				obj.append(data.message + '\n\n');
+			} else {
+				toastr.error(data.message + '\n\n');
+			}
+		};
 
-            socket.onclose = function () {
-				$(event).removeAttr("disabled");
-				$(event).attr("onclick", "runScript(this);");
-				$("#upload_file").fileinput('clear');
-                // obj.append('\n<code>执行完毕....</code>');
-            };
-		} else {
-			$('#feed_error').text('请输入正确的参数');
+		socket.onclose = function () {
 			$(event).removeAttr("disabled");
-			$(event).attr("onclick", "runScript(this);");
-			return false;
+			$(event).attr("onclick", "runPlaybook(this);");
+			$("#upload_file").fileinput('clear');
+			// obj.append('\n<code>执行完毕....</code>');
 		};
 	};
-	// 提交脚本
+	// 提交playbook
 	
 </script>
 
@@ -402,20 +329,20 @@ def hello() {
 <script src="{% static 'bootstrap-fileinput/js/fileinput.min.js' %}"></script>
 <!--script src="{% static 'bootstrap-fileinput/js/locales/zh.js' %}"></script-->
 <script>
-	// 选择脚本 -- start
+	// 选择playbook -- start
 	$("#upload_file").fileinput({
         language: 'zh',
         showUpload: false,
 		uploadAsync: false,
         dropZoneEnabled: false,
-        msgPlaceholder: '选择脚本，支持 sh、py、pl、rb 类型，最大支持2MB',
+        msgPlaceholder: '选择playbook，支持 yml、yaml 类型，最大支持2MB',
         showPreview: false,
 		autoReplace: true,
         showCaption: true,
 		showCancel: false,
         maxFileSize: 2048,	// 单位kb，最大文件5MB，
         maxFileCount: 1,
-		allowedFileExtensions: ["sh", "py", "pl", "rb"],
+		allowedFileExtensions: ["yml", "yaml"],
         uploadUrl: "/nothing",
 		mergeAjaxCallbacks: true,
 		ajaxSettings: {
@@ -440,14 +367,14 @@ def hello() {
 		toastr.options.progressBar = true;
 		toastr.options.positionClass = 'toast-top-right';
 		file_type = data.files[0].name.split('.').pop();
-		support_file_type = ["sh", "py", "pl", "rb"];
+		support_file_type = ["yml", "yaml"];
 		if(support_file_type.indexOf(file_type) == -1) {
-			toastr.error('不支持的脚本类型');
+			toastr.error('不支持的文件类型');
 		} else {
 			if (data.files[0].size >= 2 * 1024 * 1024) {
-				toastr.error('脚本大小不能超过2MB');
+				toastr.error('playbook大小不能超过2MB');
 			} else {
-				toastr.error('脚本读取错误');
+				toastr.error('playbook读取错误');
 			};
 		};
     }).on('fileloaded', function(event, file, previewId, index, reader) {
@@ -471,17 +398,7 @@ def hello() {
 				maxLines: 30,
 				minLines: 20
 			});
-			if (file_type == "sh") {
-				editor.session.setMode("ace/mode/sh");
-			} else if (file_type == "py") {
-				editor.session.setMode("ace/mode/python");
-			} else if (file_type == "pl") {
-				editor.session.setMode("ace/mode/perl");
-			} else if (file_type == "rb") {
-				editor.session.setMode("ace/mode/ruby");
-			} else {
-				editor.session.setMode("ace/mode/sh");
-			};
+			editor.session.setMode("ace/mode/yaml");
 			editor.setShowPrintMargin(false);
 			//editor.setReadOnly(true);
 			editor.setValue(this.result, -1);
@@ -496,7 +413,7 @@ def hello() {
 		let editor = ace.edit("script-content");
 		editor.destroy();
     });
-	// 选择脚本 -- end
+	// 选择playbook -- end
 </script>
 
 

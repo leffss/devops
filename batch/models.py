@@ -8,6 +8,8 @@ class BatchCmdLog(models.Model):
         (1, '命令'),
         (2, '脚本'),
         (3, '上传文件'),
+        (4, 'playbook'),
+        (5, 'module'),
     )
     user = models.CharField(max_length=64, verbose_name='操作人')
     hosts = models.TextField(verbose_name='主机信息')

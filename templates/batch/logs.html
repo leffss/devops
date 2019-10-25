@@ -88,6 +88,10 @@
 					<a href="javascript:void(0)" class="btn btn-secondary btn-sm mb-1" info="{{ log.user }}-{{ log.address | default:'' }}" type="{{ log.get_type_display }}" onclick="viewcmd(this);"><cmd hidden>{{ log.cmd }}</cmd><i class="fas fa-list"></i> 上传详情</a>&nbsp;&nbsp;
 				  {% elif log.get_type_display == '脚本' %}
 					<a href="javascript:void(0)" class="btn btn-primary btn-sm mb-1" info="{{ log.user }}-{{ log.address | default:'' }}" type="{{ log.get_type_display }}" onclick="viewcmd(this);"><cmd hidden>/media/{{ log.script }}</cmd><i class="fas fa-list"></i> 脚本详情</a>&nbsp;&nbsp;
+				  {% elif log.get_type_display == 'playbook' %}
+					<a href="javascript:void(0)" class="btn btn-primary btn-sm mb-1" info="{{ log.user }}-{{ log.address | default:'' }}" type="{{ log.get_type_display }}" onclick="viewcmd(this);"><cmd hidden>/media/{{ log.script }}</cmd><i class="fas fa-list"></i> playbook详情</a>&nbsp;&nbsp;
+				  {% elif log.get_type_display == 'module' %}
+				    <a href="javascript:void(0)" class="btn btn-primary btn-sm mb-1" info="{{ log.user }}-{{ log.address | default:'' }}" type="{{ log.get_type_display }}" onclick="viewcmd(this);"><cmd hidden>{{ log.cmd }}</cmd><i class="fas fa-list"></i> module详情</a>&nbsp;&nbsp;
 				  {% endif %}
 				  <a href="javascript:void(0)" class="btn btn-info btn-sm mb-1" id="{{ log.detail }}" info="{{ log.user }}-{{ log.address | default:'' }}" onclick="viewsshvideo(this);"><i class="fas fa-video"></i> 回放</a>
 				  </td>
@@ -215,6 +219,18 @@
 			} else {
 				cmd = htmlobj.responseText;
 			};
+		} else if (type == "上传文件") {
+			$("#view_cmd_info").text("上传详情：" + info);
+		} else if (type == "playbook") {
+			$("#view_cmd_info").text("playbook详情：" + info);
+			var htmlobj= $.ajax({url:cmd,async:false});
+			if (htmlobj.status > 399) {
+				cmd = "获取playbook错误！"
+			} else {
+				cmd = htmlobj.responseText;
+			};
+		} else if (type == "module") {
+			$("#view_cmd_info").text("module详情：" + info);
 		};
 
 		//$("#view_cmd_container").text(cmd);

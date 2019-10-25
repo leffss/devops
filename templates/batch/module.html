@@ -2,7 +2,7 @@
 {% load static %}
 
   {% block title %}
-  <title>批量命令</title>
+  <title>module</title>
   {% endblock title %}
 
 	{% block navheader %}
@@ -12,7 +12,7 @@
           <div class="col-12">
             <ol class="breadcrumb">
               <li class="breadcrumb-item">批量处理</li>
-			  <li class="breadcrumb-item active">批量命令</li>
+			  <li class="breadcrumb-item active">module</li>
             </ol>
           </div>
         </div>
@@ -23,7 +23,7 @@
 		  {% block content %}
           <div class="card content-list">
             <div class="card-header">
-              <h3 class="card-title">批量命令</h3>
+              <h3 class="card-title">module</h3>
 				<div class="card-tools">
 				  <!--button type="button" class="btn btn-tool" data-widget="collapse">
 					<i class="fas fa-minus"></i>
@@ -59,11 +59,36 @@
                     </select>
                   </div>
 				</div>
+
+				<div class="col-1 pt-1 pb-1">模块：</div>
+				<div class="col-11 pt-1 pb-1">
+				  <div class="form-group">
+					<select class="form-control select2" style="width: 100%;" onchange="moduleSelect()" id="ansibleModule">
+						<option selected="selected" value="command">command</option>
+						<option value="shell">shell</option>
+						<option value="raw">raw</option>
+						<option value="script">script</option>
+						<option value="ping">ping</option>
+						<option value="setup">setup</option>
+						<option value="cron">cron</option>
+						<option value="yum">yum</option>
+						<option value="apt">apt</option>
+						<option value="copy">copy</option>
+						<option value="service">service</option>
+						<option value="file">file</option>
+						<option value="wget">wget</option>
+						<option value="synchronize">synchronize</option>
+						<option value="custom">自定义</option>
+					</select>
+                  </div>
+				</div>
+
+				<div class="col-1 pt-1 pb-1 customModule" style="display:none;">自定义模块：</div><div class="col-11 pt-1 pb-1 customModule" style="display:none;"><input class="form-control" type="text" id="c_module" onkeyup="check_c_module();" onblur="check_c_module();" placeholder="输入模块名"></div>
+				<div class="offset-1 col-11 pb-1 customModule"><small id="c_module_error" style="color:red;"></small></div>
 				
-				<div class="col-1 pt-1 pb-1">命令：</div><div class="col-11 pt-1 pb-1"><input class="form-control" type="text" id="cmd" onkeyup="check_cmd();" onblur="check_cmd();" placeholder="请输入命令"></div>
-				<div class="offset-1 col-11 pb-1"><small id="cmd_error" style="color:red;"></small></div>
+				<div class="col-1 pt-1 pb-1">模块参数：</div><div class="col-11 pt-1 pb-1"><input class="form-control" type="text" id="ansibleModuleArgs" value="uptime"></div>
 				
-				<div class="offset-1 col-11 pt-2"><button class="btn btn-success" onclick="runCmd(this);">执行</button><span id="feed_error" class="ml-2" style="color:red;"></span></div>
+				<div class="offset-1 col-11 pt-2"><button class="btn btn-success" onclick="runModule(this);">执行</button><span id="feed_error" class="ml-2" style="color:red;"></span></div>
             </div>
             <!-- /.card-body -->
           </div>
@@ -87,20 +112,23 @@ def hello() {
 
 <script>
 	// 校验表单数据
-	check_cmd = function() {
-		var cmd = $('#cmd').val();
-		if (cmd == '') {
-			$('#cmd').removeClass("is-valid");
-			$('#cmd').addClass("is-invalid");
-			$('#cmd_error').text('请输入命令');
-			return false;
-		} else {
-			$('#cmd').removeClass("is-invalid");
-			$('#cmd').addClass("is-valid");
-			$('#cmd_error').text('');
-			return true;
+	check_c_module = function() {
+		var value = $('#ansibleModule').val();
+		if (value === "custom") {
+			var c_module = $('#c_module').val();
+			if (c_module == '') {
+				$('#c_module').removeClass("is-valid");
+				$('#c_module').addClass("is-invalid");
+				$('#c_module_error').text('请输入模块名');
+				return false;
+			} else {
+				$('#c_module').removeClass("is-invalid");
+				$('#c_module').addClass("is-valid");
+				$('#c_module_error').text('');
+				return true;
+			};
 		};
-	}
+	};
 	// 校验表单数据
 
 	// 选择组
@@ -239,9 +267,91 @@ def hello() {
 		};
 	};
 	// 选择组
-
+	
+	// 选择模块
+	function moduleSelect() {
+		let value = $('#ansibleModule').val();
+		if (value === "shell") {
+			$('#ansibleModuleArgs').val("ps aux;echo 1 && echo 2;");
+			$('.customModule').css('display', 'none');
+			$('#c_module').val("");
+		}
+		else if (value === "yum") {
+			$('#ansibleModuleArgs').val("name=openssl state=present");
+			$('.customModule').css('display', 'none');
+			$('#c_module').val("");
+		}
+		else if (value === "service") {
+			$('#ansibleModuleArgs').val("name=vsftpd state=restarted enabled=yes");
+			$('.customModule').css('display', 'none');
+			$('#c_module').val("");
+		}
+		else if (value === "cron") {
+			$('#ansibleModuleArgs').val('name="sync time" minute=*/30 hour=* day=* month=* weekday=* job="/usr/sbin/ntpdate window.time.com"');
+			$('.customModule').css('display', 'none');
+			$('#c_module').val("");
+		}
+		else if (value === "file") {
+			$('#ansibleModuleArgs').val("src=/home/test.txt dest=/tmp/test.txt owner=test group=test mode=700 state=touch");
+			$('.customModule').css('display', 'none');
+			$('#c_module').val("");
+		}
+		else if (value === "copy") {
+			$('#ansibleModuleArgs').val("src=/tmp/test.txt dest=/tmp/test.txt");
+			$('.customModule').css('display', 'none');
+			$('#c_module').val("");
+		}
+		else if (value === "synchronize") {
+			$('#ansibleModuleArgs').val('src=/home/test/abc dest=/tmp/ compress=yes rsync_opts="--exclude=.git --exclude=static/image"');
+			$('.customModule').css('display', 'none');
+			$('#c_module').val("");
+		}
+		else if (value === "wget") {
+			$('#ansibleModuleArgs').val("url=http://url/test.tar.gz dest=/tmp");
+			$('.customModule').css('display', 'none');
+			$('#c_module').val("");
+		}
+		else if (value === "custom") {
+			$('.customModule').css('display', 'block');
+			$('#ansibleModuleArgs').val("");
+		}
+		else if (value === "ping") {
+			$('#ansibleModuleArgs').val("");
+			$('.customModule').css('display', 'none');
+			$('#c_module').val("");
+		}
+		else if (value === "command") {
+			$('#ansibleModuleArgs').val("uptime");
+			$('.customModule').css('display', 'none');
+			$('#c_module').val("");
+		}
+		else if (value === "raw") {
+			$('#ansibleModuleArgs').val("date");
+			$('.customModule').css('display', 'none');
+			$('#c_module').val("");
+		}
+		else if (value === "setup") {
+			$('#ansibleModuleArgs').val("filter=ansible_hostname");
+			$('.customModule').css('display', 'none');
+			$('#c_module').val("");
+		}
+		else if (value === "apt") {
+			$('#ansibleModuleArgs').val("name=wget state=present");
+			$('.customModule').css('display', 'none');
+			$('#c_module').val("");
+		}
+		else if (value === "script") {
+			$('#ansibleModuleArgs').val("/tmp/script.sh");
+			$('.customModule').css('display', 'none');
+			$('#c_module').val("");
+		} else {
+			$('#ansibleModuleArgs').val("");
+		}
+	}
+	// 选择模块
+		
 	// 提交命令
-	runCmd = function(event) {
+	runModule = function(event) {
 		toastr.options.closeButton = true;
 		toastr.options.showMethod = 'slideDown';
 		toastr.options.hideMethod = 'fadeOut';
@@ -254,73 +364,73 @@ def hello() {
 		$(event).removeAttr("onclick");
 		$(event).attr("disabled", true);
 		
-		var check_right = new Array();
-
-		var cmd = $('#cmd').val();
-		check_right[0] = check_cmd();
-		
 		var hosts = new Array();
 		$("#hosts option:selected").each(function(){
 			var value = $(this).val();   //获取option值
 			hosts.push(value);
 		});
 		hosts = hosts.join(",")
-		
 		if (hosts === "") {
 			$('#feed_error').text('请选择主机');
 			$(event).removeAttr("disabled");
-			$(event).attr("onclick", "runCmd(this);");
+			$(event).attr("onclick", "runModule(this);");
 			return false;
 		};
 		
-		if (!/false/.test(check_right)) {
-			$('#feed_error').text('');
-			toastr.options.closeButton = true;
-			toastr.options.showMethod = 'slideDown';
-			toastr.options.hideMethod = 'fadeOut';
-			toastr.options.closeMethod = 'fadeOut';
-			toastr.options.timeOut = 0;	
-			toastr.options.extendedTimeOut = 3000;	
-			toastr.options.progressBar = true;
-			toastr.options.positionClass = 'toast-top-right';
-			let protocol = (location.protocol === 'https:') ? 'wss://' : 'ws://';
-			let socketURL = protocol + location.hostname + ((location.port) ? (':' + location.port) : '') + '/ws/cmd/';
-			let socket = new WebSocket(socketURL);
-			let obj = $('#pre');
-			let data = {
-                "hosts": hosts,
-                "cmd": cmd,
-            };
-			
-			socket.onopen = function () {
-				obj.css("max-height","720px");
-				obj.html('\n开始执行...\n\n');
-				socket.send(JSON.stringify(data));
-				$('#cmd').removeClass("is-invalid");
-				$('#cmd').removeClass("is-valid");
-				$('#cmd').val("");
-				$('#cmd_error').text("");
-            };
-
-            socket.onmessage = function (e) {
-				let data = JSON.parse(e.data);
-				if (data.status === 0) {
-					obj.append(data.message + '\n\n');
-				} else {
-					toastr.error(data.message + '\n\n');
-				}
-            };
-
-            socket.onclose = function () {
+		var ansiblemodule = $('#ansibleModule').val();
+		if (ansiblemodule === "custom") {
+			var custommodule = $('#c_module').val();
+			if (custommodule === "") {
+				$('#feed_error').text('请输入模块名');
 				$(event).removeAttr("disabled");
-				$(event).attr("onclick", "runCmd(this);");
-                //obj.append('\n<code>执行完毕....</code>');
-            };
-		} else {
-			$('#feed_error').text('请输入命令');
+				$(event).attr("onclick", "runModule(this);");
+				return false;
+			} else {
+				ansiblemodule = custommodule;
+			};
+		};
+		
+		var ansiblemoduleargs = $('#ansibleModuleArgs').val();
+		
+		$('#feed_error').text('');
+		toastr.options.closeButton = true;
+		toastr.options.showMethod = 'slideDown';
+		toastr.options.hideMethod = 'fadeOut';
+		toastr.options.closeMethod = 'fadeOut';
+		toastr.options.timeOut = 0;	
+		toastr.options.extendedTimeOut = 3000;	
+		toastr.options.progressBar = true;
+		toastr.options.positionClass = 'toast-top-right';
+		let protocol = (location.protocol === 'https:') ? 'wss://' : 'ws://';
+		let socketURL = protocol + location.hostname + ((location.port) ? (':' + location.port) : '') + '/ws/module/';
+		let socket = new WebSocket(socketURL);
+		let obj = $('#pre');
+		let data = {
+			"hosts": hosts,
+			"module": ansiblemodule,
+			"args": ansiblemoduleargs,
+		};
+		
+		socket.onopen = function () {
+			obj.css("max-height","720px");
+			obj.html('\n开始执行...\n\n');
+			socket.send(JSON.stringify(data));
+			$('#c_module_error').text('');
+		};
+
+		socket.onmessage = function (e) {
+			let data = JSON.parse(e.data);
+			if (data.status === 0) {
+				obj.append(data.message + '\n\n');
+			} else {
+				toastr.error(data.message + '\n\n');
+			}
+		};
+
+		socket.onclose = function () {
 			$(event).removeAttr("disabled");
-			$(event).attr("onclick", "runCmd(this);");
-			return false;
+			$(event).attr("onclick", "runModule(this);");
+			//obj.append('\n<code>执行完毕....</code>');
 		};
 	};
 	// 提交命令

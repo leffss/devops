@@ -1,6 +1,7 @@
 """
 基于 ansible v2.8.5 的 api，低于 v2.8 不适用
 """
+import time
 import os
 import json
 import shutil
@@ -112,7 +113,7 @@ class AnsibleAPI:
             start_at_task=None,
         )
 
-    def run_playbook(self, playbook_yml):
+    def run_playbook(self, playbook_yml, group=None, script=None):
         """
         运行 playbook
         """
@@ -132,7 +133,28 @@ class AnsibleAPI:
         finally:
             if playbook._tqm is not None:
                 playbook._tqm.cleanup()
-        # self.result_row = self.results_callback.result_row
+        if group:
+            message = dict()
+            message['status'] = 0
+            message['message'] = '执行完毕...'
+            message = json.dumps(message)
+            async_to_sync(channel_layer.group_send)(group, {
+                "type": "close.channel",
+                "text": message,
+            })
+            if self.results_callback.res:
+                save_res(self.results_callback.res_file, self.results_callback.res)
+                batchcmd_log(
+                    user=self.results_callback.user,
+                    hosts=self.results_callback.hosts,
+                    cmd=self.results_callback.playbook,
+                    detail=self.results_callback.res_file,
+                    address=self.results_callback.client,
+                    useragent=self.results_callback.user_agent,
+                    start_time=self.results_callback.start_time_django,
+                    type=4,
+                    script=script,
+                )
 
     def run_module(self, module_name, module_args, hosts='all'):
         """
@@ -177,6 +199,52 @@ class AnsibleAPI:
             # 这个临时目录会在 ~/.ansible/tmp/ 目录下
             shutil.rmtree(C.DEFAULT_LOCAL_TMP, True)
 
+    def run_modules(self, cmds, module='command', hosts='all', group=None):
+        """
+        运行命令有三种 raw 、command 、shell
+        1.command 模块不是调用的shell的指令，所以没有bash的环境变量
+        2.raw很多地方和shell类似，更多的地方建议使用shell和command模块。
+        3.但是如果是使用老版本python，需要用到raw，又或者是客户端是路由器，因为没有安装python模块，那就需要使用raw模块了
+        """
+        try:
+            module_name = module
+            self.run_module(module_name, cmds, hosts)
+        except Exception as err:
+            data = '<code style="color: #FF0000">{}</code>'.format(str(err))
+            data2 = '\033[01;31m{}\r\n\r\n\033[0m'.format(str(err))
+            delay = round(time.time() - self.results_callback.start_time, 6)
+            self.results_callback.res.append(json.dumps([delay, 'o', data2]))
+            message = dict()
+            message['status'] = 0
+            message['message'] = data
+            message = json.dumps(message)
+            async_to_sync(channel_layer.group_send)(group, {
+                "type": "send.message",
+                "text": message,
+            })
+        finally:
+            if group:
+                message = dict()
+                message['status'] = 0
+                message['message'] = '执行完毕...'
+                message = json.dumps(message)
+                async_to_sync(channel_layer.group_send)(group, {
+                    "type": "close.channel",
+                    "text": message,
+                })
+                if self.results_callback.res:
+                    save_res(self.results_callback.res_file, self.results_callback.res)
+                    batchcmd_log(
+                        user=self.results_callback.user,
+                        hosts=self.results_callback.hosts,
+                        cmd=self.results_callback.cmd,
+                        detail=self.results_callback.res_file,
+                        address=self.results_callback.client,
+                        useragent=self.results_callback.user_agent,
+                        start_time=self.results_callback.start_time_django,
+                        type=5,
+                    )
+
     def run_cmd(self, cmds, hosts='all', group=None):
         """
         运行命令有三种 raw 、command 、shell
@@ -184,95 +252,89 @@ class AnsibleAPI:
         2.raw很多地方和shell类似，更多的地方建议使用shell和command模块。
         3.但是如果是使用老版本python，需要用到raw，又或者是客户端是路由器，因为没有安装python模块，那就需要使用raw模块了
         """
-        module_name = 'shell'
-        self.run_module(module_name, cmds, hosts)
-        if group:
-            message = dict()
-            message['status'] = 0
-            message['message'] = '执行完毕...'
-            message = json.dumps(message)
-            async_to_sync(channel_layer.group_send)(group, {
-                "type": "close.channel",
-                "text": message,
-            })
-            if self.results_callback.res:
-                save_res(self.results_callback.res_file, self.results_callback.res)
-                batchcmd_log(
-                    user=self.results_callback.user,
-                    hosts=self.results_callback.hosts,
-                    cmd=self.results_callback.cmd,
-                    detail=self.results_callback.res_file,
-                    address=self.results_callback.client,
-                    useragent=self.results_callback.user_agent,
-                    start_time=self.results_callback.start_time_django,
-                )
+        try:
+            module_name = 'shell'
+            self.run_module(module_name, cmds, hosts)
+        finally:
+            if group:
+                message = dict()
+                message['status'] = 0
+                message['message'] = '执行完毕...'
+                message = json.dumps(message)
+                async_to_sync(channel_layer.group_send)(group, {
+                    "type": "close.channel",
+                    "text": message,
+                })
+                if self.results_callback.res:
+                    save_res(self.results_callback.res_file, self.results_callback.res)
+                    batchcmd_log(
+                        user=self.results_callback.user,
+                        hosts=self.results_callback.hosts,
+                        cmd=self.results_callback.cmd,
+                        detail=self.results_callback.res_file,
+                        address=self.results_callback.client,
+                        useragent=self.results_callback.user_agent,
+                        start_time=self.results_callback.start_time_django,
+                    )
 
     def run_script(self, cmds, hosts='all', group=None, script=None):
-        """
-        运行命令有三种 raw 、command 、shell
-        1.command 模块不是调用的shell的指令，所以没有bash的环境变量
-        2.raw很多地方和shell类似，更多的地方建议使用shell和command模块。
-        3.但是如果是使用老版本python，需要用到raw，又或者是客户端是路由器，因为没有安装python模块，那就需要使用raw模块了
-        """
-        module_name = 'script'
-        self.run_module(module_name, cmds, hosts)
-        if group:
-            message = dict()
-            message['status'] = 0
-            message['message'] = '执行完毕...'
-            message = json.dumps(message)
-            async_to_sync(channel_layer.group_send)(group, {
-                "type": "close.channel",
-                "text": message,
-            })
-            if self.results_callback.res:
-                save_res(self.results_callback.res_file, self.results_callback.res)
-                batchcmd_log(
-                    user=self.results_callback.user,
-                    hosts=self.results_callback.hosts,
-                    cmd=self.results_callback.cmd,
-                    detail=self.results_callback.res_file,
-                    address=self.results_callback.client,
-                    useragent=self.results_callback.user_agent,
-                    start_time=self.results_callback.start_time_django,
-                    type=2,
-                    script=script,
-                )
+        try:
+            module_name = 'script'
+            self.run_module(module_name, cmds, hosts)
+        finally:
+            if group:
+                message = dict()
+                message['status'] = 0
+                message['message'] = '执行完毕...'
+                message = json.dumps(message)
+                async_to_sync(channel_layer.group_send)(group, {
+                    "type": "close.channel",
+                    "text": message,
+                })
+                if self.results_callback.res:
+                    save_res(self.results_callback.res_file, self.results_callback.res)
+                    batchcmd_log(
+                        user=self.results_callback.user,
+                        hosts=self.results_callback.hosts,
+                        cmd=self.results_callback.cmd,
+                        detail=self.results_callback.res_file,
+                        address=self.results_callback.client,
+                        useragent=self.results_callback.user_agent,
+                        start_time=self.results_callback.start_time_django,
+                        type=2,
+                        script=script,
+                    )
 
     def run_copy(self, cmds, hosts='all', group=None):
-        """
-        运行命令有三种 raw 、command 、shell
-        1.command 模块不是调用的shell的指令，所以没有bash的环境变量
-        2.raw很多地方和shell类似，更多的地方建议使用shell和command模块。
-        3.但是如果是使用老版本python，需要用到raw，又或者是客户端是路由器，因为没有安装python模块，那就需要使用raw模块了
-        """
-        module_name = 'copy'
-        self.run_module(module_name, cmds, hosts)
-        if group:
-            message = dict()
-            message['status'] = 0
-            message['message'] = '执行完毕...'
-            message = json.dumps(message)
-            async_to_sync(channel_layer.group_send)(group, {
-                "type": "close.channel",
-                "text": message,
-            })
-            if self.results_callback.res:
-                save_res(self.results_callback.res_file, self.results_callback.res)
-                batchcmd_log(
-                    user=self.results_callback.user,
-                    hosts=self.results_callback.hosts,
-                    cmd='上传 {} --> {}'.format(self.results_callback.src.split('/')[-1], self.results_callback.dst),
-                    detail=self.results_callback.res_file,
-                    address=self.results_callback.client,
-                    useragent=self.results_callback.user_agent,
-                    start_time=self.results_callback.start_time_django,
-                    type=3,
-                )
         try:
-            os.remove(self.results_callback.src)
-        except Exception:
-            print(traceback.format_exc())
+            module_name = 'copy'
+            self.run_module(module_name, cmds, hosts)
+        finally:
+            if group:
+                message = dict()
+                message['status'] = 0
+                message['message'] = '执行完毕...'
+                message = json.dumps(message)
+                async_to_sync(channel_layer.group_send)(group, {
+                    "type": "close.channel",
+                    "text": message,
+                })
+                if self.results_callback.res:
+                    save_res(self.results_callback.res_file, self.results_callback.res)
+                    batchcmd_log(
+                        user=self.results_callback.user,
+                        hosts=self.results_callback.hosts,
+                        cmd='上传文件 {} 到 {}'.format(self.results_callback.src.split('/')[-1], self.results_callback.dst),
+                        detail=self.results_callback.res_file,
+                        address=self.results_callback.client,
+                        useragent=self.results_callback.user_agent,
+                        start_time=self.results_callback.start_time_django,
+                        type=3,
+                    )
+            try:
+                os.remove(self.results_callback.src)
+            except Exception:
+                print(traceback.format_exc())
 
     def get_server_info(self, hosts='all'):
         """
@@ -434,21 +496,23 @@ if __name__ == '__main__':
     }
     from .inventory import BaseInventory
     inventory = BaseInventory(host_data)
-    from .callback import CallbackModule
+    from .callback import CallbackModule, PlayBookCallbackModule
     callback = CallbackModule()
+    callback2 = PlayBookCallbackModule('saddasd', cmd='xx', user='admin', user_agent='admin',
+                                       client='192.168.223.1', _hosts='192.168.223.111')
     ansible_api = AnsibleAPI(
-        private_key_file=private_key_file,
-        extra_vars=extra_vars,
-        remote_user=remote_user,
+        # private_key_file=private_key_file,
+        # extra_vars=extra_vars,
+        # remote_user=remote_user,
         dynamic_inventory=inventory,
-        callback=callback,
+        callback=callback2,
         # forks=4,
     )
 
-    # ansible_api.run_playbook(playbook_yml=playbook_yml)
+    ansible_api.run_playbook(playbook_yml=playbook_yml)
     # ansible_api.run_module(module_name="shell", module_args="echo 'hello world!';echo $?", hosts="group1,group3")
-    cmd = '. /etc/profile &> /dev/null; . ~/.bash_profile &> /dev/null; ip a;'
-    ansible_api.run_module(module_name='shell', module_args=cmd, hosts='all')
+    # cmd = '. /etc/profile &> /dev/null; . ~/.bash_profile &> /dev/null; ip a;'
+    # ansible_api.run_module(module_name='shell', module_args=cmd, hosts='all')
     # ansible_api.run_cmd(cmds=cmd, hosts='k8s')
     # ansible_api.run_module(module_name='setup', module_args='', hosts='k8s')
     # ansible_api.get_server_info(hosts='lvs')

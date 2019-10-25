@@ -114,6 +114,11 @@ query = query.encode(errors='replace')
 
 # 升级日志
 
+### ver1.8.2
+新增执行 ansible module；
+
+新增执行 ansible playbook；
+
 ### ver1.8.1
 完善批量执行命令（增加日志记录）；
 
@@ -154,7 +159,7 @@ webssh 终端页面新增文件上传与下载功能(支持 5GB 以下文件，�
 微调 web 终端 UI；
 
 ### ver1.7.3
-新增 webguacamole，支持 RDP、VNC 协议连接主机，并支持录像回放；
+新增 webguacamole，理论上支持 RDP、VNC 协议连接主机（VNC 没试过），并支持录像回放；
 
 ### ver1.7.2
 新增客户端连接 sftp；
@@ -201,6 +206,7 @@ linux 平台下使用 celery 任务保存终端会话日志与录像（windows �
 
 
 # 预览
+![效果](https://github.com/leffss/devops/blob/master/screenshots/1.PNG?raw=true)
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/2.PNG?raw=true)
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/3.PNG?raw=true)
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/4.PNG?raw=true)
@@ -219,9 +225,11 @@ linux 平台下使用 celery 任务保存终端会话日志与录像（windows �
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/19.PNG?raw=true)
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/20.PNG?raw=true)
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/21.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/22.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/23.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/24.PNG?raw=true)
 
 # TODO LISTS
-- [ ] 集成 ansible，执行 module 与 playbook
 - [ ] docker 容器管理
 - [ ] k8s 集群管理
 
