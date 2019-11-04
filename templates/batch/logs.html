@@ -55,49 +55,11 @@
 				  <th>操作</th>
                 </tr>
                 </thead>
-                <tbody>
-				{% for log in logs %}
-                <tr>
-				  {% set lenhosts = len(log.hosts) %}
-				  {% set lencmd =  len(log.cmd) %}
-				  {% set lenuseragent =  len(log.useragent) %}
-				  <td>{{ log.user}}</td>
-				  <td>{{ log.hosts | linebreaksbr | truncatechars_html:255 }}{% if lenhosts > 255 %}<br>...{% endif %}</td>
-				  
-				  <td>
-				  {% if log.get_type_display == '命令' %}
-					<span class="badge badge-success">{{ log.get_type_display }}</span>
-				  {% elif log.get_type_display == '脚本' %}
-					<span class="badge badge-info">{{ log.get_type_display }}</span>
-				  {% elif log.get_type_display == '上传文件' %}
-					<span class="badge badge-primary">{{ log.get_type_display }}</span>
-				  {% else %}
-				    <span class="badge badge-secondary">{{ log.get_type_display }}</span>
-				  {% endif %}
-				  </td>
-				  
-				  <td>{{ log.cmd | linebreaksbr | truncatechars_html:45 }}{% if lencmd > 45 %}<br>...{% endif %}</td>
-				  <td>{{ log.address | default:'' }}</td>
-				  <td>{{ log.useragent | truncatechars_html:30 | default:'' }}{% if lenuseragent > 30 %}...{% endif %}</td>
-				  <td>{{ log.start_time | date:"Y/m/d H:i:s" }}</td>
-				  <td>{{ log.create_time | date:"Y/m/d H:i:s" }}</td>
-				  <td>
-				  {% if log.get_type_display == '命令' %}
-					<a href="javascript:void(0)" class="btn btn-success btn-sm mb-1" info="{{ log.user }}-{{ log.address | default:'' }}" type="{{ log.get_type_display }}" onclick="viewcmd(this);"><cmd hidden>{{ log.cmd }}</cmd><i class="fas fa-list"></i> 命令详情</a>&nbsp;&nbsp;
-				  {% elif log.get_type_display == '上传文件' %}
-					<a href="javascript:void(0)" class="btn btn-secondary btn-sm mb-1" info="{{ log.user }}-{{ log.address | default:'' }}" type="{{ log.get_type_display }}" onclick="viewcmd(this);"><cmd hidden>{{ log.cmd }}</cmd><i class="fas fa-list"></i> 上传详情</a>&nbsp;&nbsp;
-				  {% elif log.get_type_display == '脚本' %}
-					<a href="javascript:void(0)" class="btn btn-primary btn-sm mb-1" info="{{ log.user }}-{{ log.address | default:'' }}" type="{{ log.get_type_display }}" onclick="viewcmd(this);"><cmd hidden>/media/{{ log.script }}</cmd><i class="fas fa-list"></i> 脚本详情</a>&nbsp;&nbsp;
-				  {% elif log.get_type_display == 'playbook' %}
-					<a href="javascript:void(0)" class="btn btn-primary btn-sm mb-1" info="{{ log.user }}-{{ log.address | default:'' }}" type="{{ log.get_type_display }}" onclick="viewcmd(this);"><cmd hidden>/media/{{ log.script }}</cmd><i class="fas fa-list"></i> playbook详情</a>&nbsp;&nbsp;
-				  {% elif log.get_type_display == 'module' %}
-				    <a href="javascript:void(0)" class="btn btn-primary btn-sm mb-1" info="{{ log.user }}-{{ log.address | default:'' }}" type="{{ log.get_type_display }}" onclick="viewcmd(this);"><cmd hidden>{{ log.cmd }}</cmd><i class="fas fa-list"></i> module详情</a>&nbsp;&nbsp;
-				  {% endif %}
-				  <a href="javascript:void(0)" class="btn btn-info btn-sm mb-1" id="{{ log.detail }}" info="{{ log.user }}-{{ log.address | default:'' }}" onclick="viewsshvideo(this);"><i class="fas fa-video"></i> 回放</a>
-				  </td>
-                </tr>
-				{% endfor %}
-                </tbody>
+				
+                <!--tbody>
+				dataTables 服务器端处理模式
+                </tbody-->
+				
                 <tfoot>
                 <tr>
 				  <th>操作人</th>
@@ -154,9 +116,16 @@
 <script src="{% static 'adminlte/plugins/datatables/jquery.dataTables.js' %}"></script>
 <script src="{% static 'adminlte/plugins/datatables/dataTables.bootstrap4.js' %}"></script>
 <script>
+	// $.fn.dataTable.ext.errMode = 'throw';
+	$.fn.dataTable.ext.errMode = function( settings, tn, msg){
+		//打印msg，和tn来判断，进了这个方法都是ajax走了error才会到这里来
+		console.log(settings);
+		console.log(tn);
+		console.log(msg);
+	};
 	$("#datatables-lists").DataTable({
 		language: {
-			"sProcessing": "处理中...",
+			"sProcessing": "加载中...",
 			"sLengthMenu": "显示 _MENU_ 项结果",
 			"sZeroRecords": "没有匹配结果",
 			"sInfo": "显示第 _START_ 至 _END_ 项结果，共 _TOTAL_ 项",
@@ -181,14 +150,25 @@
 		},
 		destroy: true,	// 允许重建
 		bProcessing:true,  // 表格数据过多处理时显示: sProcessing
-		lengthMenu: [[5, 10, 25, 50, 100, -1], [5, 10, 25, 50, 100, "全部"]],
+		// lengthMenu: [[5, 10, 25, 50, 100, -1], [5, 10, 25, 50, 100, "全部"]],
+		lengthMenu: [[5, 10, 25, 50, 100], [5, 10, 25, 50, 100]],
 		columnDefs : [ { targets : 8, "orderable" : false } ],
 		order: [],
 		 //scrollY: 480,	// 滚动条
 		 //scrollCollapse: true,
 		 //jQueryUI: true,
 		 stateSave: true,	// 保存最后一次分页信息、排序信息，当页面刷新，或者重新进入这个页面，恢复上次的状态。
-		 stateDuration: 86400,	// 本地储存(0~更大)还是session储存(-1) 
+		 stateDuration: 86400,	// 本地储存(0~更大)还是session储存(-1)
+		 
+		 processing: true,
+		 serverSide: true,	// 开启服务器端处理模式
+		 ajax: {
+			url: '{% url "batch_api:logs" %}',
+			type: 'POST',
+			data: {
+				csrfmiddlewaretoken: '{{ request.COOKIES.csrftoken }}',
+			}
+		 },
 	});
 </script>
 

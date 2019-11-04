@@ -11,4 +11,3 @@ urlpatterns = [
     path('module/', views.module, name='module'),
     path('logs/', views.logs, name='logs'),
 ]
-

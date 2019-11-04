@@ -96,7 +96,6 @@ class WebTelnet(WebsocketConsumer):
             message = json.dumps(self.message)
             self.send(message)
             self.close(3001)
-        
         host = self.remote_host.ip
         port = self.remote_host.port
         user = self.remote_host.remote_user.username

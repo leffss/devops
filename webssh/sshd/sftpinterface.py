@@ -41,11 +41,11 @@ class SFTPInterface(paramiko.SFTPServerInterface):
 
         try:
             self._client = self.proxy_ssh.chan_cli.transport.remote_version
-        except:
+        except Exception:
             self._client = 'clissh'
         try:
             self.client_addr = self.proxy_ssh.chan_cli.transport.sock.getpeername()[0]
-        except:
+        except Exception:
             self.client_addr = '1.0.0.0'
 
         data = {
@@ -71,7 +71,8 @@ class SFTPInterface(paramiko.SFTPServerInterface):
         t.daemon = True
         t.start()
 
-    def get_sftp_proxy_client(self, ssh_args):
+    @staticmethod
+    def get_sftp_proxy_client(ssh_args):
         host = ssh_args[0]
         port = ssh_args[1]
         username = ssh_args[2]
@@ -105,12 +106,12 @@ class SFTPInterface(paramiko.SFTPServerInterface):
 
                 try:
                     self.transport.getpeername()
-                except:
+                except Exception:
                     self.session_ended()
                     break
 
                 time.sleep(sleep_time)  # 每次循环暂停一定时间，以免对 redis 造成压力
-        except:
+        except Exception:
             logger.error(traceback.format_exc())
 
     def session_ended(self):
@@ -156,7 +157,7 @@ class SFTPInterface(paramiko.SFTPServerInterface):
                 super(SFTPInterface, self).session_ended()
                 self.client.close()
                 self.transport.close()
-            except:
+            except Exception:
                 logger.error(traceback.format_exc())
 
     def _parsePath(self, path):
@@ -213,15 +214,9 @@ class SFTPInterface(paramiko.SFTPServerInterface):
                 paramiko.SFTPServer.set_file_attr(self._parsePath(path), attr)
 
             if flags & os.O_WRONLY:
-                if flags & os.O_APPEND:
-                    fstr = 'ab'
-                else:
-                    fstr = 'wb'
+                fstr = 'ab' if flags & os.O_APPEND else 'wb'
             elif flags & os.O_RDWR:
-                if flags & os.O_APPEND:
-                    fstr = 'a+b'
-                else:
-                    fstr = 'r+b'
+                fstr = 'a+b' if flags & os.O_APPEND else 'r+b'
             else:
                 fstr = 'rb'
 
@@ -302,5 +297,5 @@ class SFTPInterface(paramiko.SFTPServerInterface):
         self.last_operation_time = time.time()
         try:
             return self.client.readlink(self._parsePath(path))
-        except:
+        except Exception:
             return paramiko.SFTP_OP_UNSUPPORTED

@@ -25,8 +25,29 @@ from asgiref.sync import async_to_sync
 channel_layer = get_channel_layer()
 
 
+def check_ansible_variable(content):
+    """
+    防止执行 ansible 任务时使用类似内置变量 {{ ansible_ssh_pass }} 等获取到主机密码
+    """
+    content = content.replace('vars:', '+++')   # ansible playbook 中内置参数 vars 和 vars_files 与变量 vars 冲突
+    content = content.replace('vars_files:', '+++')
+    pattern = re.compile(r'^[\S\s]*?(?P<ansible>[\S\s]?(%s)[\S\s]?)[\S\s]*$' %
+                         '|'.join(settings.ANSIBLE_DENY_VARIBLE_LISTS), re.I)
+    res = pattern.search(content)
+    if res:
+        info = res.groupdict()
+        info = info['ansible'].strip()
+        if info.startswith('=') or info.startswith('{'):
+            info = info[1:]
+        if info.endswith('}'):
+            info = info[:-1]
+        if info in settings.ANSIBLE_DENY_VARIBLE_LISTS:
+            return True, info
+    return False, None
+
+
 # 生成随机字符串
-def gen_rand_char(length=10, chars='0123456789zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA'):
+def gen_rand_char(length=16, chars='0123456789zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA'):
     return ''.join(random.sample(chars, length))
 
 
@@ -86,7 +107,13 @@ class AnsibleAPI:
         """
         # constants里面可以找到这些参数，ImmutableDict代替了较老的版本的nametuple的方式
         context.CLIARGS = ImmutableDict(
-            connection='smart',
+            # connection 表示与主机的连接类型.比如: local, ssh 或者 paramiko.
+            # 如果设置为 local 的话只会在配置管理的节点上执行，不会在远程主机执行
+            # ssh 连接类型需要管理节点安装了 sshpass
+            # Ansible1.2 以前默认使用 paramiko.
+            # 使用 paramiko 使用主要在主机变量中设置 ansible_ssh_host_key_checking 或者 ansible_host_key_checking 为 True
+            # 1.2 以后默认使用 smart, smart 方式会根据是否支持 ControlPersist, 来判断 ssh 方式是否可行.
+            connection=settings.ANSIBLE_CONNECTION_TYPE,  # 设置全局默认连接插件，主机还可以使用变量ansible_connection设置
             remote_user=self.remote_user,
             ack_pass=None,
             sudo=True,
@@ -119,42 +146,70 @@ class AnsibleAPI:
         """
         playbook = None
         try:
-            playbook = PlaybookExecutor(
-                playbooks=[playbook_yml],
-                inventory=self.dynamic_inventory,
-                variable_manager=self.variable_manager,
-                loader=self.loader,
-                passwords=self.passwords,
-            )
-            playbook._tqm._stdout_callback = self.results_callback
-            playbook.run()
-        except Exception:
-            print(traceback.format_exc())
-        finally:
-            if playbook._tqm is not None:
-                playbook._tqm.cleanup()
-        if group:
+            with open(playbook_yml) as f:
+                playbook_content = f.read()
+            check, variable = check_ansible_variable(playbook_content)
+            if check:
+                data = '<code style="color: #FF0000">playbook 中包含非法 ansible 变量: [{}]，禁止运行</code>'.format(variable)
+                data2 = '\033[01;31mplaybook 中包含非法 ansible 变量: [{}]，禁止运行\r\n\r\n\033[0m'.format(variable)
+                delay = round(time.time() - self.results_callback.start_time, 6)
+                self.results_callback.res.append(json.dumps([delay, 'o', data2]))
+                message = dict()
+                message['status'] = 0
+                message['message'] = data
+                message = json.dumps(message)
+                async_to_sync(channel_layer.group_send)(group, {
+                    "type": "send.message",
+                    "text": message,
+                })
+            else:
+                playbook = PlaybookExecutor(
+                    playbooks=[playbook_yml],
+                    inventory=self.dynamic_inventory,
+                    variable_manager=self.variable_manager,
+                    loader=self.loader,
+                    passwords=self.passwords,
+                )
+                playbook._tqm._stdout_callback = self.results_callback
+                playbook.run()
+        except Exception as err:
+            data = '<code style="color: #FF0000">{}</code>'.format(str(err))
+            data2 = '\033[01;31m{}\r\n\r\n\033[0m'.format(str(err).strip().replace('\n', '\r\n'))
+            delay = round(time.time() - self.results_callback.start_time, 6)
+            self.results_callback.res.append(json.dumps([delay, 'o', data2]))
             message = dict()
             message['status'] = 0
-            message['message'] = '执行完毕...'
+            message['message'] = data
             message = json.dumps(message)
             async_to_sync(channel_layer.group_send)(group, {
-                "type": "close.channel",
+                "type": "send.message",
                 "text": message,
             })
-            if self.results_callback.res:
-                save_res(self.results_callback.res_file, self.results_callback.res)
-                batchcmd_log(
-                    user=self.results_callback.user,
-                    hosts=self.results_callback.hosts,
-                    cmd=self.results_callback.playbook,
-                    detail=self.results_callback.res_file,
-                    address=self.results_callback.client,
-                    useragent=self.results_callback.user_agent,
-                    start_time=self.results_callback.start_time_django,
-                    type=4,
-                    script=script,
-                )
+        finally:
+            if group:
+                message = dict()
+                message['status'] = 0
+                message['message'] = '执行完毕...'
+                message = json.dumps(message)
+                async_to_sync(channel_layer.group_send)(group, {
+                    "type": "close.channel",
+                    "text": message,
+                })
+                if self.results_callback.res:
+                    save_res(self.results_callback.res_file, self.results_callback.res)
+                    batchcmd_log(
+                        user=self.results_callback.user,
+                        hosts=self.results_callback.hosts,
+                        cmd=self.results_callback.playbook,
+                        detail=self.results_callback.res_file,
+                        address=self.results_callback.client,
+                        useragent=self.results_callback.user_agent,
+                        start_time=self.results_callback.start_time_django,
+                        type=4,
+                        script=script,
+                    )
+            if playbook._tqm is not None:
+                playbook._tqm.cleanup()
 
     def run_module(self, module_name, module_args, hosts='all'):
         """
@@ -207,11 +262,26 @@ class AnsibleAPI:
         3.但是如果是使用老版本python，需要用到raw，又或者是客户端是路由器，因为没有安装python模块，那就需要使用raw模块了
         """
         try:
-            module_name = module
-            self.run_module(module_name, cmds, hosts)
+            check, variable = check_ansible_variable(cmds)
+            if check:
+                data = '<code style="color: #FF0000">参数中包含非法 ansible 变量: [{}]，禁止运行</code>'.format(variable)
+                data2 = '\033[01;31m参数中包含非法 ansible 变量: [{}]，禁止运行\r\n\r\n\033[0m'.format(variable)
+                delay = round(time.time() - self.results_callback.start_time, 6)
+                self.results_callback.res.append(json.dumps([delay, 'o', data2]))
+                message = dict()
+                message['status'] = 0
+                message['message'] = data
+                message = json.dumps(message)
+                async_to_sync(channel_layer.group_send)(group, {
+                    "type": "send.message",
+                    "text": message,
+                })
+            else:
+                module_name = module
+                self.run_module(module_name, cmds, hosts)
         except Exception as err:
             data = '<code style="color: #FF0000">{}</code>'.format(str(err))
-            data2 = '\033[01;31m{}\r\n\r\n\033[0m'.format(str(err))
+            data2 = '\033[01;31m{}\r\n\r\n\033[0m'.format(str(err).strip().replace('\n', '\r\n'))
             delay = round(time.time() - self.results_callback.start_time, 6)
             self.results_callback.res.append(json.dumps([delay, 'o', data2]))
             message = dict()
@@ -253,8 +323,36 @@ class AnsibleAPI:
         3.但是如果是使用老版本python，需要用到raw，又或者是客户端是路由器，因为没有安装python模块，那就需要使用raw模块了
         """
         try:
-            module_name = 'shell'
-            self.run_module(module_name, cmds, hosts)
+            check, variable = check_ansible_variable(cmds)
+            if check:
+                data = '<code style="color: #FF0000">参数中包含非法 ansible 变量: [{}]，禁止运行</code>'.format(variable)
+                data2 = '\033[01;31m参数中包含非法 ansible 变量: [{}]，禁止运行\r\n\r\n\033[0m'.format(variable)
+                delay = round(time.time() - self.results_callback.start_time, 6)
+                self.results_callback.res.append(json.dumps([delay, 'o', data2]))
+                message = dict()
+                message['status'] = 0
+                message['message'] = data
+                message = json.dumps(message)
+                async_to_sync(channel_layer.group_send)(group, {
+                    "type": "send.message",
+                    "text": message,
+                })
+            else:
+                module_name = 'shell'
+                self.run_module(module_name, cmds, hosts)
+        except Exception as err:
+            data = '<code style="color: #FF0000">{}</code>'.format(str(err))
+            data2 = '\033[01;31m{}\r\n\r\n\033[0m'.format(str(err).strip().replace('\n', '\r\n'))
+            delay = round(time.time() - self.results_callback.start_time, 6)
+            self.results_callback.res.append(json.dumps([delay, 'o', data2]))
+            message = dict()
+            message['status'] = 0
+            message['message'] = data
+            message = json.dumps(message)
+            async_to_sync(channel_layer.group_send)(group, {
+                "type": "send.message",
+                "text": message,
+            })
         finally:
             if group:
                 message = dict()
@@ -279,8 +377,36 @@ class AnsibleAPI:
 
     def run_script(self, cmds, hosts='all', group=None, script=None):
         try:
-            module_name = 'script'
-            self.run_module(module_name, cmds, hosts)
+            check, variable = check_ansible_variable(cmds)
+            if check:
+                data = '<code style="color: #FF0000">参数中包含非法 ansible 变量: [{}]，禁止运行</code>'.format(variable)
+                data2 = '\033[01;31m参数中包含非法 ansible 变量: [{}]，禁止运行\r\n\r\n\033[0m'.format(variable)
+                delay = round(time.time() - self.results_callback.start_time, 6)
+                self.results_callback.res.append(json.dumps([delay, 'o', data2]))
+                message = dict()
+                message['status'] = 0
+                message['message'] = data
+                message = json.dumps(message)
+                async_to_sync(channel_layer.group_send)(group, {
+                    "type": "send.message",
+                    "text": message,
+                })
+            else:
+                module_name = 'script'
+                self.run_module(module_name, cmds, hosts)
+        except Exception as err:
+            data = '<code style="color: #FF0000">{}</code>'.format(str(err))
+            data2 = '\033[01;31m{}\r\n\r\n\033[0m'.format(str(err).strip().replace('\n', '\r\n'))
+            delay = round(time.time() - self.results_callback.start_time, 6)
+            self.results_callback.res.append(json.dumps([delay, 'o', data2]))
+            message = dict()
+            message['status'] = 0
+            message['message'] = data
+            message = json.dumps(message)
+            async_to_sync(channel_layer.group_send)(group, {
+                "type": "send.message",
+                "text": message,
+            })
         finally:
             if group:
                 message = dict()
@@ -307,8 +433,36 @@ class AnsibleAPI:
 
     def run_copy(self, cmds, hosts='all', group=None):
         try:
-            module_name = 'copy'
-            self.run_module(module_name, cmds, hosts)
+            check, variable = check_ansible_variable(cmds)
+            if check:
+                data = '<code style="color: #FF0000">参数中包含非法 ansible 变量: [{}]，禁止运行</code>'.format(variable)
+                data2 = '\033[01;31m参数中包含非法 ansible 变量: [{}]，禁止运行\r\n\r\n\033[0m'.format(variable)
+                delay = round(time.time() - self.results_callback.start_time, 6)
+                self.results_callback.res.append(json.dumps([delay, 'o', data2]))
+                message = dict()
+                message['status'] = 0
+                message['message'] = data
+                message = json.dumps(message)
+                async_to_sync(channel_layer.group_send)(group, {
+                    "type": "send.message",
+                    "text": message,
+                })
+            else:
+                module_name = 'copy'
+                self.run_module(module_name, cmds, hosts)
+        except Exception as err:
+            data = '<code style="color: #FF0000">{}</code>'.format(str(err))
+            data2 = '\033[01;31m{}\r\n\r\n\033[0m'.format(str(err).strip().replace('\n', '\r\n'))
+            delay = round(time.time() - self.results_callback.start_time, 6)
+            self.results_callback.res.append(json.dumps([delay, 'o', data2]))
+            message = dict()
+            message['status'] = 0
+            message['message'] = data
+            message = json.dumps(message)
+            async_to_sync(channel_layer.group_send)(group, {
+                "type": "send.message",
+                "text": message,
+            })
         finally:
             if group:
                 message = dict()
@@ -517,4 +671,3 @@ if __name__ == '__main__':
     # ansible_api.run_module(module_name='setup', module_args='', hosts='k8s')
     # ansible_api.get_server_info(hosts='lvs')
     # ansible_api.get_result()
-

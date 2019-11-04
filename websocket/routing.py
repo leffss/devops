@@ -18,4 +18,3 @@ websocket_urlpatterns = [
     path('ws/playbook/', Playbook),
     path('ws/module/', Module),
 ]
-

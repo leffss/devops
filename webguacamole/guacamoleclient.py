@@ -19,7 +19,7 @@ class Client:
         if not os.path.isdir(os.path.join(settings.RECORD_ROOT, tmp_date1)):
             os.makedirs(os.path.join(settings.RECORD_ROOT, tmp_date1))
         self.res_file = settings.RECORD_DIR + '/' + tmp_date1 + '/' + 'webguacamole_' + \
-                        tmp_date2 + '_' + gen_rand_char(8) + '.txt'
+                        tmp_date2 + '_' + gen_rand_char(16) + '.txt'
         self.res = []
         self.guacamoleclient = None
 
@@ -101,4 +101,3 @@ class Client:
 
     def shell(self, data):
         self.django_to_guacd(data)
-

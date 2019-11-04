@@ -40,7 +40,7 @@ class Telnet:
         if not os.path.isdir(os.path.join(settings.RECORD_ROOT, tmp_date1)):
             os.makedirs(os.path.join(settings.RECORD_ROOT, tmp_date1))
         self.res_file = settings.RECORD_DIR + '/' + tmp_date1 + '/' + 'webtelnet_' + \
-                        tmp_date2 + '_' + gen_rand_char(8) + '.txt'
+                        tmp_date2 + '_' + gen_rand_char(16) + '.txt'
         self.last_save_time = self.start_time
         self.res_asciinema = []
 
@@ -59,7 +59,7 @@ class Telnet:
             user = '{0}\n'.format(user).encode('utf-8')
             self.tn.write(user)
 
-            login_password = self.tn.read_until(password_pre, timeout=15)
+            self.tn.read_until(password_pre, timeout=15)
             password = '{0}\n'.format(password).encode('utf-8')
             self.tn.write(password)
 
@@ -269,4 +269,3 @@ class Telnet:
 
     def shell(self, data):
         self.django_to_telnet(data)
-

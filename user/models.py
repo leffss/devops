@@ -138,4 +138,3 @@ class LoginLog(models.Model):
         ordering = ["-create_time"]
         verbose_name = '用户日志'
         verbose_name_plural = '用户日志'
-

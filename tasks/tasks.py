@@ -14,7 +14,7 @@ import random
 
 
 # 生成随机字符串
-def gen_rand_char(length=10, chars='0123456789zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA'):
+def gen_rand_char(length=16, chars='0123456789zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA'):
     return ''.join(random.sample(chars, length))
 
 
@@ -368,5 +368,3 @@ def task_test():
     # ansible_api.run_module(module_name='setup', module_args='', hosts='k8s')
     # ansible_api.run_module(module_name='shell', module_args='echo "1" >> /tmp/test.txt', hosts='k8s')
     ansible_api.get_result()
-
-

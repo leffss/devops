@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load server_tags %}
 {% load static %}
 
   {% block title %}
@@ -45,11 +46,11 @@
             <div class="card-body row">
 				<div class="col-3 pt-1 pb-1 border-bottom">名称：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ user.name }}</div>
 				<div class="col-3 pt-1 pb-1 border-bottom">用户名：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ user.username }}</div>
-				<div class="col-3 pt-1 pb-1 border-bottom">密码：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ user.password }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">密码：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ user.password | decrypt_passwd }}</div>
 				<div class="col-3 pt-1 pb-1 border-bottom">登陆后是否su跳转超级用户：</div><div class="col-9 pt-1 pb-1 border-bottom">{% if user.enabled %}<span class="badge badge-success">是</span>{% else %}<span class="badge badge-danger">否</span>{% endif %}</div>
 				{% if user.enabled %}
 				<div class="col-3 pt-1 pb-1 border-bottom">超级用户：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ user.superusername | default:'' }}</div>
-				<div class="col-3 pt-1 pb-1 border-bottom">超级密码：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ user.superpassword | default:'' }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">超级密码：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ user.superpassword | default:'' | decrypt_passwd }}</div>
 				{% endif %}
 				<div class="col-3 pt-1 pb-1 border-bottom">已绑定主机数：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ user.remoteuserbindhost_set.all.count }}</div>
 				<div class="col-3 pt-1 pb-1 border-bottom">创建时间：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ user.create_time | date:"Y/m/d H:i:s" }}</div>

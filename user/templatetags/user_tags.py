@@ -11,4 +11,3 @@ def count_user_hosts(username):
         Q(user__username = username) | Q(group__user__username = username)
     ).distinct().count()
     return hosts
-

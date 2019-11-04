@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load server_tags %}
 {% load static %}
 
   {% block title %}
@@ -44,7 +45,7 @@
 				<div class="col-2 pt-1 pb-1">用户名<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="username"  value="{{ user.username }}" onkeyup="check_username();" onblur="check_username();"></div>
 				<div class="offset-2 col-10 pb-1"><small id="username_error" style="color:red;"></small></div>
 				
-				<div class="col-2 pt-1 pb-1">密码<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="password" value="{{ user.password }}" onkeyup="check_password();" onblur="check_password();"></div>
+				<div class="col-2 pt-1 pb-1">密码<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="password" value="{{ user.password | decrypt_passwd }}" onkeyup="check_password();" onblur="check_password();"></div>
 				<div class="offset-2 col-10 pb-1"><small id="password_error" style="color:red;"></small></div>
 				
 				<div class="offset-2 col-10 pt-1 pb-1" id="enabled_click">
@@ -56,7 +57,7 @@
 				<div class="col-2 pt-1 pb-1 super" {% if not user.enabled %}style="display:none;"{% endif %}>超级用户：</div><div class="col-10 pt-1 pb-1 super" {% if not user.enabled %}style="display:none;"{% endif %}><input class="form-control" type="text" id="superusername"  value="{{ user.superusername | default:'' }}" onkeyup="check_superusername();" onblur="check_superusername();"></div>
 				<div class="offset-2 col-10 pb-1"><small id="superusername_error" style="color:red;"></small></div>
 				
-				<div class="col-2 pt-1 pb-1 super" {% if not user.enabled %}style="display:none;"{% endif %}>超级密码：</div><div class="col-10 pt-1 pb-1 super" {% if not user.enabled %}style="display:none;"{% endif %}><input class="form-control" type="text" id="superpassword" value="{{ user.superpassword | default:'' }}" onkeyup="check_superpassword();" onblur="check_superpassword();"></div>
+				<div class="col-2 pt-1 pb-1 super" {% if not user.enabled %}style="display:none;"{% endif %}>超级密码：</div><div class="col-10 pt-1 pb-1 super" {% if not user.enabled %}style="display:none;"{% endif %}><input class="form-control" type="text" id="superpassword" value="{{ user.superpassword | default:'' | decrypt_passwd }}" onkeyup="check_superpassword();" onblur="check_superpassword();"></div>
 				<div class="offset-2 col-10 pb-1"><small id="superpassword_error" style="color:red;"></small></div>
 				
 				<div class="col-2 pt-1 pb-1">备注：</div><div class="col-10 pt-1 pb-1"><textarea id="memo" class="form-control">{{ user.memo | default:'' }}</textarea></div>

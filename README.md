@@ -1,5 +1,5 @@
 # devops
-基于 python 3.7 + django 2.2.3 + channels 2.2.0 + celery 4.3.0 + ansible 2.8.5 + AdminLTE-3.0.0-beta.1 实现的运维 devops 管理系统。具体见 `screenshots` 文件夹中的效果预览图。功能持续完善中。
+基于 python 3.7 + django 2.2.3 + channels 2.2.0 + celery 4.3.0 + ansible 2.8.5 + AdminLTE-3.0.0 实现的运维 devops 管理系统。具体见 `screenshots` 文件夹中的效果预览图。功能持续完善中。
 
 
 # 安装
@@ -9,7 +9,7 @@
 ```
 yum install -y sshpass
 ```
-- ansible 使用密码连接主机时需要 sshpass 支持
+- ansible 连接插件 connection 使用 ssh 模式（还可以使用 paramiko 等）并且密码连接主机时需要 sshpass 支持
 
 **redis**
 ```
@@ -51,11 +51,14 @@ sh start_docker.sh
 **提醒：** 以上部署方式都是开发环境，正式环境部署一般为 nginx(静态资源处理和请求的分发) + uwsgi/gunicorn(处理http) + daphne(处理websocket)，具体方法等后面功能做得差不多了再更新。
 
 **使用 mysql 数据库**
+
 以上是使用的 django 默认的数据库是 sqlite3，如果需要使用 mysql 数据库，方法如下：
+
 首先安装pymysql：
 ```
 pip install pymysql
 ```
+
 修改 devops/settings.py 中的 `DATABASES` 配置：
 ```
 DATABASES = {
@@ -85,7 +88,10 @@ pymysql.install_as_MySQLdb()
 ```
 django.core.exceptions.ImproperlyConfigured: mysqlclient 1.3.13 or newer is required; you have 0.9.3.
 ```
-原因是 django 2.2 默认使用 `MySQLdb` 连接 mysql，但是 python3 已经摒弃这个库，改用 `pymysql`。网上解决方法一般2种：
+原因是 django 2.2 默认使用 `MySQLdb`（python3 版本名称为 `mysqlclient`）连接 mysql，这个库不是纯 python 编写
+的库，安装时依赖系统 mysql 开发库，稍微有点点麻烦；所以这里选择纯 python 编写的 `pymysql`（pymysql 与 mysqlclient
+ 作者为同一人，性能比 mysqlclient 低，有性能需求的话，还是建议使用 mysqlclient，安装其实也不是特别麻烦）。
+ 网上解决方法一般2种：
 - 将 django 降低到 2.14 以下即可：这个不用想，降你妹，老子就要用最新的！
 - 修改 django 代码支持，就选它了。
 
@@ -113,6 +119,19 @@ query = query.encode(errors='replace')
 
 
 # 升级日志
+
+### ver1.8.3
+修正终端日志保存时用户名覆盖主机名的 BUG；
+
+新增 ansible 内置变量禁止使用名单，防止通过内置变量（比如 ansible_ssh_pass）获取到主机密码；
+
+新增 django-ratelimit 页面访问频率限制；
+
+远程主机账号密码由明文存储变更为密文存储；
+
+日志审计页面 datatables 变更为服务器端处理数据模式；
+
+修正 web 终端以及批量处理等处可能产生的越权访问远程主机问题；
 
 ### ver1.8.2
 新增执行 ansible module；
@@ -190,7 +209,6 @@ linux 平台下使用 celery 任务保存终端会话日志与录像（windows �
 ### ver1.3.0 
 完善新增主机，新增主机账号等功能；
 
-
 ### ver1.2.0 
 完善功能；
 
@@ -230,8 +248,10 @@ linux 平台下使用 celery 任务保存终端会话日志与录像（windows �
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/24.PNG?raw=true)
 
 # TODO LISTS
+- [ ] RBAC 权限实现
 - [ ] docker 容器管理
 - [ ] k8s 集群管理
+- [ ] 自动化部署CI/CD
 
 
 更多新功能不断探索发现中.

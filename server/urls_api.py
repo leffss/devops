@@ -18,4 +18,3 @@ urlpatterns = [
     path('group/add/', views_api.group_add, name='group_add'),
 
 ]
-

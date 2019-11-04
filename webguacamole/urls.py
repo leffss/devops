@@ -6,4 +6,3 @@ app_name = "webguacamole"
 urlpatterns = [
     path('terminal/', views.terminal, name='terminal'),
 ]
-

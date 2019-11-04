@@ -4,7 +4,7 @@ from django import forms
 class ChangeUserForm(forms.Form):
     userid = forms.IntegerField(label="用户ID")
     username = forms.CharField(label="用户名", max_length=128)
-    password = forms.CharField(label="密码", max_length=512)
+    password = forms.CharField(label="密码", max_length=32)
     memo = forms.CharField(label="备注", max_length=255, widget=forms.Textarea, required=False)
     enabled = forms.BooleanField(label="登陆后是否su跳转超级用户", required=False)
     superusername = forms.CharField(label="超级用户", max_length=128, required=False)
@@ -14,7 +14,7 @@ class ChangeUserForm(forms.Form):
 class AddUserForm(forms.Form):
     name = forms.CharField(label="名称", max_length=128)
     username = forms.CharField(label="用户名", max_length=128)
-    password = forms.CharField(label="密码", max_length=512)
+    password = forms.CharField(label="密码", max_length=32)
     memo = forms.CharField(label="备注", max_length=255, widget=forms.Textarea, required=False)
     enabled = forms.BooleanField(label="登陆后是否su跳转超级用户", required=False)
     superusername = forms.CharField(label="超级用户", max_length=128, required=False)
@@ -61,4 +61,3 @@ class AddGroupForm(forms.Form):
     groupname = forms.CharField(label="组名", max_length=64)
     memo = forms.CharField(label="备注", max_length=256, widget=forms.Textarea, required=False)
     hosts = forms.CharField(label="组内主机", max_length=102400, required=False)
-

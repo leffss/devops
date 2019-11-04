@@ -1,7 +1,7 @@
 from django import template
 from ..models import RemoteUserBindHost
 from django.db.models import Sum, Count
-import random
+from util.crypto import decrypt
 
 
 register = template.Library()
@@ -68,3 +68,7 @@ def precent(free, total):    # 过滤器最多2个参数
     else:
         return '{} %'.format('%.{}f'.format(0) % (free / total * 100))
 
+
+@register.filter()
+def decrypt_passwd(passwd):
+    return decrypt(passwd)

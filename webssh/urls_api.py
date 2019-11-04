@@ -13,5 +13,5 @@ urlpatterns = [
     path('session/clissh/unlock/', views_api.session_clissh_unlock, name='session_clissh_unlock'),
     path('session/upload/<int:pk>/', views_api.session_upload, name='session_upload'),
     path('session/download/<int:pk>/', views_api.session_download, name='session_download'),
+    path('logs/', views_api.logs, name='logs'),
 ]
-

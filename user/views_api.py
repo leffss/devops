@@ -4,11 +4,16 @@ from .models import User, LoginLog, Group
 from server.models import RemoteUserBindHost
 from .forms import ChangePasswdForm, ChangeUserProfileForm, ChangeUserForm, ChangeGroupForm, AddGroupForm, AddUserForm
 from util.tool import login_required, hash_code, post_required, admin_required, event_log
+from ratelimit.decorators import ratelimit      # 限速
+from ratelimit import ALL
+from util.rate import rate, key
+from django.db.models import Q
 import traceback
 import json
 # Create your views here.
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @post_required
 def password_update(request):
@@ -48,6 +53,7 @@ def password_update(request):
         return JsonResponse({"code": 406, "err": error_message})
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @post_required
 def profile_update(request):
@@ -62,14 +68,12 @@ def profile_update(request):
         qq = changeuserprofile_form.cleaned_data.get('qq')
         sex = changeuserprofile_form.cleaned_data.get('sex')
         memo = changeuserprofile_form.cleaned_data.get('memo')
-
         clissh_name = changeuserprofile_form.cleaned_data.get('clissh_name')
         clissh_path = changeuserprofile_form.cleaned_data.get('clissh_path')
         clissh_args = changeuserprofile_form.cleaned_data.get('clissh_args')
         clisftp_name = changeuserprofile_form.cleaned_data.get('clisftp_name')
         clisftp_path = changeuserprofile_form.cleaned_data.get('clisftp_path')
         clisftp_args = changeuserprofile_form.cleaned_data.get('clisftp_args')
-
         data = {
             'nickname': nickname,
             'email': email,
@@ -120,6 +124,7 @@ def profile_update(request):
         return JsonResponse({"code": 403, "err": error_message})
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @admin_required
 @post_required
@@ -195,7 +200,8 @@ def user_update(request):
         error_message = '请检查填写的内容!'
         return JsonResponse({"code": 403, "err": error_message})
 
-        
+
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @admin_required
 @post_required
@@ -217,6 +223,7 @@ def user_delete(request):
     return JsonResponse({"code": 200, "err": ""})
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @admin_required
 @post_required
@@ -301,7 +308,8 @@ def user_add(request):
         error_message = '请检查填写的内容!'
         return JsonResponse({"code": 404, "err": error_message})
         
-        
+
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @admin_required
 @post_required
@@ -363,6 +371,7 @@ def group_update(request):
         return JsonResponse({"code": 403, "err": error_message})
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @admin_required
 @post_required
@@ -380,7 +389,8 @@ def group_delete(request):
     event_log(user, 9, '组 [{}] 删除成功'.format(group.group_name), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
     return JsonResponse({"code": 200, "err": ""})
 
-    
+
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @admin_required
 @post_required
@@ -444,3 +454,88 @@ def group_add(request):
         error_message = '请检查填写的内容!'
         return JsonResponse({"code": 404, "err": error_message})
 
+
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
+@login_required
+@admin_required
+@post_required
+def logs(request):
+    """
+    配合前端 datatables
+    """
+    draw = int(request.POST.get('draw', 1))
+    start = int(request.POST.get('start', 0))
+    length = int(request.POST.get('length', 5))
+    search_value = request.POST.get('search[value]', '')
+    search_regex = request.POST.get('search[regex]', False)
+    search_regex = True if search_regex == 'true' else False
+    orders = [
+        'user',
+        'type',
+        'detail',
+        'address',
+        'useragent',
+        'create_time',
+    ]
+    order_column = orders[int(request.POST.get('order[0][column]', 0))]
+    order_dir = request.POST.get('order[0][dir]', '')
+    records_total = LoginLog.objects.all().count()
+    if search_value:
+        records_filtered = LoginLog.objects.filter(
+            Q(user__icontains=search_value) |
+            Q(detail__icontains=search_value) |
+            Q(address__icontains=search_value) |
+            Q(useragent__icontains=search_value)
+        ).count()
+    else:
+        records_filtered = records_total
+    res = dict()
+    res['draw'] = draw
+    res['recordsTotal'] = records_total
+    res['recordsFiltered'] = records_filtered
+    if length <= 0:
+        length = 5
+    elif length > 100:
+        length = 100
+    if search_value:
+        if order_dir and order_dir == 'desc':
+            datas = LoginLog.objects.filter(
+                Q(user__icontains=search_value) |
+                Q(detail__icontains=search_value) |
+                Q(address__icontains=search_value) |
+                Q(useragent__icontains=search_value)
+            ).order_by('-' + order_column)[start:start + length]
+        elif order_dir and order_dir == 'asc':
+            datas = LoginLog.objects.filter(
+                Q(user__icontains=search_value) |
+                Q(detail__icontains=search_value) |
+                Q(address__icontains=search_value) |
+                Q(useragent__icontains=search_value)
+            ).order_by(order_column)[start:start + length]
+        else:
+            datas = LoginLog.objects.filter(
+                Q(user__icontains=search_value) |
+                Q(detail__icontains=search_value) |
+                Q(address__icontains=search_value) |
+                Q(useragent__icontains=search_value)
+            )[start:start + length]
+    else:
+        if order_dir and order_dir == 'desc':
+            datas = LoginLog.objects.all().order_by('-' + order_column)[start:start + length]
+        elif order_dir and order_dir == 'asc':
+            datas = LoginLog.objects.all().order_by(order_column)[start:start + length]
+        else:
+            datas = LoginLog.objects.all()[start:start + length]
+    data = []
+    for i in datas:
+        tmp = list()
+        tmp.append(i.user)
+        type_display = '<span class="badge badge-success">{0}</span>'.format(i.get_event_type_display())
+        tmp.append(type_display)
+        tmp.append(i.detail)
+        tmp.append(i.address)
+        tmp.append(i.useragent[0:35] + '...' if len(i.useragent) > 35 else i.useragent)
+        tmp.append(i.create_time.strftime('%Y/%m/%d %H:%M:%S'))
+        data.append(tmp)
+    res['data'] = data
+    return JsonResponse(res)

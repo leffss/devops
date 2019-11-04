@@ -6,10 +6,15 @@ from user.models import User
 from .forms import ChangeUserForm, AddUserForm, ChangeHostForm, AddHostForm, AddGroupForm, ChangeGroupForm
 from tasks.tasks import task_host_update_info
 from django.db.models import Q
+from ratelimit.decorators import ratelimit      # 限速
+from ratelimit import ALL
+from util.rate import rate, key
+from util.crypto import encrypt
 import traceback
 # Create your views here.
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @admin_required
 @post_required
@@ -31,11 +36,11 @@ def user_update(request):
             
         data = {
             'username': username,
-            'password': password,
+            'password': encrypt(password),
             'memo': memo,
             'enabled': enabled,
             'superusername': superusername,
-            'superpassword': superpassword,
+            'superpassword': encrypt(superpassword) if superpassword else superpassword,
         }
         try:
             user = User.objects.get(username=log_user)
@@ -50,7 +55,8 @@ def user_update(request):
         error_message = '请检查填写的内容!'
         return JsonResponse({"code": 402, "err": error_message})
 
-        
+
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @admin_required
 @post_required
@@ -73,11 +79,11 @@ def user_add(request):
         data = {
             'name': name,
             'username': username,
-            'password': password,
+            'password': encrypt(password),
             'memo': memo,
             'enabled': enabled,
             'superusername': superusername,
-            'superpassword': superpassword,
+            'superpassword': encrypt(superpassword) if superpassword else superpassword,
         }
         try:
             if RemoteUser.objects.filter(name=name).count() > 0:
@@ -95,7 +101,8 @@ def user_add(request):
         error_message = '请检查填写的内容!'
         return JsonResponse({"code": 403, "err": error_message})
         
-        
+
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @admin_required
 @post_required
@@ -114,6 +121,7 @@ def user_delete(request):
     return JsonResponse({"code": 200, "err": ""})
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @admin_required
 @post_required
@@ -129,6 +137,7 @@ def host_delete(request):
     return JsonResponse({"code": 200, "err": ""})
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @admin_required
 @post_required
@@ -177,6 +186,7 @@ def host_update(request):
         return JsonResponse({"code": 401, "err": error_message})
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @admin_required
 @post_required
@@ -240,6 +250,7 @@ def host_add(request):
         return JsonResponse({"code": 401, "err": error_message})
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @admin_required
 @post_required
@@ -266,6 +277,7 @@ def host_update_info(request):
     return JsonResponse({"code": 200, "err": ""})
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @post_required
 def group_delete(request):
@@ -280,6 +292,7 @@ def group_delete(request):
     return JsonResponse({"code": 200, "err": ""})
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @post_required
 def group_update(request):
@@ -331,6 +344,7 @@ def group_update(request):
         return JsonResponse({"code": 403, "err": error_message})
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @post_required
 def group_add(request):
@@ -385,4 +399,3 @@ def group_add(request):
     else:
         error_message = '请检查填写的内容!'
         return JsonResponse({"code": 404, "err": error_message})
-

@@ -6,12 +6,16 @@ from .forms import LoginForm
 from util.tool import login_required, hash_code, admin_required, event_log
 import django.utils.timezone as timezone
 from django.db.models import Q
+from ratelimit.decorators import ratelimit      # 限速
+from ratelimit import ALL
+from util.rate import rate, key
 import time
 import json
 import traceback
 # Create your views here.
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 def login(request):
     if request.session.get('islogin', None):  # 不允许重复登录
         return redirect(reverse('server:index'))
@@ -59,6 +63,7 @@ def login(request):
     return render(request, 'user/login.html')
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 def logout(request):
     if not request.session.get('islogin', None):
         return redirect(reverse('user:login'))
@@ -81,6 +86,7 @@ def logout(request):
     return redirect(reverse('user:login'))
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 def lockscreen(request):
     if request.method == 'GET':
@@ -114,13 +120,15 @@ def lockscreen(request):
         return redirect(reverse('user:lockscreen'))
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @admin_required
 def users(request):
     users = User.objects.exclude(pk=request.session['userid'])  # exclude 排除当前登陆用户
     return render(request, 'user/users.html', locals())
 
-    
+
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @admin_required
 def groups(request):
@@ -128,6 +136,7 @@ def groups(request):
     return render(request, 'user/groups.html', locals())
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @admin_required
 def logs(request):
@@ -135,6 +144,7 @@ def logs(request):
     return render(request, 'user/logs.html', locals())
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 def profile(request):
     user = get_object_or_404(User, pk=request.session.get('userid'))
@@ -153,6 +163,7 @@ def profile(request):
     return render(request, 'user/profile.html', locals())
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 def profile_edit(request):
     user = get_object_or_404(User, pk=request.session.get('userid'))
@@ -165,6 +176,7 @@ def profile_edit(request):
     return render(request, 'user/profile_edit.html', locals())
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @admin_required
 def user(request, user_id):
@@ -172,6 +184,7 @@ def user(request, user_id):
     return render(request, 'user/user.html', locals())
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @admin_required
 def user_edit(request, user_id):
@@ -192,7 +205,8 @@ def user_edit(request, user_id):
     )
     return render(request, 'user/user_edit.html', locals())
 
-    
+
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @admin_required
 def user_add(request):
@@ -209,6 +223,7 @@ def user_add(request):
     return render(request, 'user/user_add.html', locals())
     
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @admin_required
 def group(request, group_id):
@@ -216,6 +231,7 @@ def group(request, group_id):
     return render(request, 'user/group.html', locals())
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @admin_required
 def group_edit(request, group_id):
@@ -230,10 +246,10 @@ def group_edit(request, group_id):
     return render(request, 'user/group_edit.html', locals())
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @admin_required
 def group_add(request):
     all_users = User.objects.exclude(pk=request.session['userid'])
     all_hosts = RemoteUserBindHost.objects.all()
     return render(request, 'user/group_add.html', locals())
-

@@ -1,20 +1,39 @@
 ---
-
 - name: say 'hello world'
   hosts: all
   # gather_facts 会运行setup模块，速度慢，关闭
   gather_facts: no
+  vars:
+   - a: 1
+   - b: 2
   tasks:
     - name: echo "hello world"
       command: echo "hello world"
       register: result
-      
-    - name: print stdout
+      notify: ht1
+    - meta: flush_handlers
+    - name: print stdout1
       debug:
-        msg: "{{ result.stdout }}"
-        
-    - name: error test
-      command: echox "xxxxxx"
+        var: a
+    - name: print stdout2
+      debug:
+        var: b
+    #- name: with item
+    - debug:
+        msg: "{{ item }}"
+      with_items:
+        - 1
+        - 2
+        - 3
+    - name: loop
+      debug:
+        msg: "{{ item }}"
+      loop:
+        - 1
+        - 2
+        - 3
 
-    - name: ls -l /tmp
-      shell: ls -l /tmp
+  handlers:
+    - name: ht1
+      command: echo "hello world"
+      register: result

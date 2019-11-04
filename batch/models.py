@@ -29,4 +29,3 @@ class BatchCmdLog(models.Model):
         ordering = ["-create_time"]
         verbose_name = '批量日志'
         verbose_name_plural = '批量日志'
-

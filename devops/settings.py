@@ -76,6 +76,7 @@ INSTALLED_APPS = [
     'batch',
 ]
 
+# 中间件
 MIDDLEWARE = [
     # 'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.security.SecurityMiddleware',
@@ -89,7 +90,7 @@ MIDDLEWARE = [
     'util.middleware.GetRealClientMiddleware',  # 前端有代理，获取真实 IP
     'util.middleware.BlackListMiddleware',  # IP 黑名单
     'util.middleware.LockScreenMiddleware',     # 锁屏
-    'util.middleware.DebugMiddleware',      # 管理员显示 DEBUG 页面
+    'util.middleware.DebugMiddleware',      # 非 DEBUG 模式下管理员显示 DEBUG 页面
 ]
 
 FILE_UPLOAD_HANDLERS = [
@@ -141,8 +142,8 @@ DATABASES_mysql = {
         'HOST': '192.168.223.111',
         'PORT': '3306',
         'OPTIONS': {
-            # 'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            'init_command': "SET sql_mode=''",
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            # 'init_command': "SET sql_mode=''",
          },
     }
 }
@@ -201,7 +202,7 @@ redis_setting = {
 # celery 配置 redis
 CELERY_BROKER_URL = 'redis://{0}:{1}/0'.format(redis_setting['host'], redis_setting['port'])
 
-# channel_layers 使用 redis
+# channels channel_layers 使用 redis
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
@@ -236,7 +237,7 @@ SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 SESSION_COOKIE_HTTPONLY = True
 
 
-# proxy_sshd 配置
+# proxy_sshd 监听配置
 PROXY_SSHD = {
     'listen_host': '0.0.0.0',
     'listen_port': 2222,
@@ -252,3 +253,41 @@ GUACD = {
 
 # 访问黑名单， 需开启 Middleware：util.middleware.BlackListMiddleware
 BLACKLIST = ['192.168.223.220', '192.168.223.221']
+
+# ansible 变量禁止名单，防止执行 ansible 任务时使用类似 {{ ansible_ssh_pass }} 获取到主机密码
+ANSIBLE_DENY_VARIBLE_LISTS = [
+    "vars",
+    "hostvars",
+    "ansible_ssh_pass",
+    "ansible_password",
+    "ansible_ssh_private_key_file",
+    "ansible_private_key_file",
+    "ansible_become_pass",
+    "ansible_become_password",
+    "ansible_enable_pass",
+    "ansible_pass",
+    "ansible_sudo_pass",
+    "ansible_sudo_password",
+    "ansible_su_pass",
+    "ansible_su_password",
+    "vault_password",
+]
+
+# ansible 连接插件 connection 的连接类型, 有 ssh, paramiko, smart 等，ansible 默认 smart
+# 详情参考 https://docs.ansible.com/ansible/latest/plugins/connection.html
+ANSIBLE_CONNECTION_TYPE = 'paramiko'
+
+
+# django-ratelimit 限制页面访问频率，超过则返回 403
+# None 表示无限制，具体见 https://django-ratelimit.readthedocs.io/en/stable/rates.html
+# RATELIMIT_LOGIN = None
+RATELIMIT_LOGIN = '600/30s'
+RATELIMIT_NOLOGIN = '20/30s'
+
+
+# cryptography 加密解密密钥
+# 生成方法：
+# from cryptography.fernet import Fernet
+# cipher_key = Fernet.generate_key()
+# 非常重要，修改后会便无法解密数据库中储存的主机密码，所以第一次生成后切勿再随意更改
+CRYPTOGRAPHY_TOKEN = 'a0pLIWQvKYXp27uhQ7Bm5MDnQPvYSJ2oLaDZ6gJ_EJs='

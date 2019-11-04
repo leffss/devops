@@ -5,6 +5,9 @@ from ansible.parsing.dataloader import DataLoader  # 解析 json/ymal/ini 格式
 from ansible.vars.manager import VariableManager  # 管理主机和主机组的变量
 from ansible.inventory.manager import InventoryManager  # 管理资产文件（动态资产、静态资产）或者主机列表
 from ansible.inventory.host import Host     # 单台主机类
+from django.conf import settings
+from util.crypto import decrypt
+from ansible.plugins.connection import ConnectionBase
 
 
 class BaseHost(Host):
@@ -21,6 +24,16 @@ class BaseHost(Host):
 
     def __set_required_variables(self):
         host_data = self.host_data
+
+        # 设置 connection 插件连接方式
+        self.set_variable('ansible_connection', settings.ANSIBLE_CONNECTION_TYPE)
+
+        # ssh 连接参数，提升速度， 仅到连接插件为 ssh 时生效，paramiko 模式下不生效
+        if settings.ANSIBLE_CONNECTION_TYPE == 'ssh':
+            self.set_variable('ansible_ssh_args', '-C -o ControlMaster=auto -o ControlPersist=60s')
+
+        # self.set_variable('ansible_host_key_checking', False)
+        self.set_variable('ansible_ssh_host_key_checking', False)
         self.set_variable('ansible_host', host_data['ip'])
         self.set_variable('ansible_port', host_data['port'])
 
@@ -29,17 +42,24 @@ class BaseHost(Host):
 
         # 添加密码和秘钥
         if host_data.get('password'):
-            self.set_variable('ansible_ssh_pass', host_data['password'])
+            self.set_variable('ansible_ssh_pass', decrypt(host_data['password']))
         if host_data.get('private_key'):
             self.set_variable('ansible_ssh_private_key_file', host_data['private_key'])
+
+        if settings.ANSIBLE_CONNECTION_TYPE == 'ssh':
+            self.set_variable('ansible_ssh_pipelining', True)
 
         # 添加become支持
         become = host_data.get('become', False)
         if become:
             self.set_variable('ansible_become', True)
             self.set_variable('ansible_become_method', become.get('method', 'sudo'))
+            if become.get('method', 'sudo') == 'sudo':
+                if settings.ANSIBLE_CONNECTION_TYPE == 'ssh':
+                    # ansible_ssh_pipelining 可以加快执行速度，但是不兼容 sudo，仅到连接插件为 ssh 时生效，paramiko 不生效
+                    self.set_variable('ansible_ssh_pipelining', False)
             self.set_variable('ansible_become_user', become.get('user', 'root'))
-            self.set_variable('ansible_become_pass', become.get('pass', ''))
+            self.set_variable('ansible_become_pass', decrypt(become.get('pass', '')))
         else:
             self.set_variable('ansible_become', False)
 
@@ -95,4 +115,3 @@ class BaseInventory(InventoryManager):
 
     def get_matched_hosts(self, pattern):
         return self.get_hosts(pattern)
-

@@ -30,4 +30,3 @@ def unique():
     m = hashlib.md5(bytes(salt, encoding='utf-8'))
     m.update(bytes(ctime, encoding='utf-8'))
     return m.hexdigest()
-

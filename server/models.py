@@ -113,4 +113,3 @@ class ServerDetail(models.Model):
     class Meta:
         verbose_name = '主机详细'
         verbose_name_plural = '主机详细'
-

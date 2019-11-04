@@ -6,4 +6,3 @@ app_name = "webtelnet"
 urlpatterns = [
     path('terminal/', views.terminal, name='terminal'),
 ]
-

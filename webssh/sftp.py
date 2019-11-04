@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import os
 import logging
 import paramiko
 from paramiko.common import WARNING
@@ -64,10 +63,8 @@ class SFTP:
     def upload_file(self, file_name, upload_file_path):
         try:
             stdin, stdout, stderr = self.ssh.exec_command('echo $HOME')
-            remote_path = '/tmp'
             home_path = stdout.read().decode().strip()
-            if home_path:
-                remote_path = home_path
+            remote_path = home_path if home_path else '/tmp'
             local_file = '{}/{}'.format(upload_file_path, file_name)
             self.put_file(local_file, remote_path)
             return True, remote_path

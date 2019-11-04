@@ -1,5 +1,4 @@
 import paramiko
-import threading
 from threading import Thread
 from .tools import get_key_obj
 from asgiref.sync import async_to_sync
@@ -37,7 +36,7 @@ class SSH:
         if not os.path.isdir(os.path.join(settings.RECORD_ROOT, tmp_date1)):
             os.makedirs(os.path.join(settings.RECORD_ROOT, tmp_date1))
         self.res_file = settings.RECORD_DIR + '/' + tmp_date1 + '/' + 'webssh_' + \
-                        tmp_date2 + '_' + gen_rand_char(8) + '.txt'
+                        tmp_date2 + '_' + gen_rand_char(16) + '.txt'
         self.last_save_time = self.start_time
         self.res_asciinema = []
     
@@ -158,7 +157,6 @@ class SSH:
         try:
             while True:
                 x = b''
-                data = ''
                 try:
                     # data = self.channel.recv(4096).decode('utf-8')
                     x = self.channel.recv(4096)

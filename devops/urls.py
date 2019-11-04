@@ -34,8 +34,6 @@ urlpatterns = [
     path('webssh/', include('webssh.urls', namespace='webssh')),
     path('api/webssh/', include('webssh.urls_api', namespace='webssh_api')),
 
-    path('tasks/', include('tasks.urls', namespace='tasks')),
-
     path('webtelnet/', include('webtelnet.urls', namespace='webtelnet')),
 
     path('webguacamole/', include('webguacamole.urls', namespace='webguacamole')),
@@ -53,4 +51,3 @@ if settings.DEBUG:  # debug 模式下加载 /media 静态资源
 
 if not settings.DEBUG:  # 非 debug 模式下加载 /static 静态资源，debug 模式下 django 开发服务器会默认加载静态资源
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS)
-

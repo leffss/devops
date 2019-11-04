@@ -1,13 +1,12 @@
 ---
-
 - name: say 'install openssl'
-  hosts: k8s
+  hosts: all
   become: false
   tasks:
-    - name: install apt packages
-      apt: name=openssl state=present
-      when: ansible_pkg_mgr == "apt"
-    
-    - name: install yum packages
-      yum: name=openssl state=present
-      when: ansible_pkg_mgr == "yum"
+   - name: install apt packages
+     apt: name=openssl state=present
+     when: ansible_pkg_mgr == "apt"
+
+   - name: install yum packages
+     yum: name=openssl state=present
+     when: ansible_pkg_mgr == "yum"

@@ -17,7 +17,7 @@ channel_layer = get_channel_layer()
 
 
 # 生成随机字符串
-def gen_rand_char(length=10, chars='0123456789zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA'):
+def gen_rand_char(length=16, chars='0123456789zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA'):
     return ''.join(random.sample(chars, length))
 
 
@@ -91,7 +91,7 @@ class CopyCallbackModule(CallbackBase):
         if not os.path.isdir(os.path.join(settings.RECORD_ROOT, tmp_date1)):
             os.makedirs(os.path.join(settings.RECORD_ROOT, tmp_date1))
         self.res_file = settings.RECORD_DIR + '/' + tmp_date1 + '/' + 'batch_' + tmp_date2 + '_' + \
-                        gen_rand_char(8) + '.txt'
+                        gen_rand_char(16) + '.txt'
         self.res.append(    # 结果保存为asciinema格式，以便更方便的回放
             json.dumps(
                 {
@@ -300,7 +300,7 @@ class ModuleCallbackModule(CallbackBase):
         if not os.path.isdir(os.path.join(settings.RECORD_ROOT, tmp_date1)):
             os.makedirs(os.path.join(settings.RECORD_ROOT, tmp_date1))
         self.res_file = settings.RECORD_DIR + '/' + tmp_date1 + '/' + 'batch_' + tmp_date2 + '_' + \
-                        gen_rand_char(8) + '.txt'
+                        gen_rand_char(16) + '.txt'
         self.res.append(    # 结果保存为asciinema格式，以便更方便的回放
             json.dumps(
                 {
@@ -584,7 +584,7 @@ class PlayBookCallbackModule(CallbackBase):
         if not os.path.isdir(os.path.join(settings.RECORD_ROOT, tmp_date1)):
             os.makedirs(os.path.join(settings.RECORD_ROOT, tmp_date1))
         self.res_file = settings.RECORD_DIR + '/' + tmp_date1 + '/' + 'batch_' + tmp_date2 + '_' + \
-                        gen_rand_char(8) + '.txt'
+                        gen_rand_char(16) + '.txt'
         self.res.append(    # 结果保存为asciinema格式，以便更方便的回放
             json.dumps(
                 {
@@ -930,3 +930,15 @@ class PlayBookCallbackModule(CallbackBase):
                 "text": message,
             })
 
+    def v2_playbook_on_handler_task_start(self, task):
+        data = format(f'<code style="color: #FFFFFF">RUNNING HANDLER [{task.get_name()}]', '*<150') + '</code>'
+        data2 = format(f'RUNNING HANDLER [{task.get_name()}]', '*<150') + ' \r\n\r\n'
+        delay = round(time.time() - self.start_time, 6)
+        self.res.append(json.dumps([delay, 'o', data2]))
+        self.message['status'] = 0
+        self.message['message'] = data
+        message = json.dumps(self.message)
+        async_to_sync(channel_layer.group_send)(self.group, {
+            "type": "send.message",
+            "text": message,
+        })

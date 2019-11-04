@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import sys
-import traceback
 import time
 from urllib import parse
 import subprocess

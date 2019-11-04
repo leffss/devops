@@ -27,6 +27,20 @@ except Exception:
     session_exipry_time = 60 * 30
 
 
+def get_hosts(issuperuser, ids, username):
+    if issuperuser:
+        return RemoteUserBindHost.objects.filter(
+                        Q(enabled=True),
+                        Q(id__in=ids.split(',')),
+                ).distinct()
+    else:
+        return RemoteUserBindHost.objects.filter(
+            Q(enabled=True),
+            Q(user__username=username) | Q(group__user__username=username),
+            Q(id__in=ids.split(',')),
+        ).distinct()
+
+
 class Cmd(WebsocketConsumer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -91,16 +105,7 @@ class Cmd(WebsocketConsumer):
                     "text": message,
                 })
             if data.get('hosts', None) and data.get('cmd', None):
-                if self.session.get('issuperuser', None):
-                    hosts = RemoteUserBindHost.objects.filter(
-                        Q(id__in=data['hosts'].split(',')),
-                    )
-                else:
-                    hosts = RemoteUserBindHost.objects.filter(
-                        Q(user__username=self.session['username']) | Q(
-                            group__user__username=self.session['username']),
-                        Q(id__in=data['hosts'].split(',')),
-                    )
+                hosts = get_hosts(self.session.get('issuperuser', False), data['hosts'], self.session['username'])
                 if not hosts:
                     self.message['status'] = 1
                     self.message['message'] = '未找到主机'
@@ -222,16 +227,7 @@ class Script(WebsocketConsumer):
                     "text": message,
                 })
             if data.get('hosts', None) and data.get('script', None) and data.get('script_name', None):
-                if self.session.get('issuperuser', None):
-                    hosts = RemoteUserBindHost.objects.filter(
-                        Q(id__in=data['hosts'].split(',')),
-                    )
-                else:
-                    hosts = RemoteUserBindHost.objects.filter(
-                        Q(user__username=self.session['username']) | Q(
-                            group__user__username=self.session['username']),
-                        Q(id__in=data['hosts'].split(',')),
-                    )
+                hosts = get_hosts(self.session.get('issuperuser', False), data['hosts'], self.session['username'])
                 if not hosts:
                     self.message['status'] = 1
                     self.message['message'] = '未找到主机'
@@ -361,15 +357,7 @@ class File(WebsocketConsumer):
                         "type": "close.channel",
                         "text": message,
                     })
-                if self.session.get('issuperuser', None):
-                    hosts = RemoteUserBindHost.objects.filter(
-                        Q(id__in=data['hosts'].split(',')),
-                    )
-                else:
-                    hosts = RemoteUserBindHost.objects.filter(
-                        Q(user__username=self.session['username']) | Q(group__user__username=self.session['username']),
-                        Q(id__in=data['hosts'].split(',')),
-                    )
+                hosts = get_hosts(self.session.get('issuperuser', False), data['hosts'], self.session['username'])
                 if not hosts:
                     self.message['status'] = 1
                     self.message['message'] = '未找到主机'
@@ -490,16 +478,7 @@ class Playbook(WebsocketConsumer):
                     "text": message,
                 })
             if data.get('hosts', None) and data.get('playbook', None) and data.get('playbook_name', None):
-                if self.session.get('issuperuser', None):
-                    hosts = RemoteUserBindHost.objects.filter(
-                        Q(id__in=data['hosts'].split(',')),
-                    )
-                else:
-                    hosts = RemoteUserBindHost.objects.filter(
-                        Q(user__username=self.session['username']) | Q(
-                            group__user__username=self.session['username']),
-                        Q(id__in=data['hosts'].split(',')),
-                    )
+                hosts = get_hosts(self.session.get('issuperuser', False), data['hosts'], self.session['username'])
                 if not hosts:
                     self.message['status'] = 1
                     self.message['message'] = '未找到主机'
@@ -620,16 +599,7 @@ class Module(WebsocketConsumer):
                     "text": message,
                 })
             if data.get('hosts', None) and data.get('module', None):
-                if self.session.get('issuperuser', None):
-                    hosts = RemoteUserBindHost.objects.filter(
-                        Q(id__in=data['hosts'].split(',')),
-                    )
-                else:
-                    hosts = RemoteUserBindHost.objects.filter(
-                        Q(user__username=self.session['username']) | Q(
-                            group__user__username=self.session['username']),
-                        Q(id__in=data['hosts'].split(',')),
-                    )
+                hosts = get_hosts(self.session.get('issuperuser', False), data['hosts'], self.session['username'])
                 if not hosts:
                     self.message['status'] = 1
                     self.message['message'] = '未找到主机'
@@ -684,4 +654,3 @@ class Module(WebsocketConsumer):
             self.close()
         except Exception:
             print(traceback.format_exc())
-

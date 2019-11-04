@@ -80,7 +80,7 @@ def do_import(parser, token):
         exp = m.group(1)
         try:
             alias = m.group(2)
-        except:
+        except Exception:
             alias = None
         return ImportNode(exp, alias)
     else:
@@ -100,4 +100,3 @@ class ImportNode(template.Node):
 
 
 register.tag('import', do_import)
-

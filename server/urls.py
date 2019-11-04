@@ -20,4 +20,3 @@ urlpatterns = [
     path('group/add/', views.group_add, name='group_add'),
 
 ]
-

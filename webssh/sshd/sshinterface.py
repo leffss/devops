@@ -12,7 +12,9 @@ from django.core.cache import cache
 import django.utils.timezone as timezone
 from server.models import RemoteUserBindHost
 from webssh.models import TerminalSession
+from django.db.models import Q
 from util.tool import gen_rand_char, terminal_log, res
+from util.crypto import decrypt
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from django.conf import settings
@@ -32,6 +34,7 @@ try:
     terminal_exipry_time = settings.CUSTOM_TERMINAL_EXIPRY_TIME
 except Exception:
     terminal_exipry_time = 60 * 30
+
 
 def transport_keepalive(transport):
     # 对后端transport每隔x秒发送空数据以保持连接
@@ -67,7 +70,7 @@ class ServerInterface(paramiko.ServerInterface):
         if not os.path.isdir(os.path.join(settings.RECORD_ROOT, tmp_date1)):
             os.makedirs(os.path.join(settings.RECORD_ROOT, tmp_date1))
         self.res_file = settings.RECORD_DIR + '/' + tmp_date1 + '/' + 'clissh_' + \
-                        tmp_date2 + '_' + gen_rand_char(8) + '.txt'
+                        tmp_date2 + '_' + gen_rand_char(16) + '.txt'
         self.log_start_time = timezone.now()
         self.last_save_time = self.start_time
         self.res_asciinema = []
@@ -350,7 +353,7 @@ class ServerInterface(paramiko.ServerInterface):
         if terminal_type is 'N':    # 重复登陆时可能会调用close，这时不能删除这些 key，否则会把当前正常会话也关闭掉
             self.closed = True
             try:
-                logger.error("密码无效 {} - {}".format(self.http_user, self.password))
+                # logger.error("密码无效 {} - {}".format(self.http_user, self.password))
                 self.chan_cli.transport.close()
             except Exception:
                 logger.error(traceback.format_exc())
@@ -421,14 +424,30 @@ class ServerInterface(paramiko.ServerInterface):
 
     def set_ssh_args(self, hostid):
         # 准备proxy_client ==>> ssh_server连接参数，用于后续SSH、SFTP
-        remote_host = RemoteUserBindHost.objects.get(id=hostid)
+        # remote_host = RemoteUserBindHost.objects.get(id=hostid, enabled=True)
+        remote_host = object
+        if not self.user_role:
+            hosts = RemoteUserBindHost.objects.filter(
+                Q(pk=hostid),
+                Q(enabled=True),
+                Q(user__username=self.http_user) | Q(group__user__username=self.http_user),
+            ).distinct()
+        else:
+            hosts = RemoteUserBindHost.objects.filter(
+                Q(pk=hostid),
+                Q(enabled=True),
+            ).distinct()
+        if not hosts:
+            raise Exception("不存在的主机")
+        else:
+            remote_host = hosts[0]
         self.hostname = remote_host.hostname
         self.superusername = remote_host.remote_user.superusername
-        self.superpassword = remote_host.remote_user.superpassword
+        self.superpassword = decrypt(remote_host.remote_user.superpassword)
         host = remote_host.ip
         port = remote_host.port
         user = remote_host.remote_user.username
-        passwd = remote_host.remote_user.password
+        passwd = decrypt(remote_host.remote_user.password)
         # self.ssh_args = ('192.168.223.112', 22, 'root', '123456')
         self.ssh_args = (host, port, user, passwd)
 
@@ -506,7 +525,6 @@ class ServerInterface(paramiko.ServerInterface):
 
     def check_channel_subsystem_request(self, channel, name):
         # SFTP子系统
-        # print(channel, name, 'subsystem')
         key = 'ssh_%s_%s' % (self.http_user, self.password)
         key_ssh = 'ssh_%s_%s_ssh_count' % (self.http_user, self.password)
         key_sftp = 'ssh_%s_%s_sftp_count' % (self.http_user, self.password)

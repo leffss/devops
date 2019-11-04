@@ -116,4 +116,3 @@ class DebugMiddleware:
         if not settings.DEBUG:
             if request.session['issuperuser']:
                 return technical_500_response(request, *sys.exc_info())
-

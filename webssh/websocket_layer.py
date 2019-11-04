@@ -8,10 +8,10 @@ from devops.settings import TMP_DIR
 from server.models import RemoteUserBindHost
 from webssh.models import TerminalSession
 from django.db.models import Q
-from django.core.cache import cache
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from util.tool import gen_rand_char, terminal_log, res
+from util.crypto import decrypt
 import os
 import json
 import time
@@ -70,17 +70,13 @@ class WebSSH(WebsocketConsumer):
                     "text": message,
                 })
             self.close(3001)
-
         self.check_login()
-
         query_string = self.scope.get('query_string').decode()
         ssh_args = QueryDict(query_string=query_string, encoding='utf-8')
-
         width = ssh_args.get('width')
         height = ssh_args.get('height')
         width = int(width)
         height = int(height)
-
         auth = None
         ssh_key_name = '123456'
         hostid = int(ssh_args.get('hostid'))
@@ -88,36 +84,27 @@ class WebSSH(WebsocketConsumer):
             if not self.session['issuperuser']:     # 普通用户判断是否有相关主机或者权限
                 hosts = RemoteUserBindHost.objects.filter(
                     Q(id=hostid),
+                    Q(enabled=True),
                     Q(user__username=self.session['username']) | Q(group__user__username=self.session['username']),
                 ).distinct()
-                if not hosts:
-                    self.message['status'] = 2
-                    self.message['message'] = 'Host is not exist...'
-                    message = json.dumps(self.message)
-                    if self.send_flag == 0:
-                        self.send(message)
-                    elif self.send_flag == 1:
-                        async_to_sync(self.channel_layer.group_send)(self.group, {
-                            "type": "chat.message",
-                            "text": message,
-                        })
-                    self.close(3001)
+            else:
+                hosts = RemoteUserBindHost.objects.filter(
+                    Q(id=hostid),
+                    Q(enabled=True),
+                ).distinct()
+            if not hosts:
+                self.message['status'] = 2
+                self.message['message'] = 'Host is not exist...'
+                message = json.dumps(self.message)
+                if self.send_flag == 0:
+                    self.send(message)
+                elif self.send_flag == 1:
+                    async_to_sync(self.channel_layer.group_send)(self.group, {
+                        "type": "chat.message",
+                        "text": message,
+                    })
+                self.close(3001)
             self.remote_host = RemoteUserBindHost.objects.get(id=hostid)
-            if not self.remote_host.enabled:
-                try:
-                    self.message['status'] = 2
-                    self.message['message'] = 'Host is disabled...'
-                    message = json.dumps(self.message)
-                    if self.send_flag == 0:
-                        self.send(message)
-                    elif self.send_flag == 1:
-                        async_to_sync(self.channel_layer.group_send)(self.group, {
-                            "type": "chat.message",
-                            "text": message,
-                        })
-                    self.close(3001)
-                except Exception:
-                    print(traceback.format_exc())
         except Exception:
             print(traceback.format_exc())
             self.message['status'] = 2
@@ -135,7 +122,7 @@ class WebSSH(WebsocketConsumer):
         host = self.remote_host.ip
         port = self.remote_host.port
         user = self.remote_host.remote_user.username
-        passwd = self.remote_host.remote_user.password
+        passwd = decrypt(self.remote_host.remote_user.password)
         timeout = 15
         self.ssh = SSH(websocker=self, message=self.message)
         ssh_connect_dict = {
@@ -166,7 +153,7 @@ class WebSSH(WebsocketConsumer):
                 if self.remote_host.remote_user.superusername:
                     self.ssh.su_root(
                         self.remote_host.remote_user.superusername,
-                        self.remote_host.remote_user.superpassword,
+                        decrypt(self.remote_host.remote_user.superpassword),
                         1,
                     )
 
@@ -201,9 +188,7 @@ class WebSSH(WebsocketConsumer):
     def disconnect(self, close_code):
         try:
             async_to_sync(self.channel_layer.group_discard)(self.group, self.channel_name)
-            if close_code == 3001:
-                pass
-            else:
+            if close_code != 3001:
                 self.ssh.close()
         except Exception:
             print(traceback.format_exc())
@@ -432,4 +417,3 @@ class CliSSH_view(WebsocketConsumer):
                 pass
         except Exception:
             print(traceback.format_exc())
-

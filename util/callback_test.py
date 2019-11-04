@@ -154,3 +154,11 @@ class PlayBookCallbackModule(CallbackBase):
             data = '<code style="color: #FFFFFF">{} : ok={} changed={} unreachable={} failed={} skipped={}</code>'.format(
                 h, s['ok'], s['changed'], s['unreachable'], s['failures'], s['skipped'])
             print(data)
+
+    def v2_playbook_on_notify(self, handler, host):
+        print('call v2_playbook_on_notify')
+        self.playbook_on_notify(host, handler)
+
+    def v2_playbook_on_handler_task_start(self, task):
+        print('call v2_playbook_on_handler_task_start')
+        print(task)

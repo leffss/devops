@@ -12,7 +12,6 @@ from tasks.tasks import task_save_event_log, task_save_terminal_log, task_save_r
 import platform
 import glob
 import os
-import traceback
 
 
 try:
@@ -70,21 +69,21 @@ def admin_required(func):
 
 
 # 生成随机字符串
-def gen_rand_char(length=10, chars='0123456789zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA'):
+def gen_rand_char(length=16, chars='0123456789zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA'):
     return ''.join(random.sample(chars, length))
 
 
 def terminal_log(user, hostname, ip, protocol, port, username, cmd, detail, address, useragent, start_time):
-    username = ''
+    _user = ''
     try:
-        username = user.username
+        _user = user.username
     except Exception:
-        username = user
+        _user = user
     if platform.system().lower() in ['linux', 'unix']:
-        task_save_terminal_log.delay(username, hostname, ip, protocol, port, username, cmd, detail, address, useragent, start_time)
+        task_save_terminal_log.delay(_user, hostname, ip, protocol, port, username, cmd, detail, address, useragent, start_time)
     else:
         event = TerminalLog()
-        event.user = username
+        event.user = _user
         event.hostname = hostname
         event.ip = ip
         event.protocol = protocol
@@ -114,7 +113,6 @@ def res(res_file, res, enter=True):
 
 
 def event_log(user, event_type, detail, address, useragent):
-    username = ''
     try:
         username = user.username
     except Exception:
@@ -169,4 +167,3 @@ def convert_byte(byte):
         return '{} GB'.format('%.2f' % (byte / 1024 / 1024 / 1024))
     elif byte > 1099511627776:
         return '{} TB'.format('%.2f' % (byte / 1024 / 1024 / 1024 / 1024))
-

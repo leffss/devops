@@ -58,7 +58,7 @@ class AnsibleAPI:
         """
         自定义选项，不用默认值的话可以加入到__init__的参数中
         """
-        # constants里面可以找到这些参数，ImmutableDict代替了较老的版本的nametuple的方式
+        # ansible.constants 里面可以找到这些初始化参数，ImmutableDict 代替了老的版本（v2.7之前）的 nametuple 的方式，不兼容
         context.CLIARGS = ImmutableDict(
             connection='smart',
             remote_user=self.remote_user,
@@ -227,4 +227,3 @@ if __name__ == '__main__':
     )
 
     ansible_api.run_playbook(playbook_yml=playbook_yml)
-

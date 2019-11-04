@@ -11,4 +11,3 @@ from .models import RemoteUser, RemoteUserBindHost, ServerDetail, HostGroup
 # admin.site.register(RemoteUserBindHost)
 # admin.site.register(ServerDetail)
 # admin.site.register(HostGroup)
-

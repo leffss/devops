@@ -1,4 +1,4 @@
-from django.shortcuts import render, HttpResponse
+from django.shortcuts import render, HttpResponse, get_object_or_404
 from server.models import RemoteUserBindHost
 from .models import TerminalLog, TerminalSession
 from user.models import User
@@ -10,10 +10,17 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from django.core.cache import cache
 from django.conf import settings
+from ratelimit.decorators import ratelimit      # 限速
+from ratelimit import ALL
+from util.rate import rate, key
 import json
+import logging
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s] - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 # Create your views here.
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 def hosts(request):
     if request.session['issuperuser']:
@@ -25,6 +32,7 @@ def hosts(request):
     return render(request, 'webssh/hosts.html', locals())
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @post_required
 def terminal(request):
@@ -32,17 +40,54 @@ def terminal(request):
     error_message = '请检查填写的内容!'
     if host_form.is_valid():
         host_id = host_form.cleaned_data.get('hostid')
-        host = RemoteUserBindHost.objects.get(id=host_id)
-        return render(request, 'webssh/terminal.html', locals())
+        # host = RemoteUserBindHost.objects.get(id=host_id, enabled=True)
+        # host = get_object_or_404(RemoteUserBindHost, id=host_id, enabled=True)
+        username = request.session.get('username')
+        if not request.session['issuperuser']:
+            hosts = RemoteUserBindHost.objects.filter(
+                Q(pk=host_id),
+                Q(enabled=True),
+                Q(user__username=username) | Q(group__user__username=username),
+            ).distinct()
+        else:
+            hosts = RemoteUserBindHost.objects.filter(
+                Q(pk=host_id),
+                Q(enabled=True),
+            ).distinct()
+        if not hosts:
+            error_message = '不存在的主机!'
+            return JsonResponse({"code": 400, "error": error_message})
+        else:
+            host = hosts[0]
+            return render(request, 'webssh/terminal.html', locals())
 
     return JsonResponse({"code": 406, "err": error_message})
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @post_required
 def terminal_cli(request):
     host_id = request.POST.get('hostid', None)
     username = request.session.get('username')
+    # host = RemoteUserBindHost.objects.get(pk=host_id, enabled=True)
+    # host = get_object_or_404(RemoteUserBindHost, id=host_id, enabled=True)
+    if not request.session['issuperuser']:
+        hosts = RemoteUserBindHost.objects.filter(
+            Q(pk=host_id),
+            Q(enabled=True),
+            Q(user__username=username) | Q(group__user__username=username),
+        ).distinct()
+    else:
+        hosts = RemoteUserBindHost.objects.filter(
+            Q(pk=host_id),
+            Q(enabled=True),
+        ).distinct()
+    if not hosts:
+        error_message = '不存在的主机!'
+        return JsonResponse({"code": 400, "error": error_message})
+    else:
+        host = hosts[0]
     password = gen_rand_char(16)    # 生成随机密码
     terminal_type = 'ssh'
     key = '%s_%s_%s' % (terminal_type, username, password)
@@ -55,7 +100,6 @@ def terminal_cli(request):
     # 用于限制随机密码ssh和sftp登陆次数
     cache.set(key_ssh, 1, timeout=60 * 60 * 24)  # 写入 redis 缓存以便 proxy_sshd 读取
     cache.set(key_sftp, 1, timeout=60 * 60 * 24)  # 写入 redis 缓存以便 proxy_sshd 读取
-    host = RemoteUserBindHost.objects.get(pk=host_id)
     user = User.objects.get(username=username)
     clissh = json.loads(user.setting)['clissh']
     ssh_app = None
@@ -76,11 +120,30 @@ def terminal_cli(request):
     ))
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @post_required
 def terminal_cli_sftp(request):
-    host_id = request.POST.get('hostid', None)
     username = request.session.get('username')
+    host_id = request.POST.get('hostid', None)
+    # host = RemoteUserBindHost.objects.get(pk=host_id, enabled=True)
+    # host = get_object_or_404(RemoteUserBindHost, id=host_id, enabled=True)
+    if not request.session['issuperuser']:
+        hosts = RemoteUserBindHost.objects.filter(
+            Q(pk=host_id),
+            Q(enabled=True),
+            Q(user__username=username) | Q(group__user__username=username),
+        ).distinct()
+    else:
+        hosts = RemoteUserBindHost.objects.filter(
+            Q(pk=host_id),
+            Q(enabled=True),
+        ).distinct()
+    if not hosts:
+        error_message = '不存在的主机!'
+        return JsonResponse({"code": 400, "error": error_message})
+    else:
+        host = hosts[0]
     password = gen_rand_char(16)    # 生成随机密码
     terminal_type = 'ssh'
     key = '%s_%s_%s' % (terminal_type, username, password)
@@ -91,7 +154,6 @@ def terminal_cli_sftp(request):
 
     # 用于限制随机密码sftp登陆次数
     cache.set(key_sftp, 1, timeout=60 * 60 * 24)  # 写入 redis 缓存以便 proxy_sshd 读取
-    host = RemoteUserBindHost.objects.get(pk=host_id)
     user = User.objects.get(username=username)
     clisftp = json.loads(user.setting)['clisftp']
     sftp_app = None
@@ -112,6 +174,7 @@ def terminal_cli_sftp(request):
     ))
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @admin_required
 def logs(request):
@@ -119,6 +182,7 @@ def logs(request):
     return render(request, 'webssh/logs.html', locals())
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @admin_required
 def sessions(request):
@@ -126,6 +190,7 @@ def sessions(request):
     return render(request, 'webssh/sessions.html', locals())
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @admin_required
 @post_required
@@ -141,6 +206,7 @@ def terminal_view(request):
     return JsonResponse({"code": 406, "err": error_message})
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @admin_required
 @post_required
@@ -156,13 +222,14 @@ def terminal_clissh_view(request):
     return JsonResponse({"code": 406, "err": error_message})
 
 
-# 每次重启时清空在线会话表
+# 每次重启时清空在线会话表，好像使用 gunicorn 会多次加载
 def cls_terminalsession():
     try:
         TerminalSession.objects.all().delete()
+        logger.info('开始清空 TerminalSession 表')
     except Exception:
         pass
-    
 
-cls_terminalsession()
+
+# cls_terminalsession()
 

@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-""" 初始化创建 admin 账号"""
+"""
+初始化创建 admin 账号
+并插入部分测试数据
+"""
 import os
 import sys
 
@@ -13,7 +16,9 @@ def main():
     django.setup()
     
     from user.models import User
+    from server.models import RemoteUser, RemoteUserBindHost
     from util.tool import hash_code
+    from util.crypto import encrypt
     
     print('初始化开始...')
     username = 'admin'
@@ -35,7 +40,54 @@ def main():
         user.enabled = enabled
         user.role = role
         user.save()
-        print('已创建账号：{0}，密码：{1}'.format(username, password))
+        print('已创建管理员账号：root，密码：123456')
+
+        data = {
+            'username': 'leffss',
+            'password': hash_code('123456'),
+            'nickname': '运维工程师',
+            'email': 'leffss@leffss.com',
+            'sex': 'male',
+            'enabled': True,
+            'role': 2,
+        }
+        User.objects.create(**data)
+        print('已创建普通账号：leffss，密码：123456')
+
+        data = {
+            'name': '通用root账号',
+            'username': 'root',
+            'password': encrypt('123456'),
+            'enabled': False,
+        }
+        remote_user = RemoteUser.objects.create(**data)
+        print('已创建远程账号：root，密码：123456')
+
+        hosts = {
+            'k8s1': '192.168.223.111',
+            'k8s2': '192.168.223.112',
+            'k8s3': '192.168.223.113',
+            'k8s4': '192.168.223.114',
+            'k8s5': '192.168.223.115',
+            'k8s6': '192.168.223.116',
+            'k8s7': '192.168.223.117',
+            'k8s8': '192.168.223.118',
+        }
+        for k, v in hosts.items():
+            data = {
+                'hostname': k,
+                'type': 6,
+                'ip': v,
+                'protocol': 1,
+                'env': 2,
+                'platform': 1,
+                'port': 22,
+                'release': 'CentOS 7',
+                'remote_user': remote_user
+            }
+            RemoteUserBindHost.objects.create(**data)
+            print('已创建远程主机：{}_{}'.format(k, v))
+
     print('初始化结束...')
         
     

@@ -12,6 +12,7 @@ from django.db.models import Q
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from util.tool import gen_rand_char, terminal_log, res
+from util.crypto import decrypt
 import time
 import traceback
 from .guacamoleclient import Client
@@ -58,14 +59,18 @@ class WebGuacamole(WebsocketConsumer):
         if not self.session['issuperuser']:
             hosts = RemoteUserBindHost.objects.filter(
                 Q(id=self.hostid),
+                Q(enabled=True),
                 Q(user__username=self.session['username']) | Q(group__user__username=self.session['username']),
             ).distinct()
-            if not hosts:
-                self.close(3001)
+        else:
+            hosts = RemoteUserBindHost.objects.filter(
+                Q(id=self.hostid),
+                Q(enabled=True),
+            ).distinct()
+        if not hosts:
+            self.close(3001)
 
         self.remote_host = RemoteUserBindHost.objects.get(id=self.hostid)
-        if not self.remote_host.enabled:
-            self.close(3001)
 
         _type = 7
         if self.remote_host.get_protocol_display() == 'vnc':    # vnc 登陆不需要账号
@@ -77,7 +82,7 @@ class WebGuacamole(WebsocketConsumer):
             hostname=self.remote_host.ip,
             port=self.remote_host.port,
             username=self.remote_host.remote_user.username,
-            password=self.remote_host.remote_user.password,
+            password=decrypt(self.remote_host.remote_user.password),
             width=self.width,
             height=self.height,
             dpi=self.dpi,
@@ -120,9 +125,7 @@ class WebGuacamole(WebsocketConsumer):
             self.closed = True
             try:
                 async_to_sync(self.channel_layer.group_discard)(self.group, self.channel_name)
-                if close_code == 3001:
-                    pass
-                else:
+                if close_code != 3001:
                     self.guacamoleclient.close()
             except Exception:
                 pass
@@ -212,4 +215,3 @@ class WebGuacamole(WebsocketConsumer):
                 break
 
             time.sleep(sleep_time)
-
