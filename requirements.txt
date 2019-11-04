@@ -1,4 +1,4 @@
-django==2.2.3
+django==2.2.4
 supervisor==4.1.0
 # simpleui
 paramiko==2.6.0
