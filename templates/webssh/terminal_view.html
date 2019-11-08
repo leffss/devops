@@ -1,4 +1,5 @@
 {% load static %}
+{% load user_tags %}
 
 <!DOCTYPE html>
 <html>
@@ -38,12 +39,19 @@
 		<div class="col-12 mt-2">
 			<h5>
 			会话名称：{{ session.name }}&nbsp;&nbsp;用户：{{ session.user }}&nbsp;&nbsp;类型：{{ session.get_type_display }}&nbsp;&nbsp;协议：{{ session.get_protocol_display }}&nbsp;&nbsp;主机：{{ session.username }}@{{ session.host }}:{{ session.port }}
+			
+			{% if request|has_permission:'终端会话关闭' %}
 			<a href="javascript:void(0)" class="btn btn-sm btn-danger ml-2" id="session-close"><i class="far fa-times-circle"></i> 断开</a>
-			{% if session.locked %}
-				<a href="javascript:void(0)" class="btn btn-sm btn-primary ml-2" id="session-unlock"><i class="fas fa-lock-open"></i> 解锁</a>
-			{% else %}
-				<a href="javascript:void(0)" class="btn btn-sm btn-info ml-2" id="session-lock"><i class="fas fa-lock"></i> 锁定</a>
 			{% endif %}
+			
+			{% if request|has_permission:'终端会话锁定/解锁' %}
+				{% if session.locked %}
+					<a href="javascript:void(0)" class="btn btn-sm btn-primary ml-2" id="session-unlock"><i class="fas fa-lock-open"></i> 解锁</a>
+				{% else %}
+					<a href="javascript:void(0)" class="btn btn-sm btn-info ml-2" id="session-lock"><i class="fas fa-lock"></i> 锁定</a>
+				{% endif %}
+			{% endif %}
+			
 			</h5>
 		</div>
 	</div>

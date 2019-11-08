@@ -1,4 +1,5 @@
 {% load static %}
+{% load user_tags %}
 
 <!DOCTYPE html>
 <html>
@@ -45,10 +46,13 @@
 			</h5>
 		</div>
 		
+		{% if request|has_permission:'webssh终端文件上传' %}
 		<div class="col-lg-3" id="up">
 			<input type="file" id="upload_file" class="file pb-2" name="upload_file" multiple required>
 		</div>
+		{% endif %}
 		
+		{% if request|has_permission:'webssh终端文件下载' %}
 		<div class="col-lg-3" id="down">
 		  <form action="{% url 'webssh_api:session_download' host.id %}" method="post" class="form" target="_blank" onsubmit="return check_download_file();">
 			  {% csrf_token %}
@@ -61,6 +65,7 @@
 			  </div>
 		  </form>
 		</div>
+		{% endif %}
 		
 	</div>
 </div>

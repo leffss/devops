@@ -1,27 +1,18 @@
 import threading
 from channels.generic.websocket import WebsocketConsumer
-from threading import Thread
-from asgiref.sync import async_to_sync
-import socket
 from django.conf import settings
 from server.models import RemoteUserBindHost
 from webssh.models import TerminalSession
 import django.utils.timezone as timezone
-import json
 from django.db.models import Q
-from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
-from util.tool import gen_rand_char, terminal_log
+from util.tool import gen_rand_char, terminal_log, res
+from util.crypto import decrypt
 import time
-import traceback
-from util.tool import gen_rand_char
-import platform
 from .guacamoleclient import Client
-import os
 import re
 import base64
 from django.http.request import QueryDict
-from webssh.tasks import celery_save_res_asciinema, celery_save_terminal_log
 
 
 try:
@@ -44,11 +35,12 @@ class WebGuacamole(WebsocketConsumer):
         self.start_time = timezone.now()
         self.send_flag = 0  # 0 发送自身通道，1 发送 group 通道，作用为当管理员查看会话时，进入 group 通道
         self.group = 'session_' + gen_rand_char()
-        self.user_agent = None
         self.guacamoleclient = None
         self.lock = False
         self.last_operation_time = time.time()
         self.closed = False
+        self.client = None
+        self.user_agent = None
 
     def connect(self):
         self.accept('guacamole')
@@ -57,17 +49,24 @@ class WebGuacamole(WebsocketConsumer):
         if not self.session.get('islogin', None):    # 未登录直接断开 websocket 连接
             self.close(3001)
 
+        if 'webguacamole终端' not in self.session[settings.INIT_PERMISSION]['titles']:    # 判断权限
+            self.close(3001)
+
         if not self.session['issuperuser']:
             hosts = RemoteUserBindHost.objects.filter(
                 Q(id=self.hostid),
+                Q(enabled=True),
                 Q(user__username=self.session['username']) | Q(group__user__username=self.session['username']),
             ).distinct()
-            if not hosts:
-                self.close(3001)
+        else:
+            hosts = RemoteUserBindHost.objects.filter(
+                Q(id=self.hostid),
+                Q(enabled=True),
+            ).distinct()
+        if not hosts:
+            self.close(3001)
 
         self.remote_host = RemoteUserBindHost.objects.get(id=self.hostid)
-        if not self.remote_host.enabled:
-            self.close(3001)
 
         _type = 7
         if self.remote_host.get_protocol_display() == 'vnc':    # vnc 登陆不需要账号
@@ -79,7 +78,7 @@ class WebGuacamole(WebsocketConsumer):
             hostname=self.remote_host.ip,
             port=self.remote_host.port,
             username=self.remote_host.remote_user.username,
-            password=self.remote_host.remote_user.password,
+            password=decrypt(self.remote_host.remote_user.password),
             width=self.width,
             height=self.height,
             dpi=self.dpi,
@@ -90,6 +89,15 @@ class WebGuacamole(WebsocketConsumer):
                 self.user_agent = i[1].decode('utf-8')
                 break
 
+        for i in self.scope['headers']:
+            if i[0].decode('utf-8') == 'x-real-ip':
+                self.client = i[1].decode('utf-8')
+                break
+            if i[0].decode('utf-8') == 'x-forwarded-for':
+                self.client = i[1].decode('utf-8').split(',')[0]
+                break
+            self.client = self.scope['client'][0]
+
         data = {
             'name': self.channel_name,
             'group': self.group,
@@ -99,7 +107,7 @@ class WebGuacamole(WebsocketConsumer):
             'protocol': self.remote_host.protocol,
             'port': self.remote_host.port,
             'type': _type,  # 7 webrdp  8 webvnc
-            'address': self.scope['client'][0],
+            'address': self.client,
             'useragent': self.user_agent,
         }
         TerminalSession.objects.create(**data)
@@ -113,9 +121,7 @@ class WebGuacamole(WebsocketConsumer):
             self.closed = True
             try:
                 async_to_sync(self.channel_layer.group_discard)(self.group, self.channel_name)
-                if close_code == 3001:
-                    pass
-                else:
+                if close_code != 3001:
                     self.guacamoleclient.close()
             except Exception:
                 pass
@@ -124,44 +130,24 @@ class WebGuacamole(WebsocketConsumer):
                     try:
                         tmp = list(self.guacamoleclient.res)
                         self.guacamoleclient.res = []
-                        if platform.system().lower() == 'linux':
-                            celery_save_res_asciinema.delay(settings.MEDIA_ROOT + '/' + self.guacamoleclient.res_file, tmp, False)
-                        else:
-                            with open(settings.MEDIA_ROOT + '/' + self.guacamoleclient.res_file, 'a+') as f:
-                                for line in tmp:
-                                    f.write('{}'.format(line))
+                        res(self.guacamoleclient.res_file, tmp, False)
                     except Exception:
                         pass
 
                     try:
-                        if platform.system().lower() == 'linux':
-                            celery_save_terminal_log.delay(
-                                self.session.get('username'),
-                                self.remote_host.hostname,
-                                self.remote_host.ip,
-                                self.remote_host.get_protocol_display(),
-                                self.remote_host.port,
-                                self.remote_host.remote_user.username,
-                                '',
-                                self.guacamoleclient.res_file,
-                                self.scope['client'][0],
-                                self.user_agent,
-                                self.start_time,
-                            )
-                        else:
-                            terminal_log(
-                                self.session.get('username'),
-                                self.remote_host.hostname,
-                                self.remote_host.ip,
-                                self.remote_host.get_protocol_display(),
-                                self.remote_host.port,
-                                self.remote_host.remote_user.username,
-                                '',
-                                self.guacamoleclient.res_file,
-                                self.scope['client'][0],
-                                self.user_agent,
-                                self.start_time,
-                            )
+                        terminal_log(
+                            self.session.get('username'),
+                            self.remote_host.hostname,
+                            self.remote_host.ip,
+                            self.remote_host.get_protocol_display(),
+                            self.remote_host.port,
+                            self.remote_host.remote_user.username,
+                            '',
+                            self.guacamoleclient.res_file,
+                            self.client,
+                            self.user_agent,
+                            self.start_time,
+                        )
                     except Exception:
                         pass
 
@@ -225,4 +211,3 @@ class WebGuacamole(WebsocketConsumer):
                 break
 
             time.sleep(sleep_time)
-

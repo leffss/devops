@@ -50,22 +50,12 @@ def post_required(func):
 
 
 # 用户密码加密
-def hash_code(s, token='__leffss__qaz__devops'):
+def hash_code(s):
+    token = settings.PASSWD_TOKEN
     h = hashlib.sha256()
     s += token
     h.update(s.encode())  # update方法只接收bytes类型
     return h.hexdigest()
-
-
-# 超级管理员才能访问的视图装饰器
-def admin_required(func):
-    @wraps(func)    # 保留原函数信息，重要
-    def wrapper(request, *args, **kwargs):
-        if not request.session['issuperuser']:
-            return redirect(reverse('server:hosts'))
-            # return JsonResponse({"code": 403, "err": "无权限"})
-        return func(request, *args, **kwargs)
-    return wrapper
 
 
 # 生成随机字符串

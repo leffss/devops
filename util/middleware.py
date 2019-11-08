@@ -2,8 +2,10 @@ from django.utils.deprecation import MiddlewareMixin
 from django.http import HttpResponseForbidden
 from django.shortcuts import redirect
 from django.conf import settings
+import random
 from django.urls import Resolver404, resolve, reverse
 import sys
+import re
 from django.views.debug import technical_500_response, technical_404_response
 
 
@@ -116,3 +118,35 @@ class DebugMiddleware:
         if not settings.DEBUG:
             if request.session['issuperuser']:
                 return technical_500_response(request, *sys.exc_info())
+
+
+class PermissionMiddleware:
+    """
+    根据 session 里面记录的 url, 判断当前请求是否有权限
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        current_url = request.path_info
+        for valid in settings.VALID_URL:    # 白名单直接返回
+            if re.match('^%s$' % valid, current_url):
+                response = self.get_response(request)
+                return response
+        try:
+            if not request.session.get('islogin', None):    # 未登录直接调整到登陆页面
+                return redirect(reverse('user:login'))
+        except Exception:
+            return redirect(reverse('user:login'))
+        for url in request.session[settings.INIT_PERMISSION]['urls']:
+            reg = '^%s$' % url
+            if re.match(reg, current_url):
+                # print('当前url： {} -- 有权限'.format(current_url))
+                break
+        else:
+            if request.session[settings.INIT_PERMISSION]['urls']:   # 首页仪表盘无权限时尝试跳转
+                return redirect('/user/profile/')
+            else:
+                return HttpResponseForbidden('<h1>无权限访问！</h1>')
+        response = self.get_response(request)
+        return response

@@ -1,7 +1,24 @@
 from django.db import models
-
-
 # Create your models here.
+
+
+class HostGroup(models.Model):
+    group_name = models.CharField(max_length=128, verbose_name="组名")
+    # 用户删除时，相关的主机组也删除
+    user = models.ForeignKey('user.User', on_delete=models.CASCADE, verbose_name="归属用户")
+    memo = models.TextField(blank=True, null=True, verbose_name="备注")
+    create_time = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+
+    def __str__(self):
+        return self.group_name
+
+    class Meta:
+        ordering = ["-create_time"]
+        verbose_name = '主机组'
+        verbose_name_plural = "主机组"
+        unique_together = ('group_name', 'user')  # 同一用户下，主机组必须唯一
+
+
 class RemoteUser(models.Model):
     """
     名称唯一，用户名可以重复，不同主机登陆用户名相同，密码不同
@@ -46,14 +63,21 @@ class RemoteUserBindHost(models.Model):
         (1, '正式环境'),
         (2, '测试环境'),
     )
+    PLATFORM_CHOICES = (
+        (1, 'linux'),
+        (2, 'windows'),
+        (3, 'unix'),
+    )
     hostname = models.CharField(max_length=128, unique=True, verbose_name='主机名')
     type = models.SmallIntegerField(default=1, choices=TYPE_CHOICES, verbose_name='类型')
     ip = models.GenericIPAddressField(verbose_name='主机IP')  # 做了ip映射，ip可能重复，ip:port 不会重复
     wip = models.GenericIPAddressField(verbose_name='公网IP', blank=True, null=True)
     protocol = models.SmallIntegerField(default=1, choices=PROTOCOL_CHOICES, verbose_name='协议')
     env = models.SmallIntegerField(default=1, choices=ENV_CHOICES, verbose_name='环境')
+    host_group = models.ManyToManyField('HostGroup', blank=True, verbose_name="主机组")
     port = models.SmallIntegerField(default=22, verbose_name='端口')
     release = models.CharField(max_length=255, default='CentOS', verbose_name='系统/型号')
+    platform = models.SmallIntegerField(default=1, choices=PLATFORM_CHOICES, verbose_name='平台')
     memo = models.TextField(blank=True, null=True, verbose_name='备注')
     # on_delete 当 RemoteUser 记录被删时，阻止其操作
     remote_user = models.ForeignKey('RemoteUser', blank=True, null=True, on_delete=models.PROTECT)
@@ -69,3 +93,23 @@ class RemoteUserBindHost(models.Model):
         verbose_name_plural = '远程主机'
         unique_together = ('ip', 'protocol', 'port', 'remote_user')
         # 一个用户下，只能绑定同一个主机一次，不能一个用户下绑定两个相同主机
+
+
+class ServerDetail(models.Model):
+    # 远程主机删除此，serverdetail 相关数据也删除
+    server = models.OneToOneField('RemoteUserBindHost', on_delete=models.CASCADE)
+    cpu_model = models.CharField(max_length=128, blank=True, null=True, verbose_name='CPU型号')
+    cpu_number = models.SmallIntegerField(blank=True, null=True, verbose_name='物理CPU个数')
+    vcpu_number = models.SmallIntegerField(blank=True, null=True, verbose_name='逻辑CPU个数')
+    disk_total = models.CharField(max_length=16, blank=True, null=True, verbose_name='磁盘空间')
+    ram_total = models.SmallIntegerField(blank=True, null=True, verbose_name='内存容量')
+    swap_total = models.SmallIntegerField(blank=True, null=True, verbose_name='交换空间容量')
+    kernel = models.CharField(max_length=128, blank=True, null=True, verbose_name='内核版本')
+    system = models.CharField(max_length=128, blank=True, null=True, verbose_name='操作系统')
+    filesystems = models.TextField(blank=True, null=True, verbose_name='文件系统')
+    interfaces = models.TextField(blank=True, null=True, verbose_name='网卡信息')
+    server_model = models.CharField(max_length=128, blank=True, null=True, verbose_name='型号')
+
+    class Meta:
+        verbose_name = '主机详细'
+        verbose_name_plural = '主机详细'

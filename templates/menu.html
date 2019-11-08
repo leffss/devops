@@ -1,0 +1,32 @@
+{% for item in menus.values %}
+	{% if item.menu_url %}
+		<li class="nav-item">
+			<a href="{{ item.menu_url }}" class="nav-link items {% if item.active %}active{% endif %}">
+				{{ item.menu_icon | safe }}
+				<p>
+				{{ item.menu_name }}
+				</p>
+			</a>
+		</li>
+	{% else %}
+		<li class="nav-item has-treeview menu-open">
+			<a href="#" class="nav-link {% if item.active %}activex{% endif %}">{# active 后显示蓝色，反而不太好看 #}
+				{{ item.menu_icon | safe }}
+				<p>
+					{{ item.menu_name }}
+					<i class="right fas fa-angle-left"></i>
+				</p>
+			</a>
+			<ul class="nav nav-treeview">
+			{% for children in item.children %}
+				<li class="nav-item items">
+					<a href="{{ children.url }}" class="nav-link {% if children.active %}active{% endif %}">
+						<!--i class="fas fa-user-edit nav-icon"></i-->
+						<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ children.title }}</p>
+					</a>
+				</li>
+			{% endfor %}
+			</ul>
+		</li>
+	{% endif %}
+{% endfor %}

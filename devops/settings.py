@@ -91,6 +91,7 @@ MIDDLEWARE = [
     'util.middleware.BlackListMiddleware',  # IP 黑名单
     'util.middleware.LockScreenMiddleware',     # 锁屏
     'util.middleware.DebugMiddleware',      # 非 DEBUG 模式下管理员显示 DEBUG 页面
+    'util.middleware.PermissionMiddleware',      # 验证权限
 ]
 
 FILE_UPLOAD_HANDLERS = [
@@ -285,9 +286,29 @@ RATELIMIT_LOGIN = '600/30s'
 RATELIMIT_NOLOGIN = '20/30s'
 
 
+# 用户加密密钥
+# 第一次设置后切勿再随意更改
+PASSWD_TOKEN = '__leffss__qaz__devops'
+
+
 # cryptography 加密解密密钥
 # 生成方法：
 # from cryptography.fernet import Fernet
 # cipher_key = Fernet.generate_key()
 # 非常重要，修改后会便无法解密数据库中储存的主机密码，所以第一次生成后切勿再随意更改
 CRYPTOGRAPHY_TOKEN = 'a0pLIWQvKYXp27uhQ7Bm5MDnQPvYSJ2oLaDZ6gJ_EJs='
+
+
+# 权限和菜单 key ，用于设置 session
+INIT_PERMISSION = 'init_permission'
+INIT_MENU = 'init_menu'
+VALID_URL = [   # 白名单url，不做权限验证
+    '/',
+    '/user/login/',
+    '/user/logout/',
+    '/user/lockscreen/',
+    '/user/profile/',
+    '/user/profile/edit/',
+    '/api/user/password/update/',
+    '/api/user/profile/update/',
+]

@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load user_tags %}
 
   {% block title %}
   <title>主机</title>
@@ -24,7 +25,10 @@
           <div class="card content-list">
             <div class="card-header">
               <h3 class="card-title">
-				主机{% if request.session.issuperuser %}<a href="{% url 'server:host_add' %}" class="btn btn-sm btn-outline-success ml-3 addsoft"><i class="fas fa-plus fa-sm"></i> 新增</a>{% endif %}
+				主机
+				{% if request|has_permission:'主机添加' %}
+				<a href="{% url 'server:host_add' %}" class="btn btn-sm btn-outline-success ml-3 addsoft"><i class="fas fa-plus fa-sm"></i> 新增</a>
+				{% endif %}
 			  </h3>
 				<div class="card-tools">
 				  <!--button type="button" class="btn btn-tool" data-widget="collapse">
@@ -72,23 +76,37 @@
 				  {% else %}
 				    <span class="badge badge-secondary">{{ host.get_protocol_display }}</span>
 				  {% endif %}
-				  
 				  </td>
+				  
 				  {% if host.remote_user %}
 				  <td>{{ host.remote_user.username }}</td>
 				  {% else %}
 				  <td></td>
+				  
 				  {% endif %}
 				  <td>{{ host.create_time|date:"Y/m/d H:i:s" }}</td>
-				  <td><a href="{% url 'server:host' host.id %}" class="btn btn-primary btn-sm mb-1"><i class="fas fa-list"></i> 详细</a>
-				  {% if request.session.issuperuser %}&nbsp;&nbsp;<a href="{% url 'server:host_edit' host.id %}?next={% if request.META.QUERY_STRING %}{{ request.META.PATH_INFO }}?{{ request.META.QUERY_STRING }}{% else %}{{ request.META.PATH_INFO }}{% endif %}" class="btn btn-info btn-sm mb-1"><i class="far fa-edit"></i> 编辑</a>&nbsp;&nbsp;<a href="javascript:void(0)" id="{{ host.id }}" title="{{ host.hostname }}" onclick="createdeletemodal(this);" class="btn btn-danger btn-sm mb-1"><i class="far fa-trash-alt"></i> 删除</a>{% endif %}
-				  {% if request.session.issuperuser %}
+				  
+				  <td>
+				  {% if request|has_permission:'主机详细' %}
+				  <a href="{% url 'server:host' host.id %}" class="btn btn-primary btn-sm mb-1"><i class="fas fa-list"></i> 详细</a>
+				  {% endif %}
+				  
+				  {% if request|has_permission:'主机编辑' %}
+				  &nbsp;&nbsp;<a href="{% url 'server:host_edit' host.id %}?next={% if request.META.QUERY_STRING %}{{ request.META.PATH_INFO }}?{{ request.META.QUERY_STRING }}{% else %}{{ request.META.PATH_INFO }}{% endif %}" class="btn btn-info btn-sm mb-1"><i class="far fa-edit"></i> 编辑</a>
+				  {% endif %}
+				  
+				  {% if request|has_permission:'主机删除' %}
+				  &nbsp;&nbsp;<a href="javascript:void(0)" id="{{ host.id }}" title="{{ host.hostname }}" onclick="createdeletemodal(this);" class="btn btn-danger btn-sm mb-1"><i class="far fa-trash-alt"></i> 删除</a>
+				  {% endif %}
+				  
+				  {% if request|has_permission:'主机更新' %}
 					{% if host.get_platform_display == 'linux' or host.get_platform_display == 'unix' %}
 						{% if host.get_protocol_display == 'ssh' %}
 							&nbsp;&nbsp;<a href="javascript:void(0)" id="{{ host.id }}" title="{{ host.hostname }}" onclick="createupdatemodal(this);" class="btn btn-secondary btn-sm mb-1"><i class="fas fa-sync-alt"></i> 更新</a>
 						{% endif %}
 					{% endif %}
 				  {% endif %}
+				  
 				  </td>
                 </tr>
 				{% endfor %}

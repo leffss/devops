@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load user_tags %}
 
   {% block title %}
   <title>终端登陆</title>
@@ -49,9 +50,11 @@
 				  <th>用户</th>
 				  <th>
 					  操作 
+					  {% if request|has_permission:'客户端ssh' or request|has_permission:'客户端sftp' %}
 					  <a href="#" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-content="客户端使用方法见：个人信息 - 编辑">
 						<i class="far fa-question-circle"></i>
 					  </a>
+					  {% endif %}
 				  </th>
                 </tr>
                 </thead>
@@ -80,34 +83,40 @@
 				  {% endif %}
 				  <td>
 					{% if host.get_protocol_display == 'ssh' %}
-						{% if host.remote_user and host.enabled %}
-							<form method="post" action="{% url 'webssh:terminal' %}" target="_blank" style="display:inline;">
-								{% csrf_token %}
-								<input type="text" name="hostid" value="{{ host.id }}" hidden>
-								<button type="submit" class="btn btn-sm btn-success mb-1"><i class="fas fa-terminal"></i> web终端</button>
-							</form>
-						{% else %}
-							<button class="btn btn-sm btn-success disabled mb-1"><i class="fas fa-terminal"></i> web终端</button>
+						{% if request|has_permission:'webssh终端' %}
+							{% if host.remote_user and host.enabled %}
+								<form method="post" action="{% url 'webssh:terminal' %}" target="_blank" style="display:inline;">
+									{% csrf_token %}
+									<input type="text" name="hostid" value="{{ host.id }}" hidden>
+									<button type="submit" class="btn btn-sm btn-success mb-1"><i class="fas fa-terminal"></i> web终端</button>
+								</form>
+							{% else %}
+								<button class="btn btn-sm btn-success disabled mb-1"><i class="fas fa-terminal"></i> web终端</button>
+							{% endif %}
 						{% endif %}
 					{% elif host.get_protocol_display == 'telnet' %}
-						{% if host.remote_user and host.enabled %}
-							<form method="post" action="{% url 'webtelnet:terminal' %}" target="_blank" style="display:inline;">
-								{% csrf_token %}
-								<input type="text" name="hostid" value="{{ host.id }}" hidden>
-								<button type="submit" class="btn btn-sm btn-success mb-1"><i class="fas fa-terminal"></i> web终端</button>
-							</form>
-						{% else %}
-							<button class="btn btn-sm btn-success disabled mb-1"><i class="fas fa-terminal"></i> web终端</button>
+						{% if request|has_permission:'webtelnet终端' %}
+							{% if host.remote_user and host.enabled %}
+								<form method="post" action="{% url 'webtelnet:terminal' %}" target="_blank" style="display:inline;">
+									{% csrf_token %}
+									<input type="text" name="hostid" value="{{ host.id }}" hidden>
+									<button type="submit" class="btn btn-sm btn-success mb-1"><i class="fas fa-terminal"></i> web终端</button>
+								</form>
+							{% else %}
+								<button class="btn btn-sm btn-success disabled mb-1"><i class="fas fa-terminal"></i> web终端</button>
+							{% endif %}
 						{% endif %}
 					{% elif host.get_protocol_display == 'rdp' or host.get_protocol_display == 'vnc' %}
-						{% if host.remote_user and host.enabled %}
-							<form method="post" action="{% url 'webguacamole:terminal' %}" target="_blank" style="display:inline;">
-								{% csrf_token %}
-								<input type="text" name="hostid" value="{{ host.id }}" hidden>
-								<button type="submit" class="btn btn-sm btn-success mb-1"><i class="fas fa-desktop"></i> web桌面</button>
-							</form>
-						{% else %}
-							<button class="btn btn-sm btn-success disabled mb-1"><i class="fas fa-desktop"></i> web桌面</button>
+						{% if request|has_permission:'webguacamole终端' %}
+							{% if host.remote_user and host.enabled %}
+								<form method="post" action="{% url 'webguacamole:terminal' %}" target="_blank" style="display:inline;">
+									{% csrf_token %}
+									<input type="text" name="hostid" value="{{ host.id }}" hidden>
+									<button type="submit" class="btn btn-sm btn-success mb-1"><i class="fas fa-desktop"></i> web桌面</button>
+								</form>
+							{% else %}
+								<button class="btn btn-sm btn-success disabled mb-1"><i class="fas fa-desktop"></i> web桌面</button>
+							{% endif %}
 						{% endif %}
 					{% endif %}
 					
@@ -115,19 +124,29 @@
 				
 					{% if host.get_protocol_display == 'ssh' %}
 						{% if host.remote_user and host.enabled %}
+							{% if request|has_permission:'客户端ssh' %}
 							<form method="post" target="_blank" onsubmit="clishell(this);return false;" style="display:inline;">
 								<input type="text" name="hostid" value="{{ host.id }}" hidden>
 								<button type="submit" class="btn btn-sm btn-primary mb-1"><i class="fas fa-network-wired"></i> 客户端ssh</button>
 							</form>
+							{% endif %}
+							
+							{% if request|has_permission:'客户端sftp' %}
 							&nbsp;&nbsp;
 							<form method="post" target="_blank" onsubmit="clisftpshell(this);return false;" style="display:inline;">
 								<input type="text" name="hostid" value="{{ host.id }}" hidden>
 								<button type="submit" class="btn btn-sm btn-info mb-1"><i class="fas fa-network-wired"></i> 客户端sftp</button>
 							</form>
+							{% endif %}
 						{% else %}
+							{% if request|has_permission:'客户端ssh' %}
 							<button class="btn btn-sm btn-primary disabled mb-1"><i class="fas fa-network-wired"></i> 客户端ssh</button>
+							{% endif %}
+							
+							{% if request|has_permission:'客户端sftp' %}
 							&nbsp;&nbsp;
 							<button class="btn btn-sm btn-info disabled mb-1"><i class="fas fa-network-wired"></i> 客户端sftp</button>
+							{% endif %}
 						{% endif %}
 					{% endif %}
 				  </td>
@@ -144,9 +163,11 @@
 				  <th>用户</th>
 				  <th>
 					  操作 
+					  {% if request|has_permission:'客户端ssh' or request|has_permission:'客户端sftp' %}
 					  <a href="#" data-container="body" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-content="客户端使用方法见：个人信息 - 编辑">
 						<i class="far fa-question-circle"></i>
 					  </a>
+					  {% endif %}
 				  </th>
                 </tr>
                 </tfoot>
@@ -264,9 +285,11 @@ $("#datatables-lists").DataTable({
 		});
 	};
 	
+	{% if request|has_permission:'客户端ssh' or request|has_permission:'客户端sftp' %}
 	$(document).ready(function(){
 		$('[data-toggle="popover"]').popover();   
 	});
+	{% endif %}
 	
 </script>
 {% endblock js %}

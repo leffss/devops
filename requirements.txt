@@ -21,4 +21,4 @@ cryptography==2.7
 # mysqlclient 比 pymysql 性能高，安装前需要：
 # apt-get install python3-dev default-libmysqlclient-dev        # debian / Ubuntu
 # yum install python3-devel mysql-devel     # Red Hat / CentOS
-# mysqlclient==1.4.4
+mysqlclient==1.4.4

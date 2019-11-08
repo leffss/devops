@@ -110,6 +110,33 @@
 							</select>
 						  </div>
 						</div>
+						
+						<div class="col-2 pt-1 pb-1">权限：</div>
+						<div class="col-10 pt-1 pb-1">
+						  <div class="form-group">
+							<select multiple class="form-control select2_multiple" data-placeholder="请选择权限" id="permission_select_left" style="width:100%">
+							  {% for permission in user.permission.all %}
+							  <option value="{{ permission.id }}" selected>
+								{% if permission.menu %}
+									{{ permission.menu }}-{{ permission.title }}
+								{% else %}
+									{{ permission.title }}
+								{% endif %}
+							  </option>
+							  {% endfor %}
+							  
+							  {% for permission in other_permissions %}
+							  <option value="{{ permission.id }}">
+								{% if permission.menu %}
+									{{ permission.menu }}-{{ permission.title }}
+								{% else %}
+									{{ permission.title }}
+								{% endif %}
+							  </option>
+							  {% endfor %}
+							</select>
+						  </div>
+						</div>
 
 						<div class="col-2 pt-1 pb-1">备注：</div><div class="col-10 pt-1 pb-1"><textarea id="memo" class="form-control">{{ user.memo | default:'' }}</textarea></div>
 					</div>
@@ -291,6 +318,14 @@
 		});
 		hosts = hosts.join(",")
 		
+		var permissions = new Array();
+		$("#permission_select_left option:selected").each(function(){
+			var value = $(this).val();   //获取option值
+			permissions.push(value);
+		});
+		permissions = permissions.join(",")
+		
+		
 		csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
 		
 		if (!/false/.test(check_right)) {
@@ -314,6 +349,7 @@
 					'role': role,
 					'groups': groups,
 					'hosts': hosts,
+					'permissions': permissions,
 				},
 				timeout: 5000,
 				cache: true,

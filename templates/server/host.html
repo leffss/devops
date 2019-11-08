@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% load server_tags %}
 {% load static %}
+{% load user_tags %}
 
   {% block title %}
   <title>主机详细</title>
@@ -28,7 +29,7 @@
               <h3 class="card-title">主机详细</h3>
 				<div class="card-tools">
 				  <a class="btn btn-tool" href="{% url 'server:hosts' %}">返回</a>
-				  {% if request.session.issuperuser %}
+				  {% if request|has_permission:'主机编辑' %}
 				  <a class="btn btn-tool" href="{% url 'server:host_edit' host.id %}?next={% if request.META.QUERY_STRING %}{{ request.META.PATH_INFO }}?{{ request.META.QUERY_STRING }}{% else %}{{ request.META.PATH_INFO }}{% endif %}" title="编辑">
 					<!--i class="fas fa-wrench"></i-->编辑
 				  </a>

@@ -1,0 +1,487 @@
+[
+  {
+    "model": "user.Permission",
+    "pk": 1,
+    "fields": {
+      "title": "仪表盘",
+      "url": "/server/",
+      "icon": "<i class=\"nav-icon fas fa-tachometer-alt fa-xs\"></i>",
+      "order": 1
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 2,
+    "fields": {
+      "title": "用户",
+      "url": "/user/users/",
+      "menu": "用户管理",
+      "men_icon": "<i class=\"nav-icon fas fa-user fa-xs\"></i>",
+      "order": 2
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 3,
+    "fields": {
+      "title": "组",
+      "url": "/user/groups/",
+      "menu": "用户管理",
+      "men_icon": "<i class=\"nav-icon fas fa-user fa-xs\"></i>",
+      "order": 3
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 4,
+    "fields": {
+      "title": "主机",
+      "url": "/server/hosts/",
+      "menu": "主机管理",
+      "men_icon": "<i class=\"nav-icon fas fa-copy fa-xs\"></i>",
+      "order": 4
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 5,
+    "fields": {
+      "title": "主机组",
+      "url": "/server/groups/",
+      "menu": "主机管理",
+      "men_icon": "<i class=\"nav-icon fas fa-copy fa-xs\"></i>",
+      "order": 5
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 6,
+    "fields": {
+      "title": "远程用户",
+      "url": "/server/users/",
+      "menu": "主机管理",
+      "men_icon": "<i class=\"nav-icon fas fa-copy fa-xs\"></i>",
+      "order": 6
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 7,
+    "fields": {
+      "title": "终端登录",
+      "url": "/webssh/hosts/",
+      "menu": "远程终端",
+      "men_icon": "<i class=\"nav-icon fas fa-coffee fa-xs\"></i>",
+      "order": 7
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 8,
+    "fields": {
+      "title": "在线终端",
+      "url": "/webssh/sessions/",
+      "menu": "远程终端",
+      "men_icon": "<i class=\"nav-icon fas fa-coffee fa-xs\"></i>",
+      "order": 8
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 9,
+    "fields": {
+      "title": "批量命令",
+      "url": "/batch/cmd/,/api/batch/get/hosts/,/ws/cmd/",
+      "menu": "批量处理",
+      "men_icon": "<i class=\"nav-icon fas fa-align-justify fa-xs\"></i>",
+      "order": 9
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 10,
+    "fields": {
+      "title": "批量脚本",
+      "url": "/batch/script/,/api/batch/get/hosts/,/ws/script/",
+      "menu": "批量处理",
+      "men_icon": "<i class=\"nav-icon fas fa-align-justify fa-xs\"></i>",
+      "order": 10
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 11,
+    "fields": {
+      "title": "上传文件",
+      "url": "/batch/file/,/api/batch/upload/,/ws/file/",
+      "menu": "批量处理",
+      "men_icon": "<i class=\"nav-icon fas fa-align-justify fa-xs\"></i>",
+      "order": 11
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 12,
+    "fields": {
+      "title": "module",
+      "url": "/batch/module/,/ws/module/",
+      "menu": "批量处理",
+      "men_icon": "<i class=\"nav-icon fas fa-align-justify fa-xs\"></i>",
+      "order": 12
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 13,
+    "fields": {
+      "title": "playbook",
+      "url": "/batch/playbook/,/ws/playbook/",
+      "menu": "批量处理",
+      "men_icon": "<i class=\"nav-icon fas fa-align-justify fa-xs\"></i>",
+      "order": 13
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 14,
+    "fields": {
+      "title": "操作日志",
+      "url": "/user/logs/,/api/user/logs/",
+      "menu": "日志审计",
+      "men_icon": "<i class=\"nav-icon fas fa-history fa-xs\"></i>",
+      "order": 14
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 15,
+    "fields": {
+      "title": "终端日志",
+      "url": "/webssh/logs/,/api/webssh/logs/",
+      "menu": "日志审计",
+      "men_icon": "<i class=\"nav-icon fas fa-history fa-xs\"></i>",
+      "order": 15
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 16,
+    "fields": {
+      "title": "批量日志",
+      "url": "/batch/logs/,/api/batch/logs/",
+      "menu": "日志审计",
+      "men_icon": "<i class=\"nav-icon fas fa-history fa-xs\"></i>",
+      "order": 16
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 17,
+    "fields": {
+      "title": "用户详细",
+      "url": "/user/user/(?P<user_id>[0-9]+)/",
+      "menu": "用户管理",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 18,
+    "fields": {
+      "title": "用户编辑",
+      "url": "/user/user/(?P<user_id>[0-9]+)/edit/,/api/user/user/update/",
+      "menu": "用户管理",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 19,
+    "fields": {
+      "title": "用户删除",
+      "url": "/api/user/user/delete/",
+      "menu": "用户管理",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 20,
+    "fields": {
+      "title": "用户添加",
+      "url": "/user/user/add/,/api/user/user/add/",
+      "menu": "用户管理",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 21,
+    "fields": {
+      "title": "组详细",
+      "url": "/user/group/(?P<group_id>[0-9]+)/",
+      "menu": "用户管理",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 22,
+    "fields": {
+      "title": "组编辑",
+      "url": "/user/group/(?P<group_id>[0-9]+)/edit/,/api/user/group/update/",
+      "menu": "用户管理",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 23,
+    "fields": {
+      "title": "组删除",
+      "url": "/api/user/group/delete/",
+      "menu": "用户管理",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 24,
+    "fields": {
+      "title": "组添加",
+      "url": "/user/group/add/,/api/user/group/add/",
+      "menu": "用户管理",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 25,
+    "fields": {
+      "title": "主机详细",
+      "url": "/server/host/(?P<host_id>[0-9]+)/",
+      "menu": "主机管理",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 26,
+    "fields": {
+      "title": "主机编辑",
+      "url": "/server/host/(?P<host_id>[0-9]+)/edit/,/api/server/host/update/",
+      "menu": "主机管理",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 27,
+    "fields": {
+      "title": "主机删除",
+      "url": "/api/server/host/delete/",
+      "menu": "主机管理",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 28,
+    "fields": {
+      "title": "主机添加",
+      "url": "/server/host/add/,/api/server/host/add/",
+      "menu": "主机管理",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 29,
+    "fields": {
+      "title": "主机更新",
+      "url": "/api/server/host/update/info/",
+      "menu": "主机管理",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 30,
+    "fields": {
+      "title": "主机组详细",
+      "url": "/server/group/(?P<group_id>[0-9]+)/",
+      "menu": "主机管理",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 31,
+    "fields": {
+      "title": "主机组编辑",
+      "url": "/server/group/(?P<group_id>[0-9]+)/edit/,/api/server/group/update/",
+      "menu": "主机管理",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 32,
+    "fields": {
+      "title": "主机组删除",
+      "url": "/api/server/group/delete/",
+      "menu": "主机管理",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 33,
+    "fields": {
+      "title": "主机组添加",
+      "url": "/server/group/add/,/api/server/group/add/",
+      "menu": "主机管理",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 34,
+    "fields": {
+      "title": "远程用户详细",
+      "url": "/server/user/(?P<user_id>[0-9]+)/",
+      "menu": "主机管理",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 35,
+    "fields": {
+      "title": "远程用户编辑",
+      "url": "/server/user/(?P<user_id>[0-9]+)/edit/,/api/server/user/update/",
+      "menu": "主机管理",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 36,
+    "fields": {
+      "title": "远程用户删除",
+      "url": "/api/server/user/delete/",
+      "menu": "主机管理",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 37,
+    "fields": {
+      "title": "远程用户添加",
+      "url": "/server/user/add/,/api/server/user/add/",
+      "menu": "主机管理",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 38,
+    "fields": {
+      "title": "webssh终端",
+      "url": "/webssh/terminal/,/ws/webssh/",
+      "menu": "远程终端",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 39,
+    "fields": {
+      "title": "客户端ssh",
+      "url": "/webssh/terminal/cli/",
+      "menu": "远程终端",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 40,
+    "fields": {
+      "title": "客户端sftp",
+      "url": "/webssh/terminal/cli/sftp",
+      "menu": "远程终端",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 41,
+    "fields": {
+      "title": "webtelnet终端",
+      "url": "/webtelnet/terminal/,/ws/webtelnet/",
+      "menu": "远程终端",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 42,
+    "fields": {
+      "title": "webguacamole终端",
+      "url": "/webguacamole/terminal/,/ws/webguacamole/",
+      "menu": "远程终端",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 43,
+    "fields": {
+      "title": "终端会话查看",
+      "url": "/webssh/terminal/view/,/webssh/terminal/clissh/view/,/ws/webssh/view/,/ws/clissh/view/",
+      "menu": "远程终端",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 44,
+    "fields": {
+      "title": "终端会话关闭",
+      "url": "/api/webssh/session/close/,/api/webssh/session/rdp/close/,/api/webssh/session/clissh/close/",
+      "menu": "远程终端",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 45,
+    "fields": {
+      "title": "终端会话锁定/解锁",
+      "url": "/api/webssh/session/lock/,/api/webssh/session/unlock/,/api/webssh/session/clissh/lock/,/api/webssh/session/clissh/unlock/",
+      "menu": "远程终端",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 46,
+    "fields": {
+      "title": "webssh终端文件上传",
+      "url": "/api/webssh/session/upload/(?P<pk>[0-9]+)/",
+      "menu": "远程终端",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 47,
+    "fields": {
+      "title": "webssh终端文件下载",
+      "url": "/api/webssh/session/download/(?P<pk>[0-9]+)/",
+      "menu": "远程终端",
+      "is_button": true
+    }
+  }
+]

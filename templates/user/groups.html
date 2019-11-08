@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load user_tags %}
 
   {% block title %}
   <title>组</title>
@@ -23,7 +24,12 @@
 		  {% block content %}
           <div class="card content-list">
             <div class="card-header">
-              <h3 class="card-title">组<a href="{% url 'user:group_add' %}" class="btn btn-sm btn-outline-success ml-3 addsoft"><i class="fas fa-plus fa-sm"></i> 新增</a></h3>
+              <h3 class="card-title">
+				组
+				{% if request|has_permission:'组添加' %}
+				<a href="{% url 'user:group_add' %}" class="btn btn-sm btn-outline-success ml-3 addsoft"><i class="fas fa-plus fa-sm"></i> 新增</a>
+				{% endif %}
+			  </h3>
 				<div class="card-tools">
 				  <!--button type="button" class="btn btn-tool" data-widget="collapse">
 					<i class="fas fa-minus"></i>
@@ -44,6 +50,7 @@
 				  <th>组名</th>
 				  <th>组内用户</th>
 				  <th>拥有主机</th>
+				  <th>权限</th>
 				  <th>创建时间</th>
 				  <th>操作</th>
                 </tr>
@@ -54,14 +61,35 @@
 				  <td>{{ group.group_name }}</td>
 				  <td>{{ group.user_set.all.count }}</td>
 				  <td>{{ group.remote_user_bind_hosts.all.count }}</td>
+				  
+				  <td>
+				  {% for permission in group.permission.all %}
+					{% if permission.menu %}
+						{{ permission.menu }}-{{ permission.title }}<br>
+					{% else %}
+						{{ permission.title }}<br>
+					{% endif %}
+				  {% endfor%}
+				  </td>
+				  
 				  <td>{{ group.create_time|date:"Y/m/d H:i:s" }}</td>
 				  <td>
-				  <a href="{% url 'user:group' group.id %}" class="btn btn-primary btn-sm mb-1"><i class="fas fa-list"></i> 详细</a>&nbsp;&nbsp;<a href="{% url 'user:group_edit' group.id %}?next={% if request.META.QUERY_STRING %}{{ request.META.PATH_INFO }}?{{ request.META.QUERY_STRING }}{% else %}{{ request.META.PATH_INFO }}{% endif %}" class="btn btn-info btn-sm mb-1"><i class="far fa-edit"></i> 编辑</a>
-				  {% if group.user_set.all.count == 0 and group.remote_user_bind_hosts.all.count == 0 %}
-				  &nbsp;&nbsp;<a href="javascript:void(0)" id="{{ group.id }}" title="{{ group.group_name }}" onclick="createdeletemodal(this);" class="btn btn-danger btn-sm mb-1"><i class="far fa-trash-alt"></i> 删除</a>
-				  {% else %}
-				  &nbsp;&nbsp;<a href="javascript:void(0)" class="btn btn-danger btn-sm disabled mb-1"><i class="far fa-trash-alt"></i> 删除</a>
+				  {% if request|has_permission:'组详细' %}
+				  <a href="{% url 'user:group' group.id %}" class="btn btn-primary btn-sm mb-1"><i class="fas fa-list"></i> 详细</a>
 				  {% endif %}
+				  
+				  {% if request|has_permission:'组编辑' %}
+				  &nbsp;&nbsp;<a href="{% url 'user:group_edit' group.id %}?next={% if request.META.QUERY_STRING %}{{ request.META.PATH_INFO }}?{{ request.META.QUERY_STRING }}{% else %}{{ request.META.PATH_INFO }}{% endif %}" class="btn btn-info btn-sm mb-1"><i class="far fa-edit"></i> 编辑</a>
+				  {% endif %}
+				  
+				  {% if request|has_permission:'组删除' %}
+					  {% if group.user_set.all.count == 0 and group.remote_user_bind_hosts.all.count == 0 %}
+					  &nbsp;&nbsp;<a href="javascript:void(0)" id="{{ group.id }}" title="{{ group.group_name }}" onclick="createdeletemodal(this);" class="btn btn-danger btn-sm mb-1"><i class="far fa-trash-alt"></i> 删除</a>
+					  {% else %}
+					  &nbsp;&nbsp;<a href="javascript:void(0)" class="btn btn-danger btn-sm disabled mb-1"><i class="far fa-trash-alt"></i> 删除</a>
+					  {% endif %}
+				  {% endif %}
+				  
 				  </td>
                 </tr>
 				{% endfor %}
@@ -71,6 +99,7 @@
 				  <th>组名</th>
 				  <th>组内用户</th>
 				  <th>拥有主机</th>
+				  <th>权限</th>
 				  <th>创建时间</th>
 				  <th>操作</th>
                 </tr>
@@ -120,7 +149,7 @@
 		destroy: true,	// 允许重建
 		bProcessing:true,  // 表格数据过多处理时显示: sProcessing
 		lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "全部"]],
-		columnDefs : [ { targets : 4, "orderable" : false } ],
+		columnDefs : [ { targets : 5, "orderable" : false } ],
 		order: [],
 		 //scrollY: 480,	// 滚动条
 		 //scrollCollapse: true,
@@ -237,7 +266,7 @@
 					destroy: true,	// 允许重建
 					bProcessing:true,  // 表格数据过多处理时显示: sProcessing
 					lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "全部"]],
-					columnDefs : [ { targets : 4, "orderable" : false } ],
+					columnDefs : [ { targets : 5, "orderable" : false } ],
 					order: [],
 					 //scrollY: 480,	// 滚动条
 					 //scrollCollapse: true,

@@ -2,13 +2,14 @@ import telnetlib
 from threading import Thread
 import json
 import time
-from util.tool import gen_rand_char
+from util.tool import gen_rand_char, res as save_res
 from django.conf import settings
 from asgiref.sync import async_to_sync
 import traceback
-from webssh.tasks import celery_save_res_asciinema
-import platform
 import socket
+import sys
+import os
+import re
 import logging
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -19,6 +20,7 @@ try:
     terminal_exipry_time = settings.CUSTOM_TERMINAL_EXIPRY_TIME
 except Exception:
     terminal_exipry_time = 60 * 30
+
 
 class Telnet:
     """
@@ -33,7 +35,12 @@ class Telnet:
         self.tab_mode = False   # 使用tab命令补全时需要读取返回数据然后添加到当前输入命令后
         self.history_mode = False
         self.start_time = time.time()
-        self.res_file = 'webtelnet_' + str(int(self.start_time)) + '_' + gen_rand_char(16) + '.txt'
+        tmp_date1 = time.strftime("%Y-%m-%d", time.localtime(int(self.start_time)))
+        tmp_date2 = time.strftime("%Y%m%d%H%M%S", time.localtime(int(self.start_time)))
+        if not os.path.isdir(os.path.join(settings.RECORD_ROOT, tmp_date1)):
+            os.makedirs(os.path.join(settings.RECORD_ROOT, tmp_date1))
+        self.res_file = settings.RECORD_DIR + '/' + tmp_date1 + '/' + 'webtelnet_' + \
+                        tmp_date2 + '_' + gen_rand_char(16) + '.txt'
         self.last_save_time = self.start_time
         self.res_asciinema = []
 
@@ -48,11 +55,11 @@ class Telnet:
         """
         try:
             self.tn.open(host=host, port=port, timeout=timeout)
-            self.tn.read_until(user_pre, timeout=10)
+            login_user = self.tn.read_until(user_pre, timeout=15)
             user = '{0}\n'.format(user).encode('utf-8')
             self.tn.write(user)
 
-            self.tn.read_until(password_pre, timeout=10)
+            self.tn.read_until(password_pre, timeout=15)
             password = '{0}\n'.format(password).encode('utf-8')
             self.tn.write(password)
 
@@ -65,7 +72,8 @@ class Telnet:
             self.websocker.send(message)
 
             self.res += command_result
-            if 'Login incorrect' in command_result:
+            if 'incorrect' in command_result or 'faild' in command_result or '失败' in command_result \
+                    or '错误' in command_result or 'error' in command_result:
                 self.message['status'] = 2
                 self.message['message'] = 'connection login faild...'
                 message = json.dumps(self.message)
@@ -99,7 +107,7 @@ class Telnet:
             self.websocker.close(3001)
     
     def su_root(self, superuser, superpassword, wait_time=1):
-        self.django_to_ssh('su - {0}\n'.format(superuser))
+        self.django_to_telnet('su - {0}\n'.format(superuser))
         time.sleep(wait_time)
         try:
             self.tn.write('{}\n'.format(superpassword).encode('utf-8'))
@@ -107,7 +115,7 @@ class Telnet:
             print(traceback.format_exc())
             self.close()
             
-    def django_to_ssh(self, data):
+    def django_to_telnet(self, data):
         try:
             self.tn.write(data.encode('utf-8'))
             if data == '\r':    # 记录命令
@@ -203,18 +211,13 @@ class Telnet:
                 
                 delay = round(time.time() - self.start_time, 6)
                 self.res_asciinema.append(json.dumps([delay, 'o', data]))
-                # 250条结果或者指定秒数就保存一次，这个任务可以优化为使用 celery
-                if len(self.res_asciinema) > 250 or int(time.time() - self.last_save_time) > 30:
+                # 指定条结果或者指定秒数或者占用指定大小内存就保存一次
+                if len(self.res_asciinema) > 2000 or int(time.time() - self.last_save_time) > 60 or \
+                        sys.getsizeof(self.res_asciinema) > 2097152:
                     tmp = list(self.res_asciinema)
                     self.res_asciinema = []
                     self.last_save_time = time.time()
-                    # windows无法正常支持celery任务
-                    if platform.system().lower() == 'linux':
-                        celery_save_res_asciinema.delay(settings.MEDIA_ROOT + '/' + self.res_file, tmp)
-                    else:
-                        with open(settings.MEDIA_ROOT + '/' + self.res_file, 'a+') as f:
-                            for line in tmp:
-                                f.write('{}\n'.format(line))
+                    save_res(self.res_file, tmp)
 
                 if self.tab_mode:
                     tmp = data.split(' ')
@@ -265,5 +268,4 @@ class Telnet:
             print(traceback.format_exc())
 
     def shell(self, data):
-        self.django_to_ssh(data)
-
+        self.django_to_telnet(data)

@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load user_tags %}
 
   {% block title %}
   <title>在线终端</title>
@@ -92,38 +93,44 @@
 				  <td>{{ session.create_time | date:"Y/m/d H:i:s" }}</td>
 				  
 				  <td>
-					{% if session.get_type_display == 'webssh' or session.get_type_display == 'webtelnet' %}
-						<form method="post" action="{% url 'webssh:terminal_view' %}" target="_blank" style="display:inline;">
-						{% csrf_token %}
-						<input type="text" name="sessionname" value="{{ session.name  }}" hidden>
-						<input type="text" name="group" value="{{ session.group  }}" hidden>
-						<button type="submit" class="btn btn-sm btn-success mb-1"><i class="far fa-eye"></i> 查看</button>
-						</form>&nbsp;&nbsp;
-					{% elif session.get_type_display == 'clissh' %}
-						<form method="post" action="{% url 'webssh:terminal_clissh_view' %}" target="_blank" style="display:inline;">
-						{% csrf_token %}
-						<input type="text" name="sessionname" value="{{ session.name  }}" hidden>
-						<input type="text" name="group" value="{{ session.group  }}" hidden>
-						<button type="submit" class="btn btn-sm btn-success mb-1"><i class="far fa-eye"></i> 查看</button>
-						</form>&nbsp;&nbsp;
+					{% if request|has_permission:'终端会话查看' %}
+						{% if session.get_type_display == 'webssh' or session.get_type_display == 'webtelnet' %}
+							<form method="post" action="{% url 'webssh:terminal_view' %}" target="_blank" style="display:inline;">
+							{% csrf_token %}
+							<input type="text" name="sessionname" value="{{ session.name  }}" hidden>
+							<input type="text" name="group" value="{{ session.group  }}" hidden>
+							<button type="submit" class="btn btn-sm btn-success mb-1"><i class="far fa-eye"></i> 查看</button>
+							</form>&nbsp;&nbsp;
+						{% elif session.get_type_display == 'clissh' %}
+							<form method="post" action="{% url 'webssh:terminal_clissh_view' %}" target="_blank" style="display:inline;">
+							{% csrf_token %}
+							<input type="text" name="sessionname" value="{{ session.name  }}" hidden>
+							<input type="text" name="group" value="{{ session.group  }}" hidden>
+							<button type="submit" class="btn btn-sm btn-success mb-1"><i class="far fa-eye"></i> 查看</button>
+							</form>&nbsp;&nbsp;
+						{% endif %}
 					{% endif %}
 					
-					{% if session.get_type_display == 'webssh' or session.get_type_display == 'webtelnet' %}
-						<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" group="{{ session.group }}" class="btn btn-sm btn-danger mb-1" onclick="createdeletemodal(this);"><i class="far fa-times-circle"></i> 断开</a>
-						&nbsp;&nbsp;
-					{% elif session.get_type_display == 'clissh' or session.get_type_display == 'clisftp' %}
-						<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" class="btn btn-sm btn-danger mb-1" onclick="createdeletemodal_clissh(this);"><i class="far fa-times-circle"></i> 断开</a>
-						&nbsp;&nbsp;
-					{% elif session.get_type_display == 'webrdp' or session.get_type_display == 'webvnc' %}
-						<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" group="{{ session.group }}" class="btn btn-sm btn-danger mb-1" onclick="createdeletemodal_rdp(this);"><i class="far fa-times-circle"></i> 断开</a>
-						&nbsp;&nbsp;
+					{% if request|has_permission:'终端会话关闭' %}
+						{% if session.get_type_display == 'webssh' or session.get_type_display == 'webtelnet' %}
+							<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" group="{{ session.group }}" class="btn btn-sm btn-danger mb-1" onclick="createdeletemodal(this);"><i class="far fa-times-circle"></i> 断开</a>
+							&nbsp;&nbsp;
+						{% elif session.get_type_display == 'clissh' or session.get_type_display == 'clisftp' %}
+							<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" class="btn btn-sm btn-danger mb-1" onclick="createdeletemodal_clissh(this);"><i class="far fa-times-circle"></i> 断开</a>
+							&nbsp;&nbsp;
+						{% elif session.get_type_display == 'webrdp' or session.get_type_display == 'webvnc' %}
+							<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" group="{{ session.group }}" class="btn btn-sm btn-danger mb-1" onclick="createdeletemodal_rdp(this);"><i class="far fa-times-circle"></i> 断开</a>
+							&nbsp;&nbsp;
+						{% endif %}
 					{% endif %}
 					
-					{% if session.get_type_display == 'webssh' or session.get_type_display == 'webtelnet' or session.get_type_display == 'webrdp' or session.get_type_display == 'webvnc' or session.get_type_display == 'clissh' %}
-						{% if session.locked %}
-						<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" type="{{ session.get_type_display }}" class="btn btn-sm btn-primary mb-1" onclick="createunlockmodal(this);"><i class="fas fa-lock-open"></i> 解锁</a>
-						{% else %}
-						<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" type="{{ session.get_type_display }}" class="btn btn-sm btn-info mb-1" onclick="createlockmodal(this);"><i class="fas fa-lock"></i> 锁定</a>
+					{% if request|has_permission:'终端会话锁定/解锁' %}
+						{% if session.get_type_display == 'webssh' or session.get_type_display == 'webtelnet' or session.get_type_display == 'webrdp' or session.get_type_display == 'webvnc' or session.get_type_display == 'clissh' %}
+							{% if session.locked %}
+							<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" type="{{ session.get_type_display }}" class="btn btn-sm btn-primary mb-1" onclick="createunlockmodal(this);"><i class="fas fa-lock-open"></i> 解锁</a>
+							{% else %}
+							<a href="javascript:void(0)" id="{{ session.id }}" title="{{ session.name }}" type="{{ session.get_type_display }}" class="btn btn-sm btn-info mb-1" onclick="createlockmodal(this);"><i class="fas fa-lock"></i> 锁定</a>
+							{% endif %}
 						{% endif %}
 					{% endif %}
 					

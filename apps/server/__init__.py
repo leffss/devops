@@ -14,4 +14,3 @@ class AppVerboseNameConfig(AppConfig):
 
 
 default_app_config = get_current_app_name(__file__) + '.__init__.AppVerboseNameConfig'
-

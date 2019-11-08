@@ -13,4 +13,3 @@ urlpatterns = [
     path('logs/', views.logs, name='logs'),
     path('sessions/', views.sessions, name='sessions'),
 ]
-

@@ -4,6 +4,32 @@ import json
 # Create your models here.
 
 
+class Permission(models.Model):
+    """
+    权限
+    """
+    title = models.CharField(max_length=128, unique=True, verbose_name="标题")
+    url = models.CharField(max_length=256, blank=True, null=True, verbose_name='含正则的URL')
+    icon = models.CharField(max_length=128, blank=True, null=True, verbose_name='图标')
+    # 如果 menu 为空，则本身就是一级菜单，比如仪表盘；不为空则是二级菜单或者按钮
+    menu = models.CharField(max_length=128, blank=True, null=True, verbose_name='一级菜单')
+    men_icon = models.CharField(max_length=128, blank=True, null=True, verbose_name='一级菜单图标')
+    # 当为 True 时，是一个按钮，不是菜单
+    is_button = models.BooleanField(default=False, verbose_name='是否为按钮')
+    # 排序，菜单显示排序
+    order = models.SmallIntegerField(default=99999, verbose_name='排序')
+
+    def __str__(self):
+        if self.menu:
+            return self.menu + '-' + self.title
+        return self.title
+
+    class Meta:
+        ordering = ["id"]
+        verbose_name = "权限"
+        verbose_name_plural = "权限"
+
+
 class User(models.Model):
     SEX_CHOICES = (
         ('male', "男"),
@@ -19,6 +45,7 @@ class User(models.Model):
     email = models.EmailField(verbose_name='邮箱')
     sex = models.CharField(max_length=32, choices=SEX_CHOICES, default="male", verbose_name='性别')
     remote_user_bind_hosts = models.ManyToManyField(RemoteUserBindHost, blank=True, verbose_name="用户关联的远程主机")
+    permission = models.ManyToManyField(Permission, blank=True, verbose_name="用户关联的权限")
     enabled = models.BooleanField(default=True, verbose_name='是否启用')
     role = models.SmallIntegerField(default=2, choices=ROLE_CHOICES, verbose_name='角色')
     groups = models.ManyToManyField('Group', blank=True, verbose_name="所属组")
@@ -83,7 +110,8 @@ class User(models.Model):
 
 class Group(models.Model):
     group_name = models.CharField(max_length=128, unique=True, verbose_name="组名")
-    remote_user_bind_hosts = models.ManyToManyField(RemoteUserBindHost, blank=True, verbose_name="组内关联的远程主机")
+    remote_user_bind_hosts = models.ManyToManyField(RemoteUserBindHost, blank=True, verbose_name="组关联的远程主机")
+    permission = models.ManyToManyField(Permission, blank=True, verbose_name="组关联的权限")
     memo = models.TextField(blank=True, null=True, verbose_name="备注")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
 
@@ -118,6 +146,9 @@ class LoginLog(models.Model):
         (18, '停止在线会话'),
         (19, '锁定在线会话'),
         (20, '解锁在线会话'),
+        (21, '添加主机组'),
+        (22, '删除主机组'),
+        (23, '更新主机组'),
     )
     # 当用户被删除后，相关的登陆日志user字段设置为NULL
     # user = models.ForeignKey('User', blank=True, null=True, on_delete=models.PROTECT, verbose_name='用户')
@@ -135,4 +166,3 @@ class LoginLog(models.Model):
         ordering = ["-create_time"]
         verbose_name = '用户日志'
         verbose_name_plural = '用户日志'
-

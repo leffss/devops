@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load user_tags %}
 
   {% block title %}
   <title>个人信息</title>
@@ -64,6 +65,18 @@
 					程序路径：{{ sftp_app.path | default:'' }}<br>
 					命令参数：{{ sftp_app.args | default:'' }}<br>
 				</div>
+				
+				<div class="col-3 pt-1 pb-1 border-bottom">权限：</div>
+				<div class="col-9 pt-1 pb-1 border-bottom">
+				  {% for permission in request|get_all_permission %}
+					{% if permission.menu %}
+						{{ permission.menu }}-{{ permission.title }}<br>
+					{% else %}
+						{{ permission.title }}<br>
+					{% endif %}
+				  {% endfor%}
+				</div>
+				
 				<div class="col-3 pt-1 pb-1">备注：</div><div class="col-9 pt-1 pb-1">{{ user.memo | default:'' }}</div>
             </div>
             <!-- /.card-body -->

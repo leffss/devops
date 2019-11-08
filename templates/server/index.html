@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load server_tags %}
-
+{% load user_tags %}
 
   {% block title %}
   <title>运维管理系统</title>
@@ -26,7 +26,7 @@
 		  {% block content %}
 		  <div class="row">
 			  <div class="col-lg-3 col-6 content-list">
-				<!-- small box -->
+			    {% if request|has_permission:'主机' %}
 				<div class="small-box bg-info">
 				  <div class="inner">
 					<h3>{{ host_count }}</h3>
@@ -37,10 +37,11 @@
 				  </div>
 				  <a href="{% url 'server:hosts' %}" class="small-box-footer">查看更多 <i class="fas fa-arrow-circle-right"></i></a>
 				</div>
+				{% endif %}
 			  </div>
-			  <!-- ./col -->
+
 			  <div class="col-lg-3 col-6 content-list">
-				<!-- small box -->
+				{% if request|has_permission:'用户' %}
 				<div class="small-box bg-success">
 				  <div class="inner">
 					<h3>{{ user_count }}</h3>
@@ -51,10 +52,11 @@
 				  </div>
 				  <a href="{% url 'user:users' %}" class="small-box-footer">查看更多 <i class="fas fa-arrow-circle-right"></i></a>
 				</div>
+				{% endif %}
 			  </div>
-			  <!-- ./col -->
+
 			  <div class="col-lg-3 col-6 content-list">
-				<!-- small box -->
+				{% if request|has_permission:'组' %}
 				<div class="small-box bg-yellow">
 				  <div class="inner">
 					<h3>{{ group_count }}</h3>
@@ -65,10 +67,11 @@
 				  </div>
 				  <a href="{% url 'user:groups' %}" class="small-box-footer">查看更多 <i class="fas fa-arrow-circle-right"></i></a>
 				</div>
+				{% endif %}
 			  </div>
-			  <!-- ./col -->
+
 			  <div class="col-lg-3 col-6 content-list">
-				<!-- small box -->
+				{% if request|has_permission:'在线终端' %}
 				<div class="small-box bg-red">
 				  <div class="inner">
 					<h3>{{ session_count }}</h3>
@@ -79,6 +82,7 @@
 				  </div>
 				  <a href="{% url 'webssh:sessions' %}" class="small-box-footer">查看更多 <i class="fas fa-arrow-circle-right"></i></a>
 				</div>
+				{% endif %}
 			  </div>
 			  <!-- ./col -->
 			  
@@ -129,7 +133,7 @@
 					  </thead>
 					  <tbody>
 					  
-					  {% get_recent_hosts 10 as hosts %}
+					  {% get_recent_hosts request 10 as hosts %}
 					  {% for host in hosts %}
 					  <tr>
 						<td>{{ host.hostname }}</td>
@@ -142,7 +146,9 @@
 					</table>
 				  </div>
 				  <div class="card-footer">
+					{% if request|has_permission:'主机添加' %}
 				    <a class="btn btn-sm btn-success" href="{% url 'server:host_add' %}">新增主机</a>
+					{% endif %}
 					<a class='btn btn-info btn-sm float-right' href="{% url 'server:hosts' %}">查看所有</a>
 				  </div>
 				</div>
@@ -156,7 +162,7 @@
 {% block js %}
 <script src="https://cdn.bootcss.com/echarts/4.2.1/echarts.min.js"></script>
 <script>
-	{% get_host_types as res %}
+	{% get_host_types request as res %}
 	
 	$(function () {
 	    //资产类型数量统计 饼图

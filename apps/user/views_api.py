@@ -1,27 +1,19 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import reverse
-from django.http import JsonResponse
-from .models import User, LoginLog, Group
+from django.shortcuts import get_object_or_404
+from django.http import JsonResponse, Http404
+from .models import User, LoginLog, Group, Permission
 from server.models import RemoteUserBindHost
-from .forms import LoginForm, ChangePasswdForm, ChangeUserProfileForm, ChangeUserForm, ChangeGroupForm, AddGroupForm, AddUserForm
-from util.tool import login_required, hash_code, post_required, admin_required
-import django.utils.timezone as timezone
-import time
+from .forms import ChangePasswdForm, ChangeUserProfileForm, ChangeUserForm, ChangeGroupForm, AddGroupForm, AddUserForm
+from util.tool import login_required, hash_code, post_required, event_log
+from ratelimit.decorators import ratelimit      # 限速
+from ratelimit import ALL
+from util.rate import rate, key
+from django.db.models import Q
 import traceback
 import json
 # Create your views here.
 
 
-def login_event_log(user, event_type, detail, address, useragent):
-    event = LoginLog()
-    event.user = user
-    event.event_type = event_type
-    event.detail = detail
-    event.address = address
-    event.useragent = useragent
-    event.save()
-
-
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @post_required
 def password_update(request):
@@ -35,32 +27,33 @@ def password_update(request):
             user = User.objects.get(username=username)
             if not user.enabled:
                 error_message = '用户已禁用!'
-                login_event_log(user, 4, '用户 [{}] 已禁用'.format(user.username), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
+                event_log(user, 4, '用户 [{}] 已禁用'.format(user.username), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
                 return JsonResponse({"code": 401, "err": error_message})
             if newpasswd != newpasswdagain:
                 error_message = '两次输入的新密码不一致'
-                login_event_log(user, 4, '两次输入的新密码不一致', request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
+                event_log(user, 4, '两次输入的新密码不一致', request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
                 return JsonResponse({"code": 400, "err": error_message})
         except Exception:
             error_message = '用户不存在!'
-            login_event_log(None, 4, '用户 [{}] 不存在'.format(username), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
+            event_log(None, 4, '用户 [{}] 不存在'.format(username), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
             return JsonResponse({"code": 403, "err": error_message})
         if user.password == hash_code(oldpassword):
             data = {'password': hash_code(newpasswd)}
             User.objects.filter(username=username).update(**data)
-            login_event_log(user, 5, '用户 [{}] 修改密码成功'.format(user.username), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
+            event_log(user, 5, '用户 [{}] 修改密码成功'.format(user.username), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
             return JsonResponse({"code": 200, "err": ""})
         else:
             error_message = '当前密码错误!'
-            login_event_log(user, 4, '用户 [{}] 当前密码错误'.format(user.username), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
+            event_log(user, 4, '用户 [{}] 当前密码错误'.format(user.username), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
             return JsonResponse({"code": 404, "err": error_message})
     else:
         error_message = '请检查填写的内容!'
         user = User.objects.get(username=request.session.get('username'))
-        login_event_log(user, 4, '修改密码表单验证错误', request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
+        event_log(user, 4, '修改密码表单验证错误', request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
         return JsonResponse({"code": 406, "err": error_message})
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
 @post_required
 def profile_update(request):
@@ -75,14 +68,12 @@ def profile_update(request):
         qq = changeuserprofile_form.cleaned_data.get('qq')
         sex = changeuserprofile_form.cleaned_data.get('sex')
         memo = changeuserprofile_form.cleaned_data.get('memo')
-
         clissh_name = changeuserprofile_form.cleaned_data.get('clissh_name')
         clissh_path = changeuserprofile_form.cleaned_data.get('clissh_path')
         clissh_args = changeuserprofile_form.cleaned_data.get('clissh_args')
         clisftp_name = changeuserprofile_form.cleaned_data.get('clisftp_name')
         clisftp_path = changeuserprofile_form.cleaned_data.get('clisftp_path')
         clisftp_args = changeuserprofile_form.cleaned_data.get('clisftp_args')
-
         data = {
             'nickname': nickname,
             'email': email,
@@ -123,7 +114,7 @@ def profile_update(request):
 
             User.objects.filter(pk=userid, username=username).update(**data)
             request.session['nickname'] = nickname
-            login_event_log(user, 10, '用户 [{}] 更新个人信息成功'.format(username), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
+            event_log(user, 10, '用户 [{}] 更新个人信息成功'.format(username), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
             return JsonResponse({"code": 200, "err": ""})
         except Exception:
             error_message = '用户不存在!'
@@ -133,8 +124,8 @@ def profile_update(request):
         return JsonResponse({"code": 403, "err": error_message})
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
-@admin_required
 @post_required
 def user_update(request):
     changeuser_form = ChangeUserForm(request.POST)
@@ -169,7 +160,17 @@ def user_update(request):
                 return JsonResponse({"code": 401, "err": error_message})
         else:
             hosts = None
-            
+
+        permissions = changeuser_form.cleaned_data.get('permissions')
+        if permissions:
+            try:
+                permissions = [int(permissions) for permissions in permissions.split(',')]
+            except Exception:
+                error_message = '请检查填写的内容!'
+                return JsonResponse({"code": 401, "err": error_message})
+        else:
+            permissions = None
+
         data = {
             'nickname': nickname,
             'email': email,
@@ -185,20 +186,66 @@ def user_update(request):
             user = User.objects.get(username=log_user)
             User.objects.filter(id=userid).update(**data)
             update_user = User.objects.get(id=userid)
+            if update_user.id == request.session['userid'] or (update_user.username == 'admin' and update_user.role == 1):
+                raise Http404('Not found')
             if groups:  # 更新组多对多字段
                 update_groups = Group.objects.filter(id__in=groups)
                 update_user.groups.set(update_groups)
             else:
                 update_user.groups.clear()
-            
+
+            other_hosts = None
+            if not request.session['issuperuser'] or request.session['username'] != 'admin':
+                # 修改的用户中可能存在拥有的主机但是操作用户没有此主机的情况
+                other_hosts = RemoteUserBindHost.objects.filter(
+                    Q(user__id=userid)
+                ).filter(
+                    ~Q(user__username=request.session['username']) & ~Q(group__user__username=request.session['username'])
+                ).distinct()
+
+            other_permissions = None
+            if not request.session['issuperuser'] or request.session['username'] != 'admin':
+                # 修改的用户中可能存在拥有的权限但是操作用户没有此权限的情况
+                other_permissions = Permission.objects.filter(
+                    Q(user__id=userid)
+                ).filter(
+                    ~Q(user__username=request.session['username']) & ~Q(group__user__username=request.session['username'])
+                ).distinct()
+
             if hosts:  # 更新主机多对多字段
-                update_hosts = RemoteUserBindHost.objects.filter(id__in=hosts)
+                if request.session['issuperuser'] and request.session['username'] == 'admin':
+                    update_hosts = RemoteUserBindHost.objects.filter(id__in=hosts)
+                else:
+                    update_hosts = RemoteUserBindHost.objects.filter(
+                        Q(user__username=request.session['username']) | Q(group__user__username=request.session['username']),
+                        id__in=hosts
+                    ).distinct()
                 update_user.remote_user_bind_hosts.set(update_hosts)
             else:
                 update_user.remote_user_bind_hosts.clear()
-            
+
+            if permissions:
+                if request.session['issuperuser'] and request.session['username'] == 'admin':
+                    update_permissions = Permission.objects.filter(id__in=permissions)
+                else:
+                    update_permissions = Permission.objects.filter(
+                        Q(user__username=request.session['username']) | Q(group__user__username=request.session['username']),
+                        id__in=permissions
+                    ).distinct()
+                update_user.permission.set(update_permissions)
+            else:
+                update_user.permission.clear()
+
+            if other_hosts:
+                for i in other_hosts:
+                    update_user.remote_user_bind_hosts.add(i)
+
+            if other_permissions:
+                for i in other_permissions:
+                    update_user.permission.add(i)
+
             update_user.save()
-            login_event_log(user, 10, '用户 [{}] 更新信息成功'.format(update_user.username), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
+            event_log(user, 10, '用户 [{}] 更新信息成功'.format(update_user.username), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
             return JsonResponse({"code": 200, "err": ""})
         except Exception:
             # print(traceback.format_exc())
@@ -208,9 +255,9 @@ def user_update(request):
         error_message = '请检查填写的内容!'
         return JsonResponse({"code": 403, "err": error_message})
 
-        
+
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
-@admin_required
 @post_required
 def user_delete(request):
     pk = request.POST.get('id', None)
@@ -222,16 +269,18 @@ def user_delete(request):
         error_message = '不合法的请求参数!'
         return JsonResponse({"code": 400, "err": error_message})
     user = get_object_or_404(User, pk=pk)
+    if user.id == request.session['userid'] or (user.username == 'admin' and user.role == 1):
+        raise Http404('Not found')
     if user.groups.all().count() != 0 or user.remote_user_bind_hosts.all().count() != 0:
         error_message = '用户下存在主机或者属于其他组!'
         return JsonResponse({"code": 401, "err": error_message})
     user.delete()
-    login_event_log(loguser, 7, '用户 [{}] 删除成功'.format(user.username), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
+    event_log(loguser, 7, '用户 [{}] 删除成功'.format(user.username), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
     return JsonResponse({"code": 200, "err": ""})
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
-@admin_required
 @post_required
 def user_add(request):
     adduser_form = AddUserForm(request.POST)
@@ -271,7 +320,17 @@ def user_add(request):
                 return JsonResponse({"code": 401, "err": error_message})
         else:
             hosts = None
-            
+
+        permissions = adduser_form.cleaned_data.get('permissions')
+        if permissions:
+            try:
+                permissions = [int(permissions) for permissions in permissions.split(',')]
+            except Exception:
+                error_message = '请检查填写的内容!'
+                return JsonResponse({"code": 401, "err": error_message})
+        else:
+            permissions = None
+
         data = {
             'username': username,
             'password': hash_code(newpasswd),
@@ -298,13 +357,31 @@ def user_add(request):
                 update_user.groups.clear()
             
             if hosts:  # 更新主机多对多字段
-                update_hosts = RemoteUserBindHost.objects.filter(id__in=hosts)
+                if request.session['issuperuser'] and request.session['username'] == 'admin':
+                    update_hosts = RemoteUserBindHost.objects.filter(id__in=hosts)
+                else:
+                    update_hosts = RemoteUserBindHost.objects.filter(
+                        Q(user__username=request.session['username']) | Q(group__user__username=request.session['username']),
+                        id__in=hosts
+                    ).distinct()
                 update_user.remote_user_bind_hosts.set(update_hosts)
             else:
                 update_user.remote_user_bind_hosts.clear()
-            
+
+            if permissions:
+                if request.session['issuperuser'] and request.session['username'] == 'admin':
+                    update_permissions = Permission.objects.filter(id__in=permissions)
+                else:
+                    update_permissions = Permission.objects.filter(
+                        Q(user__username=request.session['username']) | Q(group__user__username=request.session['username']),
+                        id__in=permissions
+                    ).distinct()
+                update_user.permission.set(update_permissions)
+            else:
+                update_user.permission.clear()
+
             update_user.save()
-            login_event_log(user, 6, '用户 [{}] 添加成功'.format(update_user.username), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
+            event_log(user, 6, '用户 [{}] 添加成功'.format(update_user.username), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
             return JsonResponse({"code": 200, "err": ""})
         except Exception:
             # print(traceback.format_exc())
@@ -314,9 +391,9 @@ def user_add(request):
         error_message = '请检查填写的内容!'
         return JsonResponse({"code": 404, "err": error_message})
         
-        
+
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
-@admin_required
 @post_required
 def group_update(request):
     changegroup_form = ChangeGroupForm(request.POST)
@@ -343,7 +420,17 @@ def group_update(request):
                 return JsonResponse({"code": 401, "err": error_message})
         else:
             hosts = None
-        
+
+        permissions = changegroup_form.cleaned_data.get('permissions')
+        if permissions:
+            try:
+                permissions = [int(permissions) for permissions in permissions.split(',')]
+            except Exception:
+                error_message = '请检查填写的内容!'
+                return JsonResponse({"code": 401, "err": error_message})
+        else:
+            permissions = None
+
         data = {
             'memo': memo,
         }
@@ -357,15 +444,59 @@ def group_update(request):
                 update_group.user_set.set(update_users)
             else:
                 update_group.user_set.clear()
-                
+
+            other_hosts = None
+            if not request.session['issuperuser'] or request.session['username'] != 'admin':
+                # 修改的组中可能存在拥有的主机但是操作用户没有此主机的情况
+                other_hosts = RemoteUserBindHost.objects.filter(
+                    Q(group__id=groupid)
+                ).filter(
+                    ~Q(user__username=request.session['username']) & ~Q(group__user__username=request.session['username'])
+                ).distinct()
+
+            other_permissions = None
+            if not request.session['issuperuser'] or request.session['username'] != 'admin':
+                # 修改的组中可能存在拥有的权限但是操作用户没有此权限的情况
+                other_permissions = Permission.objects.filter(
+                    Q(group__id=groupid)
+                ).filter(
+                    ~Q(user__username=request.session['username']) & ~Q(group__user__username=request.session['username'])
+                ).distinct()
+
             if hosts:  # 更新主机多对多字段
-                update_hosts = RemoteUserBindHost.objects.filter(id__in=hosts)
+                if request.session['issuperuser'] and request.session['username'] == 'admin':
+                    update_hosts = RemoteUserBindHost.objects.filter(id__in=hosts)
+                else:
+                    update_hosts = RemoteUserBindHost.objects.filter(
+                        Q(user__username=request.session['username']) | Q(group__user__username=request.session['username']),
+                        id__in=hosts
+                    ).distinct()
                 update_group.remote_user_bind_hosts.set(update_hosts)
             else:
                 update_group.remote_user_bind_hosts.clear()
-                
+
+            if permissions:
+                if request.session['issuperuser'] and request.session['username'] == 'admin':
+                    update_permissions = Permission.objects.filter(id__in=permissions)
+                else:
+                    update_permissions = Permission.objects.filter(
+                        Q(user__username=request.session['username']) | Q(group__user__username=request.session['username']),
+                        id__in=permissions
+                    ).distinct()
+                update_group.permission.set(update_permissions)
+            else:
+                update_group.permission.clear()
+
+            if other_hosts:
+                for i in other_hosts:
+                    update_group.remote_user_bind_hosts.add(i)
+
+            if other_permissions:
+                for i in other_permissions:
+                    update_group.permission.add(i)
+
             update_group.save()
-            login_event_log(user, 11, '组 [{}] 更新信息成功'.format(update_group.group_name), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
+            event_log(user, 11, '组 [{}] 更新信息成功'.format(update_group.group_name), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
             return JsonResponse({"code": 200, "err": ""})
         except Exception:
             # print(traceback.format_exc())
@@ -376,8 +507,8 @@ def group_update(request):
         return JsonResponse({"code": 403, "err": error_message})
 
 
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
-@admin_required
 @post_required
 def group_delete(request):
     pk = request.POST.get('id', None)
@@ -390,12 +521,12 @@ def group_delete(request):
         error_message = '组内存在用户或者主机!'
         return JsonResponse({"code": 401, "err": error_message})
     group.delete()
-    login_event_log(user, 9, '组 [{}] 删除成功'.format(group.group_name), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
+    event_log(user, 9, '组 [{}] 删除成功'.format(group.group_name), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
     return JsonResponse({"code": 200, "err": ""})
 
-    
+
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
 @login_required
-@admin_required
 @post_required
 def group_add(request):
     addgroup_form = AddGroupForm(request.POST)
@@ -422,7 +553,17 @@ def group_add(request):
                 return JsonResponse({"code": 401, "err": error_message})
         else:
             hosts = None
-        
+
+        permissions = addgroup_form.cleaned_data.get('permissions')
+        if permissions:
+            try:
+                permissions = [int(permissions) for permissions in permissions.split(',')]
+            except Exception:
+                error_message = '请检查填写的内容!'
+                return JsonResponse({"code": 401, "err": error_message})
+        else:
+            permissions = None
+
         data = {
             'group_name': groupname,
             'memo': memo,
@@ -441,13 +582,31 @@ def group_add(request):
                 update_group.user_set.clear()
                 
             if hosts:  # 更新主机多对多字段
-                update_hosts = RemoteUserBindHost.objects.filter(id__in=hosts)
+                if request.session['issuperuser'] and request.session['username'] == 'admin':
+                    update_hosts = RemoteUserBindHost.objects.filter(id__in=hosts)
+                else:
+                    update_hosts = RemoteUserBindHost.objects.filter(
+                        Q(user__username=request.session['username']) | Q(group__user__username=request.session['username']),
+                        id__in=hosts
+                    ).distinct()
                 update_group.remote_user_bind_hosts.set(update_hosts)
             else:
                 update_group.remote_user_bind_hosts.clear()
-                
+
+            if permissions:
+                if request.session['issuperuser'] and request.session['username'] == 'admin':
+                    update_permissions = Permission.objects.filter(id__in=permissions)
+                else:
+                    update_permissions = Permission.objects.filter(
+                        Q(user__username=request.session['username']) | Q(group__user__username=request.session['username']),
+                        id__in=permissions
+                    ).distinct()
+                update_group.permission.set(update_permissions)
+            else:
+                update_group.permission.clear()
+
             update_group.save()
-            login_event_log(user, 8, '组 [{}] 添加成功'.format(update_group.group_name), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
+            event_log(user, 8, '组 [{}] 添加成功'.format(update_group.group_name), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
             return JsonResponse({"code": 200, "err": ""})
         except Exception:
             # print(traceback.format_exc())
@@ -457,3 +616,88 @@ def group_add(request):
         error_message = '请检查填写的内容!'
         return JsonResponse({"code": 404, "err": error_message})
 
+
+@ratelimit(key=key, rate=rate, method=ALL, block=True)
+@login_required
+@post_required
+def logs(request):
+    """
+    配合前端 datatables
+    """
+    draw = int(request.POST.get('draw', 1))
+    start = int(request.POST.get('start', 0))
+    length = int(request.POST.get('length', 5))
+    search_value = request.POST.get('search[value]', '')
+    search_regex = request.POST.get('search[regex]', False)
+    search_regex = True if search_regex == 'true' else False
+    orders = [
+        'user',
+        'type',
+        'detail',
+        'address',
+        'useragent',
+        'create_time',
+    ]
+    order_column = orders[int(request.POST.get('order[0][column]', 0))]
+    order_dir = request.POST.get('order[0][dir]', '')
+    records_total = LoginLog.objects.all().count()
+    if search_value:
+        records_filtered = LoginLog.objects.filter(
+            Q(user__icontains=search_value) |
+            Q(detail__icontains=search_value) |
+            Q(address__icontains=search_value) |
+            Q(useragent__icontains=search_value)
+        ).count()
+    else:
+        records_filtered = records_total
+    res = dict()
+    res['draw'] = draw
+    res['recordsTotal'] = records_total
+    res['recordsFiltered'] = records_filtered
+    if length <= 0:
+        length = 5
+    elif length > 100:
+        length = 100
+    if search_value:
+        if order_dir and order_dir == 'desc':
+            datas = LoginLog.objects.filter(
+                Q(user__icontains=search_value) |
+                Q(detail__icontains=search_value) |
+                Q(address__icontains=search_value) |
+                Q(useragent__icontains=search_value)
+            ).order_by('-' + order_column)[start:start + length]
+        elif order_dir and order_dir == 'asc':
+            datas = LoginLog.objects.filter(
+                Q(user__icontains=search_value) |
+                Q(detail__icontains=search_value) |
+                Q(address__icontains=search_value) |
+                Q(useragent__icontains=search_value)
+            ).order_by(order_column)[start:start + length]
+        else:
+            datas = LoginLog.objects.filter(
+                Q(user__icontains=search_value) |
+                Q(detail__icontains=search_value) |
+                Q(address__icontains=search_value) |
+                Q(useragent__icontains=search_value)
+            )[start:start + length]
+    else:
+        if order_dir and order_dir == 'desc':
+            datas = LoginLog.objects.all().order_by('-' + order_column)[start:start + length]
+        elif order_dir and order_dir == 'asc':
+            datas = LoginLog.objects.all().order_by(order_column)[start:start + length]
+        else:
+            datas = LoginLog.objects.all()[start:start + length]
+
+    data = []
+    for i in datas:
+        tmp = list()
+        tmp.append(i.user)
+        type_display = '<span class="badge badge-success">{0}</span>'.format(i.get_event_type_display())
+        tmp.append(type_display)
+        tmp.append(i.detail)
+        tmp.append(i.address)
+        tmp.append(i.useragent[0:35] + '...' if len(i.useragent) > 35 else i.useragent)
+        tmp.append(i.create_time.strftime('%Y/%m/%d %H:%M:%S'))
+        data.append(tmp)
+    res['data'] = data
+    return JsonResponse(res)

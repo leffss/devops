@@ -12,13 +12,15 @@ from django.core.cache import cache
 import django.utils.timezone as timezone
 from server.models import RemoteUserBindHost
 from webssh.models import TerminalSession
-from util.tool import gen_rand_char, terminal_log
+from django.db.models import Q
+from util.tool import gen_rand_char, terminal_log, res
+from util.crypto import decrypt
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from django.conf import settings
 import traceback
-from ..tasks import celery_save_res_asciinema, celery_save_terminal_log
-import platform
+import sys
+import os
 import logging
 import warnings
 warnings.filterwarnings("ignore")
@@ -63,7 +65,12 @@ class ServerInterface(paramiko.ServerInterface):
         self.tab_mode = False   # 使用tab命令补全时需要读取返回数据然后添加到当前输入命令后
         self.history_mode = False
         self.start_time = time.time()
-        self.res_file = 'clissh_' + str(int(self.start_time)) + '_' + gen_rand_char(16) + '.txt'
+        tmp_date1 = time.strftime("%Y-%m-%d", time.localtime(int(self.start_time)))
+        tmp_date2 = time.strftime("%Y%m%d%H%M%S", time.localtime(int(self.start_time)))
+        if not os.path.isdir(os.path.join(settings.RECORD_ROOT, tmp_date1)):
+            os.makedirs(os.path.join(settings.RECORD_ROOT, tmp_date1))
+        self.res_file = settings.RECORD_DIR + '/' + tmp_date1 + '/' + 'clissh_' + \
+                        tmp_date2 + '_' + gen_rand_char(16) + '.txt'
         self.log_start_time = timezone.now()
         self.last_save_time = self.start_time
         self.res_asciinema = []
@@ -205,8 +212,39 @@ class ServerInterface(paramiko.ServerInterface):
                                         "type": "chat.message",
                                         "text": message,
                                     })
-                                except Exception:
-                                    logger.error(traceback.format_exc())
+                                except UnicodeDecodeError:
+                                    try:
+                                        recv_message += self.chan_ser.recv(1)
+                                        message = dict()
+                                        message['status'] = 0
+                                        message['message'] = recv_message.decode('utf-8')
+                                        channel_layer = get_channel_layer()
+                                        async_to_sync(channel_layer.group_send)(self.group, {
+                                            "type": "chat.message",
+                                            "text": message,
+                                        })
+                                    except UnicodeDecodeError:
+                                        try:
+                                            recv_message += self.chan_ser.recv(1)
+                                            message = dict()
+                                            message['status'] = 0
+                                            message['message'] = recv_message.decode('utf-8')
+                                            channel_layer = get_channel_layer()
+                                            async_to_sync(channel_layer.group_send)(self.group, {
+                                                "type": "chat.message",
+                                                "text": message,
+                                            })
+                                        except UnicodeDecodeError:
+                                            logger.error(traceback.format_exc())
+                                            message = dict()
+                                            message['status'] = 0
+                                            # 拼接2次后还是报错则证明结果是乱码，强制转换
+                                            message['message'] = recv_message.decode('utf-8', 'ignore')
+                                            channel_layer = get_channel_layer()
+                                            async_to_sync(channel_layer.group_send)(self.group, {
+                                                "type": "chat.message",
+                                                "text": message,
+                                            })
 
                                 self.chan_cli.send(recv_message)
 
@@ -239,16 +277,12 @@ class ServerInterface(paramiko.ServerInterface):
                                     self.res_asciinema.append(json.dumps([delay, 'o', recv_message.decode('utf-8')]))
 
                                     # 250条结果或者指定秒数就保存一次，这个任务可以优化为使用 celery
-                                    if len(self.res_asciinema) > 250 or int(time.time() - self.last_save_time) > 30:
+                                    if len(self.res_asciinema) > 2000 or int(time.time() - self.last_save_time) > 60 \
+                                            or sys.getsizeof(self.res_asciinema) > 2097152:
                                         tmp = list(self.res_asciinema)
                                         self.res_asciinema = []
                                         self.last_save_time = time.time()
-                                        if platform.system().lower() == 'linux':
-                                            celery_save_res_asciinema.delay(settings.MEDIA_ROOT + '/' + self.res_file, tmp)
-                                        else:
-                                            with open(settings.MEDIA_ROOT + '/' + self.res_file, 'a+') as f:
-                                                for line in tmp:
-                                                    f.write('{}\n'.format(line))
+                                        res(self.res_file, tmp)
 
                                 except Exception:
                                     pass
@@ -290,7 +324,8 @@ class ServerInterface(paramiko.ServerInterface):
                                             else:
                                                 self.cmd_tmp += data
                                     except Exception:
-                                        logger.error(traceback.format_exc())
+                                        pass
+                                        # logger.error(traceback.format_exc())
                                 else:
                                     # 红色提示文字
                                     self.chan_cli.send("\r\n\033[31m当前会话已被管理员锁定\033[0m\r\n")
@@ -318,7 +353,7 @@ class ServerInterface(paramiko.ServerInterface):
         if terminal_type is 'N':    # 重复登陆时可能会调用close，这时不能删除这些 key，否则会把当前正常会话也关闭掉
             self.closed = True
             try:
-                logger.error("密码无效 {} - {}".format(self.http_user, self.password))
+                # logger.error("密码无效 {} - {}".format(self.http_user, self.password))
                 self.chan_cli.transport.close()
             except Exception:
                 logger.error(traceback.format_exc())
@@ -340,34 +375,19 @@ class ServerInterface(paramiko.ServerInterface):
 
             try:
                 if self.cmd:
-                    if platform.system().lower() == 'linux':
-                        celery_save_terminal_log.delay(
-                            self.http_user,
-                            self.hostname,
-                            self.ssh_args[0],
-                            'ssh',
-                            self.ssh_args[1],
-                            self.ssh_args[2],
-                            self.cmd,
-                            self.res_file,
-                            self.client_addr,  # 客户端 ip
-                            self.client,
-                            self.log_start_time,
-                        )
-                    else:
-                        terminal_log(
-                            self.http_user,
-                            self.hostname,
-                            self.ssh_args[0],
-                            'ssh',
-                            self.ssh_args[1],
-                            self.ssh_args[2],
-                            self.cmd,
-                            self.res_file,
-                            self.client_addr,    # 客户端 ip
-                            self.client,
-                            self.log_start_time,
-                        )
+                    terminal_log(
+                        self.http_user,
+                        self.hostname,
+                        self.ssh_args[0],
+                        'ssh',
+                        self.ssh_args[1],
+                        self.ssh_args[2],
+                        self.cmd,
+                        self.res_file,
+                        self.client_addr,    # 客户端 ip
+                        self.client,
+                        self.log_start_time,
+                    )
             except Exception:
                 logger.error(traceback.format_exc())
 
@@ -375,12 +395,7 @@ class ServerInterface(paramiko.ServerInterface):
                 if self.cmd:
                     tmp = list(self.res_asciinema)
                     self.res_asciinema = []
-                    if platform.system().lower() == 'linux':
-                        celery_save_res_asciinema.delay(settings.MEDIA_ROOT + '/' + self.res_file, tmp)
-                    else:
-                        with open(settings.MEDIA_ROOT + '/' + self.res_file, 'a+') as f:
-                            for line in tmp:
-                                f.write('{}\n'.format(line))
+                    res(self.res_file, tmp)
             except Exception:
                 logger.error(traceback.format_exc())
 
@@ -409,14 +424,26 @@ class ServerInterface(paramiko.ServerInterface):
 
     def set_ssh_args(self, hostid):
         # 准备proxy_client ==>> ssh_server连接参数，用于后续SSH、SFTP
-        remote_host = RemoteUserBindHost.objects.get(id=hostid)
+        # remote_host = RemoteUserBindHost.objects.get(id=hostid, enabled=True)
+        if self.user_role and self.http_user == 'admin':
+            hosts = RemoteUserBindHost.objects.filter(pk=hostid, enabled=True)
+        else:
+            hosts = RemoteUserBindHost.objects.filter(
+                Q(user__username=self.http_user) | Q(group__user__username=self.http_user),
+                pk=hostid,
+                enabled=True
+            ).distinct()
+        if not hosts:
+            raise Exception("不存在的主机")
+        else:
+            remote_host = hosts[0]
         self.hostname = remote_host.hostname
         self.superusername = remote_host.remote_user.superusername
-        self.superpassword = remote_host.remote_user.superpassword
+        self.superpassword = decrypt(remote_host.remote_user.superpassword)
         host = remote_host.ip
         port = remote_host.port
         user = remote_host.remote_user.username
-        passwd = remote_host.remote_user.password
+        passwd = decrypt(remote_host.remote_user.password)
         # self.ssh_args = ('192.168.223.112', 22, 'root', '123456')
         self.ssh_args = (host, port, user, passwd)
 
@@ -494,7 +521,6 @@ class ServerInterface(paramiko.ServerInterface):
 
     def check_channel_subsystem_request(self, channel, name):
         # SFTP子系统
-        # print(channel, name, 'subsystem')
         key = 'ssh_%s_%s' % (self.http_user, self.password)
         key_ssh = 'ssh_%s_%s_ssh_count' % (self.http_user, self.password)
         key_sftp = 'ssh_%s_%s_sftp_count' % (self.http_user, self.password)
