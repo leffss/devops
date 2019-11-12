@@ -260,22 +260,41 @@ def user_update(request):
 @login_required
 @post_required
 def user_delete(request):
+    """
+    支持批量删除
+    """
     pk = request.POST.get('id', None)
-    loguser = User.objects.get(username=request.session.get('username'))
-    if not pk:
+    try:
+        ids = [ int(x) for x in pk.split(',')]
+    except Exception:
         error_message = '不合法的请求参数!'
-        return JsonResponse({"code": 400, "err": error_message})
-    if pk == request.session.get('userid'):
-        error_message = '不合法的请求参数!'
-        return JsonResponse({"code": 400, "err": error_message})
-    user = get_object_or_404(User, pk=pk)
-    if user.id == request.session['userid'] or (user.username == 'admin' and user.role == 1):
-        raise Http404('Not found')
-    if user.groups.all().count() != 0 or user.remote_user_bind_hosts.all().count() != 0:
-        error_message = '用户下存在主机或者属于其他组!'
         return JsonResponse({"code": 401, "err": error_message})
-    user.delete()
-    event_log(loguser, 7, '用户 [{}] 删除成功'.format(user.username), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
+    if not ids:
+        error_message = '不合法的请求参数!'
+        return JsonResponse({"code": 402, "err": error_message})
+    if request.session.get('userid') in ids:
+        error_message = '不合法的请求参数!'
+        return JsonResponse({"code": 403, "err": error_message})
+    users = User.objects.filter(pk__in=ids)
+    if not users:
+        error_message = '不合法的请求参数!'
+        return JsonResponse({"code": 404, "err": error_message})
+    usernames = list()
+    for user in users:
+        if user.username == 'admin' and user.role == 1:
+            continue
+        if user.groups.all().count() != 0 or user.remote_user_bind_hosts.all().count() != 0:
+            continue
+        user.delete()
+        usernames.append(user.username)
+    if not usernames:
+        error_message = '不合法的请求参数!'
+        return JsonResponse({"code": 405, "err": error_message})
+    loguser = User.objects.get(username=request.session.get('username'))
+    event_log(
+        loguser, 7, '用户 [{}] 删除成功'.format(','.join(usernames)),
+        request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None)
+    )
     return JsonResponse({"code": 200, "err": ""})
 
 
@@ -512,16 +531,32 @@ def group_update(request):
 @post_required
 def group_delete(request):
     pk = request.POST.get('id', None)
-    user = User.objects.get(username=request.session.get('username'))
-    if not pk:
+    try:
+        ids = [ int(x) for x in pk.split(',')]
+    except Exception:
         error_message = '不合法的请求参数!'
-        return JsonResponse({"code": 400, "err": error_message})
-    group = get_object_or_404(Group, pk=pk)
-    if group.user_set.all().count() != 0 or group.remote_user_bind_hosts.all().count() != 0:
-        error_message = '组内存在用户或者主机!'
         return JsonResponse({"code": 401, "err": error_message})
-    group.delete()
-    event_log(user, 9, '组 [{}] 删除成功'.format(group.group_name), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
+    if not ids:
+        error_message = '不合法的请求参数!'
+        return JsonResponse({"code": 402, "err": error_message})
+    groups = Group.objects.filter(pk__in=ids)
+    if not groups:
+        error_message = '不合法的请求参数!'
+        return JsonResponse({"code": 403, "err": error_message})
+    groupnames = list()
+    for group in groups:
+        if group.user_set.all().count() != 0 or group.remote_user_bind_hosts.all().count() != 0:
+            continue
+        group.delete()
+        groupnames.append(group.group_name)
+    if not groupnames:
+        error_message = '不合法的请求参数!'
+        return JsonResponse({"code": 404, "err": error_message})
+    user = User.objects.get(username=request.session.get('username'))
+    event_log(
+        user, 9, '组 [{}] 删除成功'.format(','.join(groupnames)),
+        request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None)
+    )
     return JsonResponse({"code": 200, "err": ""})
 
 

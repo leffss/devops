@@ -17,7 +17,11 @@ class Permission(models.Model):
     # 当为 True 时，是一个按钮，不是菜单
     is_button = models.BooleanField(default=False, verbose_name='是否为按钮')
     # 排序，菜单显示排序
-    order = models.SmallIntegerField(default=99999, verbose_name='排序')
+    # SmallIntegerField 在使用 sqlite3 时字段为 smallint，范围从 -2^15 (-32,768) 到 2^15 - 1 (32,767) 的整型数据。
+    # 存储大小为 2 个字节。unsigned 是从 0 到 65535 的整型数据。但是使用 mysql 时就变为 tinyint，范围从 -2^7 (-128) 到
+    # 2^7 - 1 (123) 的整型数据。存储大小为 1 个字节。unsigned 是从 0 到 255 的整型数据。所以默认值设置大小要考虑到兼容性。
+    # order = models.SmallIntegerField(default=99999, verbose_name='排序')
+    order = models.SmallIntegerField(default=123, verbose_name='排序')
 
     def __str__(self):
         if self.menu:

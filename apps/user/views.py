@@ -12,6 +12,7 @@ from ratelimit import ALL
 from util.rate import rate, key
 from util.permission import init_permission
 from django.http import Http404
+from collections import OrderedDict
 import time
 import json
 import traceback
@@ -212,17 +213,6 @@ def user_edit(request, user_id):
             Q(user__username=request.session['username']) | Q(group__user__username=request.session['username']),
         ).distinct()
 
-    # 特殊管理员 admin 可以分配所有权限，其他用户只能分配自己的权限
-    if request.session['issuperuser'] and request.session['username'] == 'admin':
-        other_permissions = Permission.objects.filter(
-                ~Q(user__id=user_id),
-        )
-    else:
-        other_permissions = Permission.objects.filter(
-                ~Q(user__id=user_id),
-                Q(user__username=request.session['username']) | Q(group__user__username=request.session['username']),
-        ).distinct()
-
     sex_choices = (
         ('male', "男"),
         ('female', "女"),
@@ -231,6 +221,52 @@ def user_edit(request, user_id):
         (2, '普通用户'),
         (1, '超级管理员'),
     )
+
+    include_permission_ids = [ x.id for x in user.permission.all() ]
+    # 特殊管理员 admin 可以分配所有权限，其他用户只能分配自己的权限
+    if request.session['issuperuser'] and request.session['username'] == 'admin':
+        all_permissions = Permission.objects.all()
+    else:
+        all_permissions = Permission.objects.filter(
+                Q(user__username=request.session['username']) | Q(group__user__username=request.session['username']),
+        ).distinct()
+
+    # 转换为前端 ztree 数据类型
+    permissions = OrderedDict()
+    for permission in all_permissions:
+        if not permission.menu:
+            permissions[permission.title] = {
+                'name': permission.title,
+                'value': permission.id,
+                'checked': True if permission.id in include_permission_ids else False
+            }
+        else:
+            if permission.menu in permissions:
+                permissions[permission.menu]['children'].append({
+                    'name': permission.title,
+                    'value': permission.id,
+                    'checked': True if permission.id in include_permission_ids else False
+                })
+            else:
+                permissions[permission.menu] = {
+                    'name': permission.menu,
+                    'children': [
+                        {
+                            'name': permission.title,
+                            'value': permission.id,
+                            'checked': True if permission.id in include_permission_ids else False
+                        }
+                    ]
+                }
+            for x in permissions[permission.menu]['children']:
+                if x['checked']:
+                    permissions[permission.menu]['open'] = True
+                    break
+            else:
+                permissions[permission.menu]['open'] = False
+    ztree_permissions = [ permissions[x] for x in permissions ]
+    ztree_permissions = json.dumps(ztree_permissions, ensure_ascii=True)
+
     return render(request, 'user/user_edit.html', locals())
 
 
@@ -260,6 +296,31 @@ def user_add(request):
         all_permissions = Permission.objects.filter(
                 Q(user__username=request.session['username']) | Q(group__user__username=request.session['username']),
         ).distinct()
+
+    # 转换为前端 ztree 数据类型
+    permissions = OrderedDict()
+    for permission in all_permissions:
+        if not permission.menu:
+            permissions[permission.title] = {
+                'name': permission.title,
+                'value': permission.id
+            }
+        else:
+            if permission.menu in permissions:
+                permissions[permission.menu]['children'].append({
+                    'name': permission.title,
+                    'value': permission.id
+                })
+            else:
+                permissions[permission.menu] = {
+                    'name': permission.menu,
+                    'open': False,
+                    'children': [
+                        {'name': permission.title, 'value': permission.id}
+                    ]
+                }
+    ztree_permissions = [ permissions[x] for x in permissions ]
+    ztree_permissions = json.dumps(ztree_permissions, ensure_ascii=True)
 
     return render(request, 'user/user_add.html', locals())
     
@@ -292,15 +353,48 @@ def group_edit(request, group_id):
 
     # 特殊管理员 admin 可以分配所有权限，其他用户只能分配自己的权限
     if request.session['issuperuser'] and request.session['username'] == 'admin':
-        other_permissions = Permission.objects.filter(
-                ~Q(group__id=group_id),
-        ).distinct()
+        all_permissions = Permission.objects.all()
     else:
-        other_permissions = Permission.objects.filter(
-                ~Q(group__id=group_id),
-                Q(user__username=request.session['username']) | Q(group__user__username=request.session['username']),
+        all_permissions = Permission.objects.filter(
+            Q(user__username=request.session['username']) | Q(group__user__username=request.session['username']),
         ).distinct()
 
+    include_permission_ids = [x.id for x in group.permission.all()]
+    # 转换为前端 ztree 数据类型
+    permissions = OrderedDict()
+    for permission in all_permissions:
+        if not permission.menu:
+            permissions[permission.title] = {
+                'name': permission.title,
+                'value': permission.id,
+                'checked': True if permission.id in include_permission_ids else False
+            }
+        else:
+            if permission.menu in permissions:
+                permissions[permission.menu]['children'].append({
+                    'name': permission.title,
+                    'value': permission.id,
+                    'checked': True if permission.id in include_permission_ids else False
+                })
+            else:
+                permissions[permission.menu] = {
+                    'name': permission.menu,
+                    'children': [
+                        {
+                            'name': permission.title,
+                            'value': permission.id,
+                            'checked': True if permission.id in include_permission_ids else False
+                        }
+                    ]
+                }
+            for x in permissions[permission.menu]['children']:
+                if x['checked']:
+                    permissions[permission.menu]['open'] = True
+                    break
+            else:
+                permissions[permission.menu]['open'] = False
+    ztree_permissions = [ permissions[x] for x in permissions ]
+    ztree_permissions = json.dumps(ztree_permissions, ensure_ascii=True)
     return render(request, 'user/group_edit.html', locals())
 
 
@@ -322,5 +416,30 @@ def group_add(request):
         all_permissions = Permission.objects.filter(
             Q(user__username=request.session['username']) | Q(group__user__username=request.session['username']),
         ).distinct()
+
+    # 转换为前端 ztree 数据类型
+    permissions = OrderedDict()
+    for permission in all_permissions:
+        if not permission.menu:
+            permissions[permission.title] = {
+                'name': permission.title,
+                'value': permission.id
+            }
+        else:
+            if permission.menu in permissions:
+                permissions[permission.menu]['children'].append({
+                    'name': permission.title,
+                    'value': permission.id
+                })
+            else:
+                permissions[permission.menu] = {
+                    'name': permission.menu,
+                    'open': False,
+                    'children': [
+                        {'name': permission.title, 'value': permission.id}
+                    ]
+                }
+    ztree_permissions = [ permissions[x] for x in permissions ]
+    ztree_permissions = json.dumps(ztree_permissions, ensure_ascii=True)
 
     return render(request, 'user/group_add.html', locals())

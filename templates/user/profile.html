@@ -5,7 +5,11 @@
   {% block title %}
   <title>个人信息</title>
   {% endblock title %}
-
+  
+  {% block css %}
+  <link rel="stylesheet" href="{% static 'ztree/css/zTreeStyle/zTreeStyle.css' %}">
+  {% endblock css %}
+  
 	{% block navheader %}
     <section class="content-header">
       <div class="container-fluid">
@@ -68,13 +72,7 @@
 				
 				<div class="col-3 pt-1 pb-1 border-bottom">权限：</div>
 				<div class="col-9 pt-1 pb-1 border-bottom">
-				  {% for permission in request|get_all_permission %}
-					{% if permission.menu %}
-						{{ permission.menu }}-{{ permission.title }}<br>
-					{% else %}
-						{{ permission.title }}<br>
-					{% endif %}
-				  {% endfor%}
+					<ul id="ztree-permissions" class="ztree"></ul>
 				</div>
 				
 				<div class="col-3 pt-1 pb-1">备注：</div><div class="col-9 pt-1 pb-1">{{ user.memo | default:'' }}</div>
@@ -125,4 +123,29 @@ $("#datatables-lists").DataTable({
 	 stateDuration: 86400,	// 本地储存(0~更大)还是session储存(-1) 
 });
 </script>
+
+<script src="{% static 'ztree/js/jquery.ztree.all.min.js' %}"></script>
+<script>
+	var setting = {
+		data: {
+			simpleData: {
+				enable: true
+			}
+		}
+	};
+
+	var zNodes =[
+		{
+			name: "全部",
+			open: true,
+			children: {{ request | get_all_permission | permission_to_ztree | safe }}
+		}
+	];
+
+	$(document).ready(function(){
+		zTree = $.fn.zTree.init($("#ztree-permissions"), setting, zNodes);
+	});
+	
+</script>
+
 {% endblock js %}

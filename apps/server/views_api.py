@@ -105,16 +105,29 @@ def user_add(request):
 @post_required
 def user_delete(request):
     pk = request.POST.get('id', None)
-    loguser = User.objects.get(username=request.session.get('username'))
-    if not pk:
+    try:
+        ids = [ int(x) for x in pk.split(',')]
+    except Exception:
         error_message = '不合法的请求参数!'
-        return JsonResponse({"code": 400, "err": error_message})
-    remoteuser = get_object_or_404(RemoteUser, pk=pk)
-    if remoteuser.remoteuserbindhost_set.all().count() != 0:
-        error_message = '用户已绑定主机!'
         return JsonResponse({"code": 401, "err": error_message})
-    remoteuser.delete()
-    event_log(loguser, 16, '主机用户 [{}] 删除成功'.format(remoteuser.name), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
+    if not ids:
+        error_message = '不合法的请求参数!'
+        return JsonResponse({"code": 402, "err": error_message})
+    remoteusers = RemoteUser.objects.filter(pk__in=ids)
+    if not remoteusers:
+        error_message = '不合法的请求参数!'
+        return JsonResponse({"code": 403, "err": error_message})
+    remoteusernames = list()
+    for remoteuser in remoteusers:
+        if remoteuser.remoteuserbindhost_set.all().count() != 0:
+            continue
+        remoteuser.delete()
+        remoteusernames.append(remoteuser.name)
+    loguser = User.objects.get(username=request.session.get('username'))
+    event_log(
+        loguser, 16, '主机用户 [{}] 删除成功'.format(','.join(remoteusernames)),
+        request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None)
+    )
     return JsonResponse({"code": 200, "err": ""})
 
 
@@ -123,20 +136,33 @@ def user_delete(request):
 @post_required
 def host_delete(request):
     pk = request.POST.get('id', None)
-    loguser = User.objects.get(username=request.session.get('username'))
-    if not pk:
+    try:
+        ids = [ int(x) for x in pk.split(',')]
+    except Exception:
         error_message = '不合法的请求参数!'
-        return JsonResponse({"code": 400, "err": error_message})
+        return JsonResponse({"code": 401, "err": error_message})
+    if not ids:
+        error_message = '不合法的请求参数!'
+        return JsonResponse({"code": 402, "err": error_message})
     if request.session['issuperuser'] and request.session['username'] == 'admin':
-        host = get_object_or_404(RemoteUserBindHost, pk=pk)
+        hosts = RemoteUserBindHost.objects.filter(pk__in=ids)
     else:
-        host = get_object_or_404(
-            RemoteUserBindHost,
+        hosts = RemoteUserBindHost.objects.filter(
             Q(user__username=request.session['username']) | Q(group__user__username=request.session['username']),
-            pk=pk
+            pk__in=ids
         )
-    host.delete()
-    event_log(loguser, 13, '主机 [{}] 删除成功'.format(host.hostname), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
+    if not hosts:
+        error_message = '不合法的请求参数!'
+        return JsonResponse({"code": 403, "err": error_message})
+    hostnames = list()
+    for host in hosts:
+        host.delete()
+        hostnames.append(host.hostname)
+    loguser = User.objects.get(username=request.session.get('username'))
+    event_log(
+        loguser, 13, '主机 [{}] 删除成功'.format(','.join(hostnames)),
+        request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None)
+    )
     return JsonResponse({"code": 200, "err": ""})
 
 
@@ -264,31 +290,41 @@ def host_add(request):
 @post_required
 def host_update_info(request):
     hostid = request.POST.get('id', None)
-    if not hostid:
+
+    try:
+        ids = [ int(x) for x in hostid.split(',')]
+    except Exception:
         error_message = '不合法的请求参数!'
-        return JsonResponse({"code": 400, "err": error_message})
+        return JsonResponse({"code": 401, "err": error_message})
+    if not ids:
+        error_message = '不合法的请求参数!'
+        return JsonResponse({"code": 402, "err": error_message})
     if request.session['issuperuser'] and request.session['username'] == 'admin':
-        host = get_object_or_404(RemoteUserBindHost, pk=hostid)
+        hosts = RemoteUserBindHost.objects.filter(pk__in=ids, platform__in=[1, 3])
     else:
-        host = get_object_or_404(
-            RemoteUserBindHost,
+        hosts = RemoteUserBindHost.objects.filter(
             Q(user__username=request.session['username']) | Q(group__user__username=request.session['username']),
-            pk=hostid
+            pk__in=ids,
+            platform__in=[1, 3]
         )
-    hostinfo = dict()
-    hostinfo['id'] = host.id
-    hostinfo['hostname'] = host.hostname
-    hostinfo['ip'] = host.ip
-    hostinfo['port'] = host.port
-    hostinfo['platform'] = host.get_platform_display()
-    hostinfo['username'] = host.remote_user.username
-    hostinfo['password'] = host.remote_user.password
-    if host.remote_user.enabled:
-        hostinfo['superusername'] = host.remote_user.superusername
-        hostinfo['superpassword'] = host.remote_user.superpassword
-    else:
-        hostinfo['superusername'] = None
-    task_host_update_info.delay(hostinfo=hostinfo)
+    if not hosts:
+        error_message = '不合法的请求参数!'
+        return JsonResponse({"code": 403, "err": error_message})
+    for host in hosts:
+        hostinfo = dict()
+        hostinfo['id'] = host.id
+        hostinfo['hostname'] = host.hostname
+        hostinfo['ip'] = host.ip
+        hostinfo['port'] = host.port
+        hostinfo['platform'] = host.get_platform_display()
+        hostinfo['username'] = host.remote_user.username
+        hostinfo['password'] = host.remote_user.password
+        if host.remote_user.enabled:
+            hostinfo['superusername'] = host.remote_user.superusername
+            hostinfo['superpassword'] = host.remote_user.superpassword
+        else:
+            hostinfo['superusername'] = None
+        task_host_update_info.delay(hostinfo=hostinfo)
     return JsonResponse({"code": 200, "err": ""})
 
 
@@ -297,13 +333,27 @@ def host_update_info(request):
 @post_required
 def group_delete(request):
     pk = request.POST.get('id', None)
-    user = User.objects.get(id=int(request.session.get('userid')))
-    if not pk:
+    try:
+        ids = [ int(x) for x in pk.split(',')]
+    except Exception:
         error_message = '不合法的请求参数!'
-        return JsonResponse({"code": 400, "err": error_message})
-    group = get_object_or_404(HostGroup, pk=pk, user=user)
-    group.delete()
-    event_log(user, 22, '主机组 [{}] 删除成功'.format(group.group_name), request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
+        return JsonResponse({"code": 401, "err": error_message})
+    if not ids:
+        error_message = '不合法的请求参数!'
+        return JsonResponse({"code": 402, "err": error_message})
+    user = User.objects.get(id=int(request.session.get('userid')))
+    groups = HostGroup.objects.filter(pk__in=ids, user=user)
+    if not groups:
+        error_message = '不合法的请求参数!'
+        return JsonResponse({"code": 403, "err": error_message})
+    groupnames = list()
+    for group in groups:
+        group.delete()
+        groupnames.append(group.group_name)
+    event_log(
+        user, 22, '主机组 [{}] 删除成功'.format(','.join(groupnames)),
+        request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None)
+    )
     return JsonResponse({"code": 200, "err": ""})
 
 

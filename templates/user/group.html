@@ -5,7 +5,11 @@
   {% block title %}
   <title>组详细</title>
   {% endblock title %}
-
+  
+  {% block css %}
+  <link rel="stylesheet" href="{% static 'ztree/css/zTreeStyle/zTreeStyle.css' %}">
+  {% endblock css %}
+  
 	{% block navheader %}
     <section class="content-header">
       <div class="container-fluid">
@@ -50,16 +54,10 @@
 				<div class="col-3 pt-1 pb-1 border-bottom">组名：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ group.group_name }}</div>
 				<div class="col-3 pt-1 pb-1 border-bottom">组内用户：</div><div class="col-9 pt-1 pb-1 border-bottom">{% if group.user_set.all %}{% for user in group.user_set.all %}<a href="{% url 'user:user' user.id %}" class="btn btn-sm btn-success btn-flat">{{ user.username }}</a>&nbsp;&nbsp;{% endfor %}{% else %}{% endif %}</div>
 				<div class="col-3 pt-1 pb-1 border-bottom">拥有主机数：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ group.remote_user_bind_hosts.all.count }}</div>
-				
+
 				<div class="col-3 pt-1 pb-1 border-bottom">权限：</div>
 				<div class="col-9 pt-1 pb-1 border-bottom">
-				  {% for permission in group.permission.all %}
-					{% if permission.menu %}
-						{{ permission.menu }}-{{ permission.title }}<br>
-					{% else %}
-						{{ permission.title }}<br>
-					{% endif %}
-				  {% endfor%}
+				  <ul id="ztree-permissions" class="ztree"></ul>
 				</div>
 				
 				<div class="col-3 pt-1 pb-1 border-bottom">备注：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ group.memo | default:'' }}</div>
@@ -111,4 +109,29 @@ $("#datatables-lists").DataTable({
 	 stateDuration: 86400,	// 本地储存(0~更大)还是session储存(-1) 
 });
 </script>
+
+<script src="{% static 'ztree/js/jquery.ztree.all.min.js' %}"></script>
+<script>
+	var setting = {
+		data: {
+			simpleData: {
+				enable: true
+			}
+		}
+	};
+
+	var zNodes =[
+		{
+			name: "全部",
+			open: true,
+			children: {{ group.permission.all | permission_to_ztree | safe }}
+		}
+	];
+
+	$(document).ready(function(){
+		zTree = $.fn.zTree.init($("#ztree-permissions"), setting, zNodes);
+	});
+	
+</script>
+
 {% endblock js %}

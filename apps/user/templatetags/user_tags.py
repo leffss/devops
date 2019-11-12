@@ -3,6 +3,9 @@ from django.db.models import Q
 from django.conf import settings
 from server.models import RemoteUserBindHost
 from user.models import Permission
+from collections import OrderedDict     # 有序字典，python 默认字典无序
+import json
+
 
 register = template.Library()
 
@@ -22,7 +25,8 @@ def gen_menu(request):
     :param request:
     :return:
     """
-    menus = dict()
+    # menus = dict()
+    menus = OrderedDict()
     current_url = request.path_info
     for i in request.session[settings.INIT_MENU]:
         if not i['menu']:
@@ -89,3 +93,30 @@ def get_all_permission(request):
             Q(user__username=request.session['username']) | Q(group__user__username=request.session['username'])
         ).distinct()
     return permissions
+
+
+@register.filter()
+def permission_to_ztree(permissions):
+    # 转换为前端 ztree 数据类型
+    permissions_ztree = OrderedDict()
+    for permission in permissions:
+        if not permission.menu:
+            permissions_ztree[permission.title] = {
+                'name': permission.title,
+            }
+        else:
+            if permission.menu in permissions_ztree:
+                permissions_ztree[permission.menu]['children'].append({
+                    'name': permission.title,
+                })
+            else:
+                permissions_ztree[permission.menu] = {
+                    'name': permission.menu,
+                    'open': False,
+                    'children': [
+                        {'name': permission.title}
+                    ]
+                }
+    ztree_permissions = [ permissions_ztree[x] for x in permissions_ztree ]
+    ztree_permissions = json.dumps(ztree_permissions, ensure_ascii=True)
+    return ztree_permissions

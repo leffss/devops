@@ -5,7 +5,11 @@
   {% block title %}
   <title>主机组</title>
   {% endblock title %}
-
+  
+  {% block css %}
+   <link rel="stylesheet" href="{% static 'icheck/skins/all.css' %}">
+  {% endblock css %}
+  
 	{% block navheader %}
     <section class="content-header">
       <div class="container-fluid">
@@ -27,8 +31,13 @@
               <h3 class="card-title">
 				主机组
 				{% if request|has_permission:'主机组添加' %}
-				<a href="{% url 'server:group_add' %}" class="btn btn-sm btn-outline-success ml-3 addsoft"><i class="fas fa-plus fa-sm"></i> 新增</a>
+				<a href="{% url 'server:group_add' %}" class="btn btn-sm btn-outline-success ml-2 addsoft"><i class="fas fa-plus fa-sm"></i> 新增</a>
 				{% endif %}
+				
+				{% if request|has_permission:'主机组删除' %}
+				<a href="javascript:void(0)" class="btn btn-sm btn-outline-danger ml-2 addsoft delete-button" onclick="createbatchdeletemodal();"><i class="far fa-trash-alt"></i> 批量删除</a>
+				{% endif %}
+				
 			  </h3>
 				<div class="card-tools">
 				  <!--button type="button" class="btn btn-tool" data-widget="collapse">
@@ -47,6 +56,12 @@
               <table id="datatables-lists" class="table table-bordered table-hover">
                 <thead>
                 <tr>
+				  {% if request|has_permission:'主机组删除' %}
+				  <th>
+					<input type="checkbox" class="checkall">
+				  </th>
+				  {% endif %}
+				  
 				  <th>主机组名</th>
 				  <th>组内主机</th>
 				  <th>添加时间</th>
@@ -56,6 +71,11 @@
                 <tbody>
 				{% for group in groups %}
                 <tr id="group-{{ group.id }}">
+				
+				  {% if request|has_permission:'主机组删除' %}
+				  <td><input type="checkbox" class="checkchild" value="{{ group.id }}"></td>
+				  {% endif %}
+				  
 				  <td>{{ group.group_name }}</td>
 				  <td>
 					{% for host in group.hosts %}
@@ -85,6 +105,11 @@
                 </tbody>
                 <tfoot>
                 <tr>
+				  {% if request|has_permission:'主机组删除' %}
+				  <th>
+					<input type="checkbox" class="checkall">
+				  </th>
+				  {% endif %}
 				  <th>主机组名</th>
 				  <th>组内主机</th>
 				  <th>添加时间</th>
@@ -136,7 +161,11 @@
 		destroy: true,	// 允许重建
 		bProcessing:true,  // 表格数据过多处理时显示: sProcessing
 		lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "全部"]],
+		{% if request|has_permission:'主机组删除' %}
+		columnDefs : [ { targets : [0,4], "orderable" : false } ],
+		{% else %}
 		columnDefs : [ { targets : 3, "orderable" : false } ],
+		{% endif %}
 		order: [],
 		 //scrollY: 480,	// 滚动条
 		 //scrollCollapse: true,
@@ -152,7 +181,7 @@
 		var host_name = thisObj.attr("title");
 		// 生成弹出框，使用 \ 换行
 		$("#modal-container").html('<div id="modal-delete-' + host_id + '" class="iziModal"><div class="container-fluid"><div class="row">\
-									<div class="col-12 p-3"><h5 class="text-center mt-3">确定要删除主机组 "' + host_name + '" 吗？</h5></div><div class="col-6 p-3">\
+									<div class="col-12 p-3"><h5 class="text-center mt-3">确定要删除主机组 "' + host_name + '"？</h5></div><div class="col-6 p-3">\
 									<button type="button" class="btn btn-block btn-secondary" data-iziModal-close>取消</button></div><div class="col-6 p-3">\
 									<a href="javascript:void(0)"><button type="button" class="btn btn-block btn-success" id="' + host_id + '-yes" title="\
 									' + host_name + '" onclick="deletethis(this);">确定</button></a></div></div></div></div>');
@@ -252,7 +281,11 @@
 					destroy: true,	// 允许重建
 					bProcessing:true,  // 表格数据过多处理时显示: sProcessing
 					lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "全部"]],
+					{% if request|has_permission:'主机组删除' %}
+					columnDefs : [ { targets : [0,4], "orderable" : false } ],
+					{% else %}
 					columnDefs : [ { targets : 3, "orderable" : false } ],
+					{% endif %}
 					order: [],
 					 //scrollY: 480,	// 滚动条
 					 //scrollCollapse: true,
@@ -270,6 +303,178 @@
 		};
 	}
 	// 删除主机组 - end
+	
+	
+	// 批量删除主机组 - start
+	createbatchdeletemodal = function () {
+		// 生成弹出框，使用 \ 换行
+		$("#modal-container").html('<div id="modal-batch-delete" class="iziModal"><div class="container-fluid"><div class="row">\
+									<div class="col-12 p-3"><h5 class="text-center mt-3">确定要批量删除选中的主机组？</h5></div><div class="col-6 p-3">\
+									<button type="button" class="btn btn-block btn-secondary" data-iziModal-close>取消</button></div><div class="col-6 p-3">\
+									<a href="javascript:void(0)"><button type="button" class="btn btn-block btn-success" onclick="batchdelete();">确定</button></a></div></div></div></div>');
+		
+		// 初始化弹出框
+		$("#modal-batch-delete").iziModal({
+			iconClass: 'icon-announcement',
+			width: 450,
+			//padding: 10,
+			overlayClose: false,	// 是否允许点击模态窗口的外部来关闭模态窗口。
+			closeOnEscape: false, 	// 是否允许通过点击ESC键来关闭模态窗口。
+		});
+				
+		// 打开弹出框
+		$("#modal-batch-delete").iziModal('open');
+	}
+	
+	batchdelete = function() {
+		toastr.options.closeButton = true;
+		toastr.options.showMethod = 'slideDown';
+		toastr.options.hideMethod = 'fadeOut';
+		toastr.options.closeMethod = 'fadeOut';
+		toastr.options.timeOut = 4000;	
+		toastr.options.extendedTimeOut = 0;	
+		
+		var ids = new Array();
+		$('input[type="checkbox"].checkchild:checked').each(function(){
+			var value = $(this).val();   //获取 checked 选中的值
+			ids.push(value);
+		});
+		ids = ids.join(",");
+		if (ids == '') {
+			// 关闭弹出框
+			$("#modal-batch-delete").iziModal('close');
+			toastr.error('未选中需要删除的主机组');
+			return false;
+		};
+		
+		csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
+		$.ajax({
+			url: "{% url 'server_api:group_delete' %}",
+			async: true,
+			type: 'POST',
+			dataType: 'json',
+			data: {
+				'csrfmiddlewaretoken': csrfmiddlewaretoken,
+				'id': ids,
+			},
+			timeout: 10000,
+			cache: true,
+			beforeSend: LoadFunction, //加载执行方法
+			error: errFunction,  //错误执行方法
+			success: succFunction, //成功执行方法
+		});
+		
+		function LoadFunction() {
+			//$("#aboutcontent").html('删除中...');
+			//alert('删除中');
+		};
+		
+		function errFunction() {
+			// 关闭弹出框
+			$("#modal-batch-delete").iziModal('close');
+			// 消息框
+			toastr.error('批量删除主机组错误');
+		};
+		
+		function succFunction(res) {
+			if (res.code != 200) {
+				// 关闭弹出框
+				$("#modal-batch-delete").iziModal('close');
+				// 消息框
+				toastr.error('批量删除主机组错误: ' + res.err);
+			} else {
+				// 先销毁 datatable 与 icheck, 动态删除数据后，然后再重建
+				var dttable = $('#datatables-lists').DataTable();
+				dttable.destroy();
+				$('input[type="checkbox"]').iCheck('destroy');
+				
+				ids = ids.split(',');
+				for (let i=0,len=ids.length;i<len;i++) {
+					$("#group-" + ids[i]).remove();
+				}
+
+				$("#datatables-lists").DataTable({
+					language: {
+						"sProcessing": "处理中...",
+						"sLengthMenu": "显示 _MENU_ 项结果",
+						"sZeroRecords": "没有匹配结果",
+						"sInfo": "显示第 _START_ 至 _END_ 项结果，共 _TOTAL_ 项",
+						"sInfoEmpty": "显示第 0 至 0 项结果，共 0 项",
+						"sInfoFiltered": "(由 _MAX_ 项结果过滤)",
+						"sInfoPostFix": "",
+						"sSearch": "搜索:",
+						"sUrl": "",
+						"sEmptyTable": "无数据",
+						"sLoadingRecords": "载入中...",
+						"sInfoThousands": ",",
+						"oPaginate": {
+							"sFirst": "首页",
+							"sPrevious": "上页",
+							"sNext": "下页",
+							"sLast": "末页"
+						},
+						"oAria": {
+							"sSortAscending": ": 以升序排列此列",
+							"sSortDescending": ": 以降序排列此列"
+						}
+					},
+					destroy: true,	// 允许重建
+					bProcessing:true,  // 表格数据过多处理时显示: sProcessing
+					lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "全部"]],
+					{% if request|has_permission:'主机组删除' %}
+					columnDefs : [ { targets : [0,4], "orderable" : false } ],
+					{% else %}
+					columnDefs : [ { targets : 3, "orderable" : false } ],
+					{% endif %}
+					order: [],
+					 //scrollY: 480,	// 滚动条
+					 //scrollCollapse: true,
+					 //jQueryUI: true,
+					 stateSave: true,	// 保存最后一次分页信息、排序信息，当页面刷新，或者重新进入这个页面，恢复上次的状态。
+					 stateDuration: 86400,	// 本地储存(0~更大)还是session储存(-1) 
+				});
+				
+				$('input[type="checkbox"]').iCheck({
+					checkboxClass: 'icheckbox_minimal-red',
+					increaseArea: '1%'
+				});
+				$('input[type="checkbox"].disabled').iCheck('disable');				
+				$('input[type="checkbox"]').iCheck('uncheck');
+				
+				// 关闭弹出框
+				$("#modal-batch-delete").iziModal('close');
+				
+				// 消息框
+				toastr.success('批量删除主机组成功');
+			}
+		};
+	}
+	// 批量删除主机组 - end
 
 </script>
+
+<!-- icheck -->
+<script src="{% static 'icheck/icheck.min.js' %}"></script>
+<script>
+	
+	$('input[type="checkbox"]').iCheck({
+		checkboxClass: 'icheckbox_minimal-red',
+		increaseArea: '1%'
+	});
+	
+	$('input[type="checkbox"].disabled').iCheck('disable');
+	
+	// 以下为全选事件
+	$('input[type="checkbox"].checkall').on('ifChecked', function(event){
+		$('input[type="checkbox"].checkchild, input[type="checkbox"].checkall').not(".disabled").iCheck('check');
+	}).on('ifUnchecked', function(event){
+		$('input[type="checkbox"].checkchild, input[type="checkbox"].checkall').not(".disabled").iCheck('uncheck');
+	});
+	
+	$('input[type="checkbox"].checkchild').not(".disabled").on('ifUnchecked', function(event){
+		$('input[type="checkbox"].checkall').iCheck('indeterminate');
+	});
+	
+</script>
+
 {% endblock js %}

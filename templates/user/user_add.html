@@ -4,7 +4,11 @@
   {% block title %}
   <title>用户添加</title>
   {% endblock title %}
-
+  
+  {% block css %}
+  <link rel="stylesheet" href="{% static 'ztree/css/zTreeStyle/zTreeStyle.css' %}">
+  {% endblock css %}
+  
 	{% block navheader %}
     <section class="content-header">
       <div class="container-fluid">
@@ -112,21 +116,11 @@
 							</select>
 						  </div>
 						</div>
-						
+												
 						<div class="col-2 pt-1 pb-1">权限：</div>
 						<div class="col-10 pt-1 pb-1">
 						  <div class="form-group">
-							<select multiple class="form-control select2_multiple" data-placeholder="请选择权限" id="permission_select_left" style="width:100%">
-							  {% for permission in all_permissions %}
-							  <option value="{{ permission.id }}">
-								{% if permission.menu %}
-									{{ permission.menu }}-{{ permission.title }}
-								{% else %}
-									{{ permission.title }}
-								{% endif %}
-							  </option>
-							  {% endfor %}
-							</select>
+							<ul id="ztree-permissions" class="ztree"></ul>
 						  </div>
 						</div>
 						
@@ -313,7 +307,6 @@
 	}
 	// 校验表单数据
 
-
 	// 修改用户信息
 	changeuserprofile = function(event) {
 		toastr.options.closeButton = true;
@@ -380,11 +373,18 @@
 		hosts = hosts.join(",")
 
 		var permissions = new Array();
-		$("#permission_select_left option:selected").each(function(){
-			var value = $(this).val();   //获取option值
-			permissions.push(value);
-		});
+		var treeObj = $.fn.zTree.getZTreeObj("ztree-permissions");
+		var nodes = treeObj.getCheckedNodes(true);
+		for (let i = 0; i < nodes.length; i++) {
+			if (nodes[i].value === undefined) {
+				// console.log('-1');
+			} else {
+				// console.log(nodes[i].value);
+				permissions.push(nodes[i].value);
+			}
+		};
 		permissions = permissions.join(",")
+		// console.log(permissions)
 		
 		csrfmiddlewaretoken = '{{ request.COOKIES.csrftoken }}';
 		
@@ -456,4 +456,37 @@
 	}
 
 </script>
+
+<script src="{% static 'ztree/js/jquery.ztree.all.min.js' %}"></script>
+<script>
+	var setting = {
+		check: {
+			enable: true,
+			chkStyle: "checkbox",
+			chkboxType: { "Y" : "ps", "N" : "ps" }
+		},
+		data: {
+			simpleData: {
+				enable: true
+			}
+		}
+	};
+
+	var zNodes =[
+		{
+			name: "全部",
+			open: true,
+			children: {{ ztree_permissions | safe }}
+		}
+	];
+
+	$(document).ready(function(){
+		zTree = $.fn.zTree.init($("#ztree-permissions"), setting, zNodes);
+		// zTree.setting.check.chkboxType = { "Y" : "ps", "N" : "ps" };
+		//var nodes = zTree.getCheckedNodes(true);
+		//console.log(nodes);
+	});
+	
+</script>
+
 {% endblock js %}

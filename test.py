@@ -242,3 +242,12 @@ if __name__ == '__main__':
     a = {'a': 1, '年后': 2}
     print(a['年后'])
 
+    from collections import OrderedDict  # 有序字典，python 默认字典无序
+
+    a = OrderedDict()
+    a['a'] = 1
+    a['b'] = 2
+    print(a)
+    for k,v in a.items():
+        print(k)
+        print(v)

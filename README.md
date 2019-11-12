@@ -76,9 +76,10 @@ python3 init.py
 
 **启动 django 服务**
 ```bash
+rm -rf logs/*
 export PYTHONOPTIMIZE=1		# 解决 celery 不允许创建子进程的问题
 nohup gunicorn -c gunicorn.cfg devops.wsgi:application > logs/gunicorn.log 2>&1 &
-nohup daphne -b 0.0.0.0 -p 8001 devops.asgi:application > logs/daphne.log 2>&1 &
+nohup daphne -b 0.0.0.0 -p 8001 --access-log=logs/daphne_access.log devops.asgi:application > logs/daphne.log 2>&1 &
 nohup python3 manage.py sshd > logs/sshd.log 2>&1 &
 nohup celery -A devops worker -l info -c 3 --max-tasks-per-child 40 --prefetch-multiplier 1 > logs/celery.log 2>&1 &
 ```
@@ -243,10 +244,13 @@ systemctl start nginx
 
 # 升级日志
 
-### ver1.8.4
-基于 url 实现的粒度到按钮级别的权限控制
+### ver1.8.5
+新增批量操作，比如批量删除，批量更新等；
 
-左侧菜单栏根据权限自动生成
+### ver1.8.4
+基于 url 实现的粒度到按钮级别的权限控制；
+
+左侧菜单栏根据权限自动生成；
 
 ### ver1.8.3
 修正终端日志保存时用户名覆盖主机名的 BUG；
