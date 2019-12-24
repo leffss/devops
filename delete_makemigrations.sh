@@ -4,6 +4,5 @@ cd apps
 
 lists=$(ls)
 for i in $lists;do
-	rm -f $i/migrations/000*.py
+	ls -d $i/migrations/* | grep -v '__init__.py' | xargs rm -rf
 done
-
