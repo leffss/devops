@@ -63,7 +63,7 @@ class Client:
 
     def websocket_to_django(self):
         try:
-            while True:
+            while 1:
                 time.sleep(0.0001)
                 data = self.guacamoleclient.receive()
                 if not data:

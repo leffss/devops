@@ -1,6 +1,7 @@
 from channels.generic.websocket import WebsocketConsumer
 from django.conf import settings
 from server.models import RemoteUserBindHost
+from user.models import User
 from django.db.models import Q
 from asgiref.sync import async_to_sync
 from util.tool import gen_rand_char
@@ -20,7 +21,7 @@ except Exception:
 
 
 def get_hosts(issuperuser, ids, username):
-    if issuperuser:
+    if issuperuser and username == 'admin':
         return RemoteUserBindHost.objects.filter(
                         Q(enabled=True),
                         Q(id__in=ids.split(',')),
@@ -138,7 +139,7 @@ class Cmd(WebsocketConsumer):
                     user=self.session.get('username'),
                     user_agent=self.user_agent,
                     client=self.client,
-                    issuperuser=self.session.get('issuperuser', False),
+                    issuperuser=True if '登陆后su跳转超级用户' in self.session[settings.INIT_PERMISSION]['titles'] else False,
                 )  # 执行
 
             else:
@@ -270,7 +271,7 @@ class Script(WebsocketConsumer):
                     user=self.session.get('username'),
                     user_agent=self.user_agent,
                     client=self.client,
-                    issuperuser=self.session.get('issuperuser', False),
+                    issuperuser=True if '登陆后su跳转超级用户' in self.session[settings.INIT_PERMISSION]['titles'] else False,
                 )  # 执行
 
             else:
@@ -410,7 +411,7 @@ class File(WebsocketConsumer):
                     user=self.session.get('username'),
                     user_agent=self.user_agent,
                     client=self.client,
-                    issuperuser=self.session.get('issuperuser', False),
+                    issuperuser=True if '登陆后su跳转超级用户' in self.session[settings.INIT_PERMISSION]['titles'] else False,
                 )  # 执行
             else:
                 self.message['status'] = 1
@@ -529,6 +530,8 @@ class Playbook(WebsocketConsumer):
                     hostinfo['port'] = host.port
                     hostinfo['username'] = host.remote_user.username
                     hostinfo['password'] = host.remote_user.password
+                    user = User.objects.get(id=int(self.session.get('userid')))
+                    hostinfo['groups'] = [x.group_name for x in host.host_group.filter(user=user)]
                     if host.remote_user.enabled:
                         hostinfo['superusername'] = host.remote_user.superusername
                         hostinfo['superpassword'] = host.remote_user.superpassword
@@ -541,7 +544,7 @@ class Playbook(WebsocketConsumer):
                     user=self.session.get('username'),
                     user_agent=self.user_agent,
                     client=self.client,
-                    issuperuser=self.session.get('issuperuser', False),
+                    issuperuser=True if '登陆后su跳转超级用户' in self.session[settings.INIT_PERMISSION]['titles'] else False,
                 )  # 执行
             else:
                 self.message['status'] = 1
@@ -672,7 +675,7 @@ class Module(WebsocketConsumer):
                     user=self.session.get('username'),
                     user_agent=self.user_agent,
                     client=self.client,
-                    issuperuser=self.session.get('issuperuser', False),
+                    issuperuser=True if '登陆后su跳转超级用户' in self.session[settings.INIT_PERMISSION]['titles'] else False,
                 )  # 执行
             else:
                 self.message['status'] = 1

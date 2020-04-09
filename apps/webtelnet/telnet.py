@@ -145,7 +145,7 @@ class Telnet:
 
     def websocket_to_django(self):
         try:
-            while True:
+            while 1:
                 data = ''
                 # read_very_eager 方法读取时会是无限循环，性能比较低
                 # data = self.tn.read_very_eager().decode('utf-8')

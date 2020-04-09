@@ -20,8 +20,8 @@
   <link rel="stylesheet" href="{% static 'adminlte/plugins/toastr/toastr.min.css' %}">
   
   <!-- webssh -->
-  <link rel="stylesheet" href="{% static 'webssh/xterm.css' %}">
-  <!--link rel="stylesheet" href="{% static 'webssh/style.css' %}"-->
+  <link rel="stylesheet" href="{% static 'webssh/xterm/3.14.5/xterm.min.css' %}">
+  <link rel="stylesheet" href="{% static 'webssh/xterm/3.14.5/addons/fullscreen.min.css' %}">
   
   <!-- 弹出窗口插件 -->
   <link rel="stylesheet" href="{% static 'css/iziModal.min.css' %}">
@@ -109,8 +109,16 @@
 <script src="{% static 'bootstrap-fileinput/js/fileinput.min.js' %}"></script>
 <!--script src="{% static 'bootstrap-fileinput/js/locales/zh.js' %}"></script-->
 
-<!-- webssh -->
-<script src="{% static 'webssh/xterm.js' %}"></script>
+<!-- webssh xterm v4 版本不支持 zmodem 插件-->
+<script src="{% static 'webssh/zmodem/zmodem.min.js' %}"></script>
+<script src="{% static 'webssh/xterm/3.14.5/xterm.min.js' %}"></script>
+<script src="{% static 'webssh/xterm/3.14.5/addons/fit.min.js' %}"></script>
+<script src="{% static 'webssh/xterm/3.14.5/addons/attach.min.js' %}"></script>
+<script src="{% static 'webssh/xterm/3.14.5/addons/fullscreen.min.js' %}"></script>
+<script src="{% static 'webssh/xterm/3.14.5/addons/search.min.js' %}"></script>
+<script src="{% static 'webssh/xterm/3.14.5/addons/terminado.min.js' %}"></script>
+<script src="{% static 'webssh/xterm/3.14.5/addons/webLinks.min.js' %}"></script>
+<script src="{% static 'webssh/xterm/3.14.5/addons/zmodem.min.js' %}"></script>
 <script src="{% static 'webssh/webssh.js' %}"></script>
 
 <script>

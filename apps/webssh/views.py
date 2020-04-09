@@ -211,14 +211,15 @@ def terminal_clissh_view(request):
     return JsonResponse({"code": 406, "err": error_message})
 
 
-# 每次重启时清空在线会话表，好像使用 gunicorn 会多次加载
 def cls_terminalsession():
     try:
+        logger.info('执行清空 TerminalSession 表任务')
         TerminalSession.objects.all().delete()
-        logger.info('清空 TerminalSession 表')
+        logger.info('执行清空 TerminalSession 表任务完毕')
     except Exception:
-        pass
+        import traceback
+        print(traceback.format_exc())
 
 
+# 每次重启时清空在线会话表，使用 gunicorn 部署会多次加载
 # cls_terminalsession()
-

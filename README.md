@@ -1,6 +1,6 @@
 # devops
 基于 python 3.7 + django 2.2.3 + channels 2.2.0 + celery 4.3.0 + ansible 2.8.5 + AdminLTE-3.0.0 实现的运维 devops 管理系统。具体见 `screenshots` 文件夹中的效果预览图。
-本人为运维工程师，非专业开发，代码写得烂，不喜勿喷，欢迎指教。功能持续完善中。
+本人为运维工程师，非专业开发，此项目各个功能模块都是现学现用，可能有点地方没有考虑到合理和性能的问题，代码写得烂，不喜勿喷，欢迎 issue。功能持续完善中。
 
 
 # 部署安装
@@ -26,13 +26,14 @@ docker run --name redis-server -p 6379:6379 -d redis:latest
 docker run --name guacd -p 4822:4822 -d guacamole/guacd
 ```
 - rdp 与 vnc 连接支持所需，非必须
+- windows rdp 必须设置为`允许运行任意版本远程桌面的计算机连接(较不安全)(L)`才能连接
 
 **安装 python 依赖库**
 ```bash
 # 安装相关库
-pip3 install -i https://pypi.douban.com/simple -r requirements.txt
+pip3 install -i https://mirrors.aliyun.com/pypi/simple -r requirements.txt
 ```
-- -i 指定豆瓣源，国外源慢得一逼，我大天朝威武
+- -i 指定阿里源，国外源慢得一逼，我大天朝威武
 
 **修改 devops/settings.py 配置**
 
@@ -43,14 +44,17 @@ pip3 install -i https://pypi.douban.com/simple -r requirements.txt
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
+        # 'ENGINE': 'db_pool.mysql',     # db_pool.mysql 为重写 django 官方 mysql 连接库实现了真正的连接池
         'NAME': 'devops',
         'USER':'devops',
         'PASSWORD':'devops',
         'HOST':'127.0.0.1',
         'PORT':'3306',
+        'CONN_MAX_AGE': 600,    # 如果使用 db_pool.mysql 尽量不要设置此参数
+        # 数据库连接池大小，mysql 总连接数大小为：连接池大小 * 服务进程数
+        'DB_POOL_SIZE': 20,     # 默认 5 个
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            # 'init_command': "SET sql_mode=''",
          },
     }
 }
@@ -81,12 +85,14 @@ export PYTHONOPTIMIZE=1		# 解决 celery 不允许创建子进程的问题
 nohup gunicorn -c gunicorn.cfg devops.wsgi:application > logs/gunicorn.log 2>&1 &
 nohup daphne -b 0.0.0.0 -p 8001 --access-log=logs/daphne_access.log devops.asgi:application > logs/daphne.log 2>&1 &
 nohup python3 manage.py sshd > logs/sshd.log 2>&1 &
-nohup celery -A devops worker -l info -c 3 --max-tasks-per-child 40 --prefetch-multiplier 1 > logs/celery.log 2>&1 &
+nohup celery -A devops worker -l info -c 3 --max-tasks-per-child 40 --prefetch-multiplier 1 --pidfile logs/celery_worker.pid > logs/celery.log 2>&1 &
+nohup celery -A devops beat -l info --pidfile logs/celery_worker.pid > logs/celery_beat.log 2>&1 &
 ```
 - gunicorn  处理 http 请求，监听 8000 端口
 - daphne 处理 websocket 请求，监听 8001 端口
 - sshd 为 ssh 代理服务器，监听 2222 端口，提供调用 securecrt、xshell、putty 以及 winscp 客户端支持，非必须
 - celery 后台任务处理，`export PYTHONOPTIMIZE=1` 此环境变量非常重要，不设置无法后台运行 ansible api
+- celery_beat 处理 `devops/settings.py` 中设置的 `CELERY_BEAT_SCHEDULE` 定时任务
 
 **nginx  前端代理**
 ```
@@ -244,6 +250,21 @@ systemctl start nginx
 
 # 升级日志
 
+### ver1.8.6
+优化执行 playbook 逻辑：允许指定组；
+
+优化终端登陆后 su 跳转逻辑：由管理员能够跳转变更为有权限就可跳转；
+
+~~新增 apscheduler 在启动时执行清空 TerminalSession 表；~~
+
+新增 django mysql 连接 ENGINE 优化版本：真正的支持连接池；
+
+修正 clissh 使用 Zmodem 使用 sz 和 rz 时的 BUG；
+
+更新 xterm.js 到 v3.14.5 版本，支持 webssh 与 webtelnet 复制文本内容；
+
+- 此版本新增了一个任务调度模块，目前还是一个不完善的功能，不要太在意，仅供参考
+
 ### ver1.8.5
 新增批量操作，比如批量删除，批量更新等；
 
@@ -294,7 +315,7 @@ systemctl start nginx
 优化 UI 界面，加入动态效果；
 
 ### ver1.7.5
-修正强制断开 clissh 后保存 2 次终端日志的BUG；
+修正强制断开 clissh 后保存 2 次终端日志的 BUG；
 
 新增会话在一定时间内无操作自动断开功能（默认 30 分钟，settings.py 中可配置）；
 
@@ -384,6 +405,11 @@ linux 平台下使用 celery 任务保存终端会话日志与录像（windows �
 - [ ] docker 容器管理
 - [ ] k8s 集群管理
 - [ ] 自动化部署CI/CD
+- [ ] webssh 与 webtelnet 的 zmodem(sz, rz) 支持
 
+# MIT License
+```
+Copyright (c) 2019-2020 leffss
+```
 
 更多新功能不断探索发现中.

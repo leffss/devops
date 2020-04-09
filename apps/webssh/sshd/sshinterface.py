@@ -12,6 +12,7 @@ from django.core.cache import cache
 import django.utils.timezone as timezone
 from server.models import RemoteUserBindHost
 from webssh.models import TerminalSession
+from user.models import Permission
 from django.db.models import Q
 from util.tool import gen_rand_char, terminal_log, res
 from util.crypto import decrypt
@@ -80,6 +81,7 @@ class ServerInterface(paramiko.ServerInterface):
         self.superusername = None
         self.superpassword = None
         self.lock = False  # 锁定会话
+        self.zmodem = False
 
     def close_ssh_self(self, sleep_time=3):
         try:
@@ -122,10 +124,19 @@ class ServerInterface(paramiko.ServerInterface):
             logger.info("连接后端主机 (%s@%s) ...." % (self.ssh_args[2], self.ssh_args[0]))
             proxy_client.connect(*self.ssh_args)
             self.chan_ser = proxy_client.invoke_shell(*self.tty_args)
-            if self.superusername:     # 登陆后超级管理员 su 跳转
-                if self.user_role:
+            if self.superusername and self.superpassword:     # 登陆后 su 跳转
+                if self.user_role and self.http_user == 'admin':
                     self.su_root(self.superusername, self.superpassword)
                     logger.info("后端主机 (%s@%s) 跳转到用户 %s" % (self.ssh_args[2], self.ssh_args[0], self.superusername))
+                else:
+                    permissions = Permission.objects.filter(
+                        Q(user__username=self.http_user) |
+                        Q(group__user__username=self.http_user),
+                        title='登陆后su跳转超级用户'
+                    ).distinct()
+                    if permissions:
+                        self.su_root(self.superusername, self.superpassword)
+                        logger.info("后端主机 (%s@%s) 跳转到用户 %s" % (self.ssh_args[2], self.ssh_args[0], self.superusername))
             logger.info("连接后端主机 (%s@%s) ok" % (self.ssh_args[2], self.ssh_args[0]))
 
             try:
@@ -196,7 +207,25 @@ class ServerInterface(paramiko.ServerInterface):
                 for key, n in events:
                     if key.fileobj == self.chan_ser:
                         try:
-                            recv_message = self.chan_ser.recv(4096)
+                            recv_message = self.chan_ser.recv(1024)
+
+                            if self.zmodem:
+                                if b'**\x18B0800000000022d\r\x8a' in recv_message:
+                                    self.zmodem = False
+                                    delay = round(time.time() - self.start_time, 6)
+                                    self.res_asciinema.append(json.dumps([delay, 'o', '\r\n']))
+                                    # logger.info("zmodem end")
+                                self.chan_cli.send(recv_message)
+                                continue
+                            else:
+                                if b'rz\r**\x18B00000000000000\r\x8a\x11' in recv_message or b'rz waiting to receive.**\x18B0100000023be50\r\x8a\x11' in recv_message :
+                                    self.zmodem = True
+                                    # logger.info("zmodem start")
+                                    self.chan_cli.send(recv_message)
+                                    continue
+
+                            # logger.info(recv_message)
+
                             if len(recv_message) == 0:
                                 self.chan_cli.send("\r\n\033[31m服务端已断开连接....\033[0m\r\n")
                                 time.sleep(1)
@@ -300,32 +329,27 @@ class ServerInterface(paramiko.ServerInterface):
                             else:
                                 if not self.lock:
                                     self.chan_ser.send(send_message)
-                                    try:
-                                        data = send_message.decode('utf-8')
-                                        if data == '\r':  # 记录命令
-                                            data = '\n'
-                                            if self.cmd_tmp.strip() != '':
-                                                self.cmd_tmp += data
-                                                self.cmd += self.cmd_tmp
-
-                                                # print('-----------------------------------')
-                                                # print(self.cmd_tmp)
-                                                # print(self.cmd_tmp.encode())
-                                                # print('-----------------------------------')
-
-                                                self.cmd_tmp = ''
-                                        elif data.encode() == b'\x07':
-                                            pass
-                                        else:
-                                            if data == '\t' or data.encode() == b'\x1b':  # \x1b 点击2下esc键也可以补全
-                                                self.tab_mode = True
-                                            elif data.encode() == b'\x1b[A' or data.encode() == b'\x1b[B':
-                                                self.history_mode = True
+                                    if not self.zmodem:
+                                        try:
+                                            data = send_message.decode('utf-8')
+                                            if data == '\r':  # 记录命令
+                                                data = '\n'
+                                                if self.cmd_tmp.strip() != '':
+                                                    self.cmd_tmp += data
+                                                    self.cmd += self.cmd_tmp
+                                                    self.cmd_tmp = ''
+                                            elif data.encode() == b'\x07':
+                                                pass
                                             else:
-                                                self.cmd_tmp += data
-                                    except Exception:
-                                        pass
-                                        # logger.error(traceback.format_exc())
+                                                if data == '\t' or data.encode() == b'\x1b':  # \x1b 点击2下esc键也可以补全
+                                                    self.tab_mode = True
+                                                elif data.encode() == b'\x1b[A' or data.encode() == b'\x1b[B':
+                                                    self.history_mode = True
+                                                else:
+                                                    self.cmd_tmp += data
+                                        except Exception:
+                                            pass
+                                            # logger.error(traceback.format_exc())
                                 else:
                                     # 红色提示文字
                                     self.chan_cli.send("\r\n\033[31m当前会话已被管理员锁定\033[0m\r\n")
@@ -477,7 +501,8 @@ class ServerInterface(paramiko.ServerInterface):
         return True
 
     def get_allowed_auths(self, username):
-        return "gssapi-keyex,gssapi-with-mic,password,publickey"
+        # return "gssapi-keyex,gssapi-with-mic,password,publickey"
+        return "password"
 
     def check_channel_shell_request(self, channel):
         self.event.set()
@@ -499,7 +524,8 @@ class ServerInterface(paramiko.ServerInterface):
                 hostinfo = cache.get(key)
                 hostid = hostinfo['host_id']
                 self.user_role = hostinfo['issuperuser']
-                cache.set(key_ssh, ssh_count - 1, timeout=60 * 60 * 24)
+                # cache.set(key_ssh, ssh_count - 1, timeout=60 * 60 * 24)
+                cache.decr(key_ssh)   #　值 -1
                 if hostid:
                     # cache.delete(key)
                     self.hostid = hostid
@@ -532,7 +558,8 @@ class ServerInterface(paramiko.ServerInterface):
                 hostinfo = cache.get(key)
                 hostid = hostinfo['host_id']
                 self.user_role = hostinfo['issuperuser']
-                cache.set(key_sftp, sftp_count - 1, timeout=60 * 60 * 24)
+                # cache.set(key_sftp, sftp_count - 1, timeout=60 * 60 * 24)
+                cache.decr(key_sftp)  # 值 -1
                 if hostid:
                     # cache.delete(key)
                     self.hostid = hostid

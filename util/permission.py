@@ -19,7 +19,8 @@ def init_permission(username, is_super=False):
     permission_dict['urls'] = []
     for permission in permissions:
         permission_dict['titles'].append(permission.title)
-        permission_dict['urls'].extend(permission.url.split(','))
+        if permission.url:
+            permission_dict['urls'].extend(permission.url.split(','))
     if permission_dict['urls']:
         permission_dict['urls'] = list(set(permission_dict['urls']))      # 去重
 

@@ -822,8 +822,8 @@ class PlayBookCallbackModule(CallbackBase):
             save_res(self.res_file, tmp)
 
     def v2_playbook_on_no_hosts_matched(self):
-        data = '<code style="color: #FF0000">没有匹配到主机，请确保 playbook 中 hosts 值为: all</code>'
-        data2 = '\033[01;31m没有匹配到主机，请确保 playbook 中 hosts 值为: all\r\n\r\n\033[0m'
+        data = '<code style="color: #FF0000">没有匹配到主机，请确保 playbook 中 hosts 设置正确的值</code>'
+        data2 = '\033[01;31m没有匹配到主机，请确保 playbook 中 hosts 设置正确的值\r\n\r\n\033[0m'
         delay = round(time.time() - self.start_time, 6)
         self.res.append(json.dumps([delay, 'o', data2]))
         self.message['status'] = 0

@@ -41,6 +41,9 @@ urlpatterns = [
     path('batch/', include('batch.urls', namespace='batch')),
     path('api/batch/', include('batch.urls_api', namespace='batch_api')),
 
+    path('scheduler/', include('scheduler.urls', namespace='scheduler')),
+    path('api/scheduler/', include('scheduler.urls_api', namespace='scheduler_api')),
+
 ]
 
 """

@@ -74,7 +74,8 @@ class SSHServer:
 
     @staticmethod
     def dispatch(proxy_ssh):
-        supported = {'pty', 'x11', 'forward-agent'}
+        # supported = {'pty', 'x11', 'forward-agent'}
+        supported = {'pty'}
         chan_type = proxy_ssh.type
         if chan_type in supported:
             proxy_ssh.conn_ssh()  # 连接后端真实SSH服务器

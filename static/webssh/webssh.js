@@ -27,7 +27,13 @@ function websocket() {
     var rows = get_term_size().rows;
     var connect_info = get_connect_info();
 	
-	// Terminal.applyAddon(zmodem);
+	Terminal.applyAddon(attach);
+	Terminal.applyAddon(fit);
+	Terminal.applyAddon(fullscreen);
+	Terminal.applyAddon(search);
+	Terminal.applyAddon(terminado);
+	Terminal.applyAddon(webLinks);
+	Terminal.applyAddon(zmodem);
 	
     //var term = new Terminal(
 	term = new Terminal(
@@ -69,7 +75,7 @@ function websocket() {
         } else if (status === 1 || status === 2 ) {
             //window.location.reload() 端口连接后刷新页面
 			//term.clear()
-			term.write(message)
+			term.write(message);
 			$("body").removeAttr("onbeforeunload"); //删除刷新关闭提示属性
 			$(".session-close").attr("hidden", true);
 			$("#up").attr("hidden", true);

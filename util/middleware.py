@@ -50,14 +50,14 @@ class GetRealClientMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        if request.META.get('HTTP_X_REAL_IP', None):
+        if request.META.get('HTTP_X_REAL_IP'):
             try:
                 request.META['REMOTE_ADDR'] = request.META['HTTP_X_REAL_IP']
             except Exception:
                 pass
         else:
             try:
-                if request.META.get('HTTP_X_FORWARDED_FOR', None):
+                if request.META.get('HTTP_X_FORWARDED_FOR'):
                     request.META['REMOTE_ADDR'] = request.META['HTTP_X_FORWARDED_FOR'].split(',')[0]
             except Exception:
                 pass
@@ -84,7 +84,7 @@ class LockScreenMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        if request.path not in [reverse('user:lockscreen'), reverse('user:login'), reverse('user:logout')]:
+        if request.path not in [reverse('user:lockscreen'), reverse('user:login'), reverse('user:logout'), reverse('scheduler_api:client_upload')]:
             if request.session.get('locked', False):
                 return redirect(reverse('user:lockscreen'))
         response = self.get_response(request)

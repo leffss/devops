@@ -8,6 +8,7 @@ https://docs.djangoproject.com/en/2.2/topics/settings/
 
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/2.2/ref/settings/
+在使用 celery beat 时发现 django 配置参数名只能使用大写
 """
 
 import os
@@ -74,6 +75,8 @@ INSTALLED_APPS = [
     'webguacamole',
     'tasks',
     'batch',
+    'scheduler'
+    # 'django_apscheduler',
 ]
 
 # 中间件
@@ -127,24 +130,27 @@ WSGI_APPLICATION = 'devops.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/2.2/ref/settings/#databases
 
-DATABASES = {
+DATABASES_sqlite = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
 }
 
-DATABASES_mysql = {
+DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
+        # 'ENGINE': 'django.db.backends.mysql',
+        'ENGINE': 'db_pool.mysql',     # 重写 mysql 连接库实现连接池
         'NAME': 'devops',
         'USER': 'devops',
         'PASSWORD': 'devops',
         'HOST': '192.168.223.111',
         'PORT': '3306',
+        'CONN_MAX_AGE': 600,    # 如果使用 django.db.backends.mysql 尽量不要设置此参数
+        # 数据库连接池大小，mysql 总连接数大小为：连接池大小 * 服务进程数
+        'DB_POOL_SIZE': 20,     # 默认 5 个
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            # 'init_command': "SET sql_mode=''",
          },
     }
 }
@@ -195,20 +201,65 @@ CUSTOM_SESSION_EXIPRY_TIME = 60 * 120    # 30 分钟
 # 终端过期时间，最好小于等于 CUSTOM_SESSION_EXIPRY_TIME
 CUSTOM_TERMINAL_EXIPRY_TIME = 60 * 120
 
-redis_setting = {
+REDIS_SETTING = {
     'host': '192.168.223.111',
     'port': 6379,
 }
 
 # celery 配置 redis
-CELERY_BROKER_URL = 'redis://{0}:{1}/0'.format(redis_setting['host'], redis_setting['port'])
+CELERY_BROKER_URL = 'redis://{0}:{1}/0'.format(REDIS_SETTING['host'], REDIS_SETTING['port'])
+# beat 中 Scheduler 循环调度任务的最大等待时间(s)
+CELERY_BEAT_MAX_LOOP_INTERVAL = 60
+# RedisMultiScheduler 利用 redis 实现 beat 的动态添加，修改，删除任务
+CELERY_BEAT_SCHEDULER = 'redismultibeat.RedisMultiScheduler'
+CELERY_BEAT_REDIS_SCHEDULER_URL = 'redis://{0}:{1}/0'.format(REDIS_SETTING['host'], REDIS_SETTING['port'])
+CELERY_BEAT_REDIS_SCHEDULER_KEY = 'devops:celery:beat:tasks'
+# redis 锁，实现运行多个 beat 实例而不会重复执行任务， beat 官方只能运行一个实例
+CELERY_BEAT_REDIS_MULTI_NODE_MODE = True      # 是否开启多实例模式
+CELERY_BEAT_REDIS_LOCK_KEY = 'devops:celery:beat:lock'
+CELERY_BEAT_REDIS_LOCK_TTL = 60
+# 多实例模式下，未获取到锁的实例等待多长时间(s)再试，如果设置为 None 或者不设置,
+# 则会随机等待 1 - CELERY_BEAT_REDIS_LOCK_TTL 之间的一个值，设置越小丢失任务的
+# 可能性越低，但是对 redis 的性能消耗也越高，根据实际情况权衡
+CELERY_BEAT_REDIS_LOCK_SLEEP = None
+
+from datetime import timedelta
+from celery.schedules import crontab
+"""
+celery beat 中间隔时间任务有个小问题，比如任务10秒间隔执行，则执行时间会如下：
+2019-12-04 13:20:38,105
+2019-12-04 13:20:48,125
+2019-12-04 13:20:58,143
+2019-12-04 13:21:08,160
+2019-12-04 13:21:18,179
+2019-12-04 13:21:28,199
+2019-12-04 13:21:38,203
+...
+2019-12-07 13:21:39,008
+你会发现每次执行时间都会延迟 10-30 毫秒之间（程序执行逻辑耗费的时间），如果任务有严格时间要求，则不适合使用这种类型的任务
+cron 任务暂时没发现这个问题
+"""
+CELERY_BEAT_SCHEDULE = {    # celery 定时任务, 会覆盖 redis 当中相同任务名任务
+    'task_check_scheduler_interval': {  # 任务名(随意起)
+        'task': 'tasks.tasks.task_check_scheduler',  # 定时任务函数路径
+        'schedule': timedelta(seconds=30),  # 任务循环时间
+        # "args": None,  # 参数
+        "args": (None, 0, 3),  # 参数
+    },
+    'task_check_scheduler_cron': {
+        'task': 'tasks.tasks.task_check_scheduler',
+        'schedule': crontab(minute='*/1', hour='*', day_of_week='*', day_of_month='*', month_of_year='*'),  # cron 任务
+        # "args": None,  # 参数
+        "args": (None, 0, 3),  # 参数
+    }
+}
 
 # channels channel_layers 使用 redis
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [(redis_setting['host'], redis_setting['port'])],
+            "hosts": [(REDIS_SETTING['host'], REDIS_SETTING['port'])],
         },
     },
 }
@@ -217,7 +268,7 @@ CHANNEL_LAYERS = {
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://{0}:{1}'.format(redis_setting['host'], redis_setting['port']),
+        'LOCATION': 'redis://{0}:{1}'.format(REDIS_SETTING['host'], REDIS_SETTING['port']),
         'OPTIONS': {
             # 'DB': 10,
             # 'PASSWORD': '123456',
@@ -300,8 +351,8 @@ CRYPTOGRAPHY_TOKEN = 'a0pLIWQvKYXp27uhQ7Bm5MDnQPvYSJ2oLaDZ6gJ_EJs='
 
 
 # 权限和菜单 key ，用于设置 session
-INIT_PERMISSION = 'init_permission'
-INIT_MENU = 'init_menu'
+INIT_PERMISSION = 'devops_init_permission'
+INIT_MENU = 'devops_init_menu'
 VALID_URL = [   # 白名单url，不做权限验证
     '/',
     '/user/login/',
@@ -311,4 +362,5 @@ VALID_URL = [   # 白名单url，不做权限验证
     '/user/profile/edit/',
     '/api/user/password/update/',
     '/api/user/profile/update/',
+    '/api/scheduler/client/upload/',
 ]

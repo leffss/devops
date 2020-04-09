@@ -5,12 +5,16 @@ from util.inventory import BaseInventory
 from server.models import RemoteUserBindHost, ServerDetail
 from webssh.models import TerminalLog
 from user.models import LoginLog
+from scheduler.models import SchedulerHost
 from django.conf import settings
 import json
 import traceback
 import os
 import time
 import random
+import requests
+import urllib3
+urllib3.disable_warnings()
 
 
 # 生成随机字符串
@@ -175,6 +179,7 @@ def task_run_playbook(hosts, group, data, user, user_agent, client, issuperuser=
         hostinfo['port'] = host['port']
         hostinfo['username'] = host['username']
         hostinfo['password'] = host['password']
+        hostinfo['groups'] = host['groups'] if host['groups'] else None
         if issuperuser:
             if host['superusername']:
                 hostinfo['become'] = {
@@ -308,6 +313,46 @@ def task_save_event_log(user, event_type, detail, address, useragent):
     event.address = address
     event.useragent = useragent
     event.save()
+
+
+@app.task()
+def task_check_scheduler(id=None, retry=2, timeout=5):
+    if id:
+        scheduler_hosts = SchedulerHost.objects.filter(id=id)
+    else:
+        scheduler_hosts = SchedulerHost.objects.all()
+    headers = dict()
+    headers['user-agent'] = 'requests/devops'
+    for scheduler_host in scheduler_hosts:
+        headers['AUTHORIZATION'] = scheduler_host.token
+        attempts = 0
+        success = False
+        while attempts <= retry and not success:
+            try:
+                url = '{protocol}://{ip}:{port}{url}'.format(
+                    protocol=scheduler_host.get_protocol_display(), ip=scheduler_host.ip,
+                    port=scheduler_host.port, url='/'
+                )
+                res = requests.get(
+                    url=url,
+                    headers=headers,
+                    timeout=timeout,
+                    allow_redirects=True,
+                    verify=False,
+                )
+                if res.status_code == 200:
+                    scheduler_host.status = True
+                    scheduler_host.save()
+                    success = True
+                else:
+                    attempts += 1
+            except Exception as e:
+                print(str(e))
+                # print(traceback.format_exc())
+                attempts += 1
+        if not success:
+            scheduler_host.status = False
+            scheduler_host.save()
 
 
 @app.task()

@@ -153,6 +153,7 @@ class LoginLog(models.Model):
         (21, '添加主机组'),
         (22, '删除主机组'),
         (23, '更新主机组'),
+        (24, '自动添加调度主机'),
     )
     # 当用户被删除后，相关的登陆日志user字段设置为NULL
     # user = models.ForeignKey('User', blank=True, null=True, on_delete=models.PROTECT, verbose_name='用户')

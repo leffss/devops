@@ -163,8 +163,8 @@ class WebSSH(WebsocketConsumer):
 
         self.ssh.connect(**ssh_connect_dict)
         if self.remote_host.remote_user.enabled:
-            if self.session.get('issuperuser', None):  # 超级管理员才能使用 su 跳转功能
-                if self.remote_host.remote_user.superusername:
+            if self.remote_host.remote_user.superusername:
+                if '登陆后su跳转超级用户' in self.session[settings.INIT_PERMISSION]['titles']:  # 判断权限
                     self.ssh.su_root(
                         self.remote_host.remote_user.superusername,
                         decrypt(self.remote_host.remote_user.superpassword),

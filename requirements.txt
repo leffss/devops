@@ -1,18 +1,24 @@
-django==2.2.3
+django==2.2.11
 supervisor==4.1.0
 # simpleui
 paramiko==2.6.0
+#"paramiko[gssapi]==2.6.0"
+decorator==4.4.2
+gssapi==1.6.2
+pyasn1==0.4.3
 channels==2.2.0
 channels-redis==2.4.0
 celery==4.3.0
-redis==3.3.4
+redis==3.3.11
 eventlet==0.23.0
 selectors2==2.0.1
 django-redis==4.10.0
 pyguacamole==0.8
-ansible==2.8.5
+# ansible==2.8.5
+ansible==2.9.0
 daphne==2.3.0
-gunicorn==19.9.0
+# gunicorn==19.9.0
+gunicorn==20.0.3
 gevent==1.4.0
 async==0.6.2
 pymysql==0.9.3
@@ -22,3 +28,8 @@ cryptography==2.7
 # apt-get install python3-dev default-libmysqlclient-dev        # debian / Ubuntu
 # yum install python3-devel mysql-devel     # Red Hat / CentOS
 mysqlclient==1.4.4
+apscheduler==3.6.3
+django-apscheduler==0.3.0
+requests==2.22.0
+jsonpickle==1.2
+redisbeat==1.2.3

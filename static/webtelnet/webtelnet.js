@@ -29,6 +29,14 @@ function websocket() {
     var rows = get_term_size().rows;
     var connect_info = get_connect_info();
 
+	Terminal.applyAddon(attach);
+	Terminal.applyAddon(fit);
+	Terminal.applyAddon(fullscreen);
+	Terminal.applyAddon(search);
+	Terminal.applyAddon(terminado);
+	Terminal.applyAddon(webLinks);
+	Terminal.applyAddon(zmodem);
+	
     //var term = new Terminal(
 	term = new Terminal(
         {

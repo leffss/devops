@@ -483,5 +483,45 @@
       "menu": "远程终端",
       "is_button": true
     }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 48,
+    "fields": {
+      "title": "登陆后su跳转超级用户",
+      "menu": "远程终端",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 49,
+    "fields": {
+      "title": "调度主机",
+      "url": "/scheduler/hosts/",
+      "menu": "任务调度",
+      "men_icon": "<i class=\"nav-icon fas fa-history fa-xs\"></i>",
+      "order": 17
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 50,
+    "fields": {
+      "title": "调度主机详细",
+      "url": "/scheduler/host/(?P<host_id>[0-9]+)/",
+      "menu": "任务调度",
+      "is_button": true
+    }
+  },
+  {
+    "model": "user.Permission",
+    "pk": 51,
+    "fields": {
+      "title": "调度主机任务",
+      "url": "/scheduler/host/(?P<host_id>[0-9]+)/jobs/",
+      "menu": "任务调度",
+      "is_button": true
+    }
   }
 ]

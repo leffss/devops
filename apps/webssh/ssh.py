@@ -155,12 +155,26 @@ class SSH:
 
     def websocket_to_django(self):
         try:
-            while True:
+            while 1:
                 x = b''
                 try:
                     # data = self.channel.recv(4096).decode('utf-8')
                     x = self.channel.recv(4096)
-                    data = x.decode('utf-8')
+
+                    logger.info(x)
+                    logger.info(x.decode('utf-8', 'ignore'))
+
+                    # sz
+                    if b'rz\r**\x18B00000000000000\r\x8a\x11' in x:
+                        # continue
+                        data = "\n\runsupport zmodem sz command\n\r"
+
+                    # rz
+                    elif b'rz waiting to receive.**\x18B0100000023be50\r\x8a\x11' in x:
+                        # continue
+                        data = "\n\runsupport zmodem rz command\n\r"
+                    else:
+                        data = x.decode('utf-8')
                 except UnicodeDecodeError:  # utf-8中文占3个字符，可能会被截断，需要拼接
                     try:
                         x += self.channel.recv(1)
@@ -174,6 +188,7 @@ class SSH:
                             data = x.decode('utf-8', 'ignore')  # 拼接2次后还是报错则证明结果是乱码，强制转换
                 if not len(data):
                     return
+
                 self.message['status'] = 0
                 self.message['message'] = data
                 self.res += data

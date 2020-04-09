@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% load server_tags %}
+{% load static %}
+{% load user_tags %}
+
+  {% block title %}
+  <title>调度主机详细</title>
+  {% endblock title %}
+
+	{% block navheader %}
+    <section class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-1">
+          <div class="col-12">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item">任务调度</li>
+			  <li class="breadcrumb-item"><a href="{% url 'scheduler:hosts' %}">调度主机</a></li>
+			  <li class="breadcrumb-item active">调度主机详细</li>
+            </ol>
+          </div>
+        </div>
+      </div><!-- /.container-fluid -->
+    </section>
+	{% endblock navheader %}
+	
+		  {% block content %}
+          <div class="card card-primary content-list">
+            <div class="card-header">
+              <h3 class="card-title">调度主机详细</h3>
+				<div class="card-tools">
+				  <a class="btn btn-tool" href="{% url 'scheduler:hosts' %}">返回</a>
+				  {% if request|has_permission:'调度主机编辑' %}
+				  <a class="btn btn-tool" href="{% url 'server:host_edit' host.id %}?next={% if request.META.QUERY_STRING %}{{ request.META.PATH_INFO }}?{{ request.META.QUERY_STRING }}{% else %}{{ request.META.PATH_INFO }}{% endif %}" title="编辑">
+					<!--i class="fas fa-wrench"></i-->编辑
+				  </a>
+				  {% endif %}
+				  
+				  {% if request|has_permission:'调度主机任务' %}
+				  <a class="btn btn-tool" href="{% url 'scheduler:jobs' host.id %}?next={% if request.META.QUERY_STRING %}{{ request.META.PATH_INFO }}?{{ request.META.QUERY_STRING }}{% else %}{{ request.META.PATH_INFO }}{% endif %}" title="任务">
+					<!--i class="fas fa-wrench"></i-->任务
+				  </a>
+				  {% endif %}
+				  
+				  <!--button type="button" class="btn btn-tool" data-widget="collapse">
+					<i class="fas fa-minus"></i>
+				  </button>
+				  <button type="button" class="btn btn-tool" data-widget="maximize">
+				  <i class="fas fa-expand"></i>
+                  </button>
+				  <button type="button" class="btn btn-tool" data-widget="remove">
+					<i class="fas fa-times"></i>
+				  </button-->
+				</div>
+            </div>
+            <!-- /.card-header -->
+            <div class="card-body row">
+				<div class="col-3 pt-1 pb-1 border-bottom">名称：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.hostname | default:'' }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">主机IP：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.ip }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">协议：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.get_protocol_display }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">端口：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.port }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">连接TOKEN：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.token }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">状态：</div><div class="col-9 pt-1 pb-1 border-bottom">{% if host.status %}<span class="badge badge-success">正常</span>{% else %}<span class="badge badge-danger">异常</span>{% endif %}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">cron任务：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.cron }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">interval任务：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.interval }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">date任务：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.date }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">executed任务：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.executed }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">failed任务：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.failed }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">最后更新时间：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.update_time|date:"Y/m/d H:i:s" }}</div>
+				<div class="col-3 pt-1 pb-1 border-bottom">添加时间：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.create_time|date:"Y/m/d H:i:s" }}</div>
+				<div class="col-3 pt-1 pb-1">备注：</div><div class="col-9 pt-1 pb-1">{{ host.memo | default:'' }}</div>
+            </div>
+            <!-- /.card-body -->
+          </div>
+          <!-- /.card --> 
+		  {% endblock content %}

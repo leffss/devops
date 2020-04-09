@@ -291,7 +291,7 @@ def session_upload(request, pk):
 def session_download(request, pk):
     def file_iterator(file_name, chunk_size=8192):
         with open(file_name, 'rb') as f:
-            while True:
+            while 1:
                 c = f.read(chunk_size)
                 if c:
                     yield c

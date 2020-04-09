@@ -1,5 +1,5 @@
 """
-基于 ansible v2.8.5 的 api，低于 v2.8 不适用
+基于 ansible v2.8.5 的 api，低于 v2.8 不适用，简单测试了下 v2.9.0 也可以正常使用
 """
 import time
 import os

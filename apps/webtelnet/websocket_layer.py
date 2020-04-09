@@ -131,13 +131,14 @@ class WebTelnet(WebsocketConsumer):
 
         self.telnet.connect(**telnet_connect_dict)
         if self.remote_host.remote_user.enabled:
-            if self.session.get('issuperuser', None):  # 超级管理员才能使用 su 跳转功能
-                if self.remote_host.remote_user.superusername:
+            if self.remote_host.remote_user.superusername:
+                if '登陆后su跳转超级用户' in self.session[settings.INIT_PERMISSION]['titles']:  # 判断权限
                     self.telnet.su_root(
                         self.remote_host.remote_user.superusername,
                         decrypt(self.remote_host.remote_user.superpassword),
                         1,
                     )
+
         for i in self.scope['headers']:
             if i[0].decode('utf-8') == 'user-agent':
                 self.user_agent = i[1].decode('utf-8')
