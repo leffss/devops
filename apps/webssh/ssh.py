@@ -20,6 +20,11 @@ try:
 except Exception:
     terminal_exipry_time = 60 * 30
 
+zmodemszstart = b'rz\r**\x18B00000000000000\r\x8a'
+zmodemszend = b'**\x18B0800000000022d\r\x8a'
+zmodemrzstart = b'rz waiting to receive.**\x18B0100000023be50\r\x8a'
+zmodemrzend = b'**\x18B0800000000022d\r\x8a'
+
 
 class SSH:
     def __init__(self, websocker, message):
@@ -39,6 +44,8 @@ class SSH:
                         tmp_date2 + '_' + gen_rand_char(16) + '.txt'
         self.last_save_time = self.start_time
         self.res_asciinema = []
+        self.zmodem = False
+        self.zmodemOO = False
     
     # term 可以使用 ansi, linux, vt100, xterm, dumb，除了 dumb外其他都有颜色显示
     def connect(self, host, user, password=None, ssh_key=None, port=22, timeout=30,
@@ -97,8 +104,6 @@ class SSH:
 
             # 创建3个线程将服务器返回的数据发送到django websocket（1个线程都可以）
             Thread(target=self.websocket_to_django).start()
-            # Thread(target=self.websocket_to_django).start()
-            # Thread(target=self.websocket_to_django).start()
         except Exception:
             print(traceback.format_exc())
             self.message['status'] = 2
@@ -128,104 +133,110 @@ class SSH:
     def django_to_ssh(self, data):
         try:
             self.channel.send(data)
-            if data == '\r':    # 记录命令
-                data = '\n'
-                if self.cmd_tmp.strip() != '':
-                    self.cmd_tmp += data
-                    self.cmd += self.cmd_tmp
-
-                    # print('-----------------------------------')
-                    # print(self.cmd_tmp)
-                    # print(self.cmd_tmp.encode())
-                    # print('-----------------------------------')
-                    
-                    self.cmd_tmp = ''
-            elif data.encode() == b'\x07':
-                pass
-            else:
-                if data == '\t' or data.encode() == b'\x1b':    # \x1b 点击2下esc键也可以补全
-                    self.tab_mode = True
-                elif data.encode() == b'\x1b[A' or data.encode() == b'\x1b[B':
-                    self.history_mode = True
+            if not self.zmodem and not self.zmodemOO:
+                if data == '\r':    # 记录命令
+                    data = '\n'
+                    if self.cmd_tmp.strip() != '':
+                        self.cmd_tmp += data
+                        self.cmd += self.cmd_tmp
+                        self.cmd_tmp = ''
+                elif data.encode() == b'\x07':
+                    pass
                 else:
-                    self.cmd_tmp += data
+                    if data == '\t' or data.encode() == b'\x1b':    # \x1b 点击2下esc键也可以补全
+                        self.tab_mode = True
+                    elif data.encode() == b'\x1b[A' or data.encode() == b'\x1b[B':
+                        self.history_mode = True
+                    else:
+                        self.cmd_tmp += data
         except Exception:
-            print(traceback.format_exc())
+            self.close()
+
+    def django_bytes_to_ssh(self, data):
+        try:
+            self.channel.send(data)
+        except:
             self.close()
 
     def websocket_to_django(self):
         try:
             while 1:
-                x = b''
-                try:
-                    # data = self.channel.recv(4096).decode('utf-8')
-                    x = self.channel.recv(4096)
-
-                    logger.info(x)
-                    logger.info(x.decode('utf-8', 'ignore'))
-
-                    # sz
-                    if b'rz\r**\x18B00000000000000\r\x8a\x11' in x:
-                        # continue
-                        data = "\n\runsupport zmodem sz command\n\r"
-
-                    # rz
-                    elif b'rz waiting to receive.**\x18B0100000023be50\r\x8a\x11' in x:
-                        # continue
-                        data = "\n\runsupport zmodem rz command\n\r"
+                if self.zmodemOO:
+                    self.zmodemOO = False
+                    x = self.channel.recv(2)
+                    if not len(x):
+                        return
+                    if x == b'OO':
+                        self.websocker.send(bytes_data=x)
+                        continue
                     else:
-                        data = x.decode('utf-8')
-                except UnicodeDecodeError:  # utf-8中文占3个字符，可能会被截断，需要拼接
-                    try:
-                        x += self.channel.recv(1)
-                        data = x.decode('utf-8')
-                    except UnicodeDecodeError:
+                        x += self.channel.recv(4096)
+                else:
+                    x = self.channel.recv(4096)
+                    if not len(x):
+                        return
+
+                if self.zmodem:
+                    if zmodemszend in x or zmodemrzend in x:
+                        self.zmodem = False
+                        if zmodemszend in x:
+                            self.zmodemOO = True
+                    self.websocker.send(bytes_data=x)
+                else:
+                    if zmodemszstart in x or zmodemrzstart in x:
+                        self.zmodem = True
+                        self.websocker.send(bytes_data=x)
+                    else:
                         try:
-                            x += self.channel.recv(1)
                             data = x.decode('utf-8')
-                        except UnicodeDecodeError:
-                            print(traceback.format_exc())
-                            data = x.decode('utf-8', 'ignore')  # 拼接2次后还是报错则证明结果是乱码，强制转换
-                if not len(data):
-                    return
+                        except UnicodeDecodeError:  # utf-8中文占3个字符，可能会被截断，需要拼接
+                            try:
+                                x += self.channel.recv(1)
+                                data = x.decode('utf-8')
+                            except UnicodeDecodeError:
+                                try:
+                                    x += self.channel.recv(1)
+                                    data = x.decode('utf-8')
+                                except UnicodeDecodeError:
+                                    print(traceback.format_exc())
+                                    data = x.decode('utf-8', 'ignore')  # 拼接2次后还是报错则证明结果是乱码，强制转换
 
-                self.message['status'] = 0
-                self.message['message'] = data
-                self.res += data
-                message = json.dumps(self.message)
-                if self.websocker.send_flag == 0:
-                    self.websocker.send(message)
-                elif self.websocker.send_flag == 1:
-                    async_to_sync(self.websocker.channel_layer.group_send)(self.websocker.group, {
-                        "type": "chat.message",
-                        "text": message,
-                    })
+                        self.message['status'] = 0
+                        self.message['message'] = data
+                        self.res += data
+                        message = json.dumps(self.message)
+                        if self.websocker.send_flag == 0:
+                            self.websocker.send(message)
+                        elif self.websocker.send_flag == 1:
+                            async_to_sync(self.websocker.channel_layer.group_send)(self.websocker.group, {
+                                "type": "chat.message",
+                                "text": message,
+                            })
 
-                delay = round(time.time() - self.start_time, 6)
-                self.res_asciinema.append(json.dumps([delay, 'o', data]))
+                        delay = round(time.time() - self.start_time, 6)
+                        self.res_asciinema.append(json.dumps([delay, 'o', data]))
 
-                # 指定条结果或者指定秒数或者占用指定内存就保存一次
-                if len(self.res_asciinema) > 2000 or int(time.time() - self.last_save_time) > 60 or \
-                        sys.getsizeof(self.res_asciinema) > 20971752:
-                    tmp = list(self.res_asciinema)
-                    self.res_asciinema = []
-                    self.last_save_time = time.time()
-                    save_res(self.res_file, tmp)
+                        # 指定条结果或者指定秒数或者占用指定内存就保存一次
+                        if len(self.res_asciinema) > 2000 or int(time.time() - self.last_save_time) > 60 or \
+                                sys.getsizeof(self.res_asciinema) > 20971752:
+                            tmp = list(self.res_asciinema)
+                            self.res_asciinema = []
+                            self.last_save_time = time.time()
+                            save_res(self.res_file, tmp)
 
-                if self.tab_mode:
-                    tmp = data.split(' ')
-                    # tab 只返回一个命令时匹配
-                    # print(tmp)
-                    if len(tmp) == 2 and tmp[1] == '' and tmp[0] != '':
-                        self.cmd_tmp = self.cmd_tmp + tmp[0].encode().replace(b'\x07', b'').decode()
-                    elif len(tmp) == 1 and tmp[0].encode() != b'\x07':  # \x07 蜂鸣声
-                        self.cmd_tmp = self.cmd_tmp + tmp[0].encode().replace(b'\x07', b'').decode()
-                    self.tab_mode = False
-                if self.history_mode:   # 不完善，只支持向上翻一个历史命令
-                    # print(data)
-                    if data.strip() != '':
-                        self.cmd_tmp = data
-                    self.history_mode = False
+                        if self.tab_mode:
+                            tmp = data.split(' ')
+                            # tab 只返回一个命令时匹配
+                            # print(tmp)
+                            if len(tmp) == 2 and tmp[1] == '' and tmp[0] != '':
+                                self.cmd_tmp = self.cmd_tmp + tmp[0].encode().replace(b'\x07', b'').decode()
+                            elif len(tmp) == 1 and tmp[0].encode() != b'\x07':  # \x07 蜂鸣声
+                                self.cmd_tmp = self.cmd_tmp + tmp[0].encode().replace(b'\x07', b'').decode()
+                            self.tab_mode = False
+                        if self.history_mode:   # 不完善，只支持向上翻一个历史命令
+                            if data.strip() != '':
+                                self.cmd_tmp = data
+                            self.history_mode = False
         except socket.timeout:
             self.message['status'] = 1
             self.message['message'] = '由于长时间没有操作或者没有数据返回，连接已断开!'
@@ -239,7 +250,6 @@ class SSH:
                 })
             self.close(send_message=False)
         except Exception:
-            print(traceback.format_exc())
             self.close()
 
     def close(self, send_message=True):

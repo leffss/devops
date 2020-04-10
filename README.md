@@ -33,7 +33,7 @@ docker run --name guacd -p 4822:4822 -d guacamole/guacd
 # 安装相关库
 pip3 install -i https://mirrors.aliyun.com/pypi/simple -r requirements.txt
 ```
-- -i 指定阿里源，国外源慢得一逼，我大天朝威武
+- -i 指定阿里源，国外源慢得一逼，我大天朝威武，局域网玩得贼6
 
 **修改 devops/settings.py 配置**
 
@@ -248,7 +248,15 @@ systemctl start nginx
 有点多，看图，不想描述了。
 
 
+# 存在问题
+web 终端（包括 webssh，webtelnet）在使用 chrome 浏览器打开时，很大机率会出现一片空白无法显示 xterm.js 终端的情况。
+解决方法是改变一下 chrome 的缩放比例就好了（ctrl + 鼠标滚轮），在 firefox 下无此问题，具体原因未知。
+
+
 # 升级日志
+
+### ver1.8.7
+webssh 新增 zmodem(sz, rz) 上传下载文件支持（webtelnet 理论上也可以实现，原理一样，应该淘汰的协议，就懒得做了）；
 
 ### ver1.8.6
 优化执行 playbook 逻辑：允许指定组；
@@ -370,7 +378,7 @@ linux 平台下使用 celery 任务保存终端会话日志与录像（windows �
 尝试加入 celery 实现异步任务；
 
 ### ver1.1.0 
-新增 ssh 和 telnet 协议连接远程主机；
+新增 ssh 和 telnet（明文传输的古老协议，不推荐使用）连接远程主机；
 
 ### ver1.0.0 
 初始版本
@@ -401,15 +409,17 @@ linux 平台下使用 celery 任务保存终端会话日志与录像（windows �
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/24.PNG?raw=true)
 ![效果](https://github.com/leffss/devops/blob/master/screenshots/25.PNG?raw=true)
 
+
 # TODO LISTS
 - [ ] docker 容器管理
 - [ ] k8s 集群管理
-- [ ] 自动化部署CI/CD
-- [ ] webssh 与 webtelnet 的 zmodem(sz, rz) 支持
+- [ ] 自动化部署 ci/cd
+
 
 # MIT License
 ```
 Copyright (c) 2019-2020 leffss
 ```
+
 
 更多新功能不断探索发现中.

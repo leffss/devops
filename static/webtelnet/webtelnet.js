@@ -29,14 +29,14 @@ function websocket() {
     var rows = get_term_size().rows;
     var connect_info = get_connect_info();
 
-	Terminal.applyAddon(attach);
-	Terminal.applyAddon(fit);
-	Terminal.applyAddon(fullscreen);
-	Terminal.applyAddon(search);
-	Terminal.applyAddon(terminado);
-	Terminal.applyAddon(webLinks);
-	Terminal.applyAddon(zmodem);
-	
+	// Terminal.applyAddon(attach);
+	// Terminal.applyAddon(fit);
+	// Terminal.applyAddon(fullscreen);
+	// Terminal.applyAddon(search);
+	// Terminal.applyAddon(terminado);
+	// Terminal.applyAddon(webLinks);
+	// Terminal.applyAddon(zmodem);
+
     //var term = new Terminal(
 	term = new Terminal(
         {
@@ -55,12 +55,177 @@ function websocket() {
 
     //var sock;
     sock = new WebSocket(socketURL);
+    sock.binaryType = "arraybuffer";    // 必须设置，zmodem 才可以使用
+
+    /*
+    * status 为 0 时, 将用户输入的数据通过 websocket 传递给后台, data 为传递的数据, 忽略 cols 和 rows 参数
+    * status 为 1 时, resize pty ssh 终端大小, cols 为每行显示的最大字数, rows 为每列显示的最大字数, 忽略 data 参数
+    * status 为 2 时, 忽略数据，只是为了 zmodem 记录上传和下载记录
+    */
+    var message = {'status': 0, 'data': null, 'cols': null, 'rows': null};
+
+	function uploadFile(zsession) {
+        let uploadHtml = "<div>" +
+            "<label class='upload-area' style='width:100%;text-align:center;' for='fupload'>" +
+            "<input id='fupload' name='fupload' type='file' style='display:none;' multiple='true'>" +
+            "<i class='fa fa-cloud-upload fa-3x'></i>" +
+            "<br />" +
+            "点击选择文件" +
+            "</label>" +
+            "<br />" +
+            "<span style='margin-left:5px !important;' id='fileList'></span>" +
+            "</div><div class='clearfix'></div>";
+
+        let upload_dialog = bootbox.dialog({
+            message: uploadHtml,
+            title: "上传文件",
+            buttons: {
+				cancel: {
+					label: '关闭',
+					className: 'btn-default',
+					callback: function (res) {
+						try {
+							// zsession 每 5s 发送一个 ZACK 包，5s 后会出现提示最后一个包是 ”ZACK“ 无法正常关闭
+							// 这里直接设置 _last_header_name 为 ZRINIT，就可以强制关闭了
+							zsession._last_header_name = "ZRINIT";
+							zsession.close();
+						} catch (e) {
+							console.log(e);
+						}
+					}
+				},
+            },
+			closeButton: false,
+        });
+
+        function hideModal() {
+			upload_dialog.modal('hide');
+		}
+
+		let file_el = document.getElementById("fupload");
+
+		return new Promise((res) => {
+			file_el.onchange = function (e) {
+				let files_obj = file_el.files;
+				hideModal();
+				Zmodem.Browser.send_files(zsession, files_obj, {
+						on_offer_response(obj, xfer) {
+							if (xfer) {
+								// term.write("\r\n");
+							} else {
+								term.write(obj.name + " was upload skipped\r\n");
+								message['status'] = 2;
+								message['data'] = obj.name + " was upload skipped\r\n";
+								message['cols'] = null;
+								message['rows'] = null;
+								var send_data = JSON.stringify(message);
+								sock.send(send_data);
+							}
+						},
+						on_progress(obj, xfer) {
+							updateProgress(xfer);
+						},
+						on_file_complete(obj) {
+                            term.write("\r\n");
+							message['status'] = 2;
+							message['data'] = obj.name + " was upload success\r\n";
+							message['cols'] = null;
+							message['rows'] = null;
+							var send_data = JSON.stringify(message);
+							sock.send(send_data);
+						},
+					}
+				).then(zsession.close.bind(zsession), console.error.bind(console)
+				).then(() => {
+					res();
+				});
+			};
+		});
+    }
+
+	function saveFile(xfer, buffer) {
+		return Zmodem.Browser.save_to_disk(buffer, xfer.get_details().name);
+	}
+
+	function updateProgress(xfer) {
+		let detail = xfer.get_details();
+		let name = detail.name;
+		let total = detail.size;
+		let percent;
+		if (total === 0) {
+			percent = 100
+		} else {
+			percent = Math.round(xfer._file_offset / total * 100);
+		}
+
+		term.write("\r" + name + ": " + total + " " + xfer._file_offset + " " + percent + "%    ");
+	}
+
+	function downloadFile(zsession) {
+		zsession.on("offer", function(xfer) {
+			function on_form_submit() {
+				let FILE_BUFFER = [];
+				xfer.on("input", (payload) => {
+					updateProgress(xfer);
+					FILE_BUFFER.push( new Uint8Array(payload) );
+				});
+
+				xfer.accept().then(
+					() => {
+						saveFile(xfer, FILE_BUFFER);
+						term.write("\r\n");
+						message['status'] = 2;
+						message['data'] = xfer.get_details().name + " was download success\r\n";
+						message['cols'] = null;
+						message['rows'] = null;
+						var send_data = JSON.stringify(message);
+						sock.send(send_data);
+					},
+					console.error.bind(console)
+				);
+			}
+
+			on_form_submit();
+
+		});
+
+		let promise = new Promise( (res) => {
+			zsession.on("session_end", () => {
+				res();
+			});
+		});
+
+		zsession.start();
+		return promise;
+	}
+
+	var zsentry = new Zmodem.Sentry( {
+        to_terminal: function(octets) {},  //i.e. send to the terminal
+
+        on_detect: function(detection) {
+            let zsession = detection.confirm();
+            let promise;
+            if (zsession.type === "receive") {
+                promise = downloadFile(zsession);
+            } else {
+                promise = uploadFile(zsession);
+            }
+            promise.catch( console.error.bind(console) ).then( () => {
+                //
+            });
+        },
+
+        on_retract: function() {},
+
+        sender: function(octets) { sock.send(new Uint8Array(octets)) },
+     });
 
     // 打开 websocket 连接, 打开 web 终端
     sock.addEventListener('open', function () {
         //$('#django-webtelnet-terminal').removeClass('hide');
         term.open(document.getElementById('terminal'));
 		term.focus();
+		term.resize(cols, rows);
 		term.write('Connecting...\n\r');
 		$("body").attr("onbeforeunload",'checkwindow()'); //增加刷新关闭提示属性
 		
@@ -68,68 +233,69 @@ function websocket() {
 
     // 读取服务器端发送的数据并写入 web 终端
     sock.addEventListener('message', function (recv) {
-        var data = JSON.parse(recv.data);
-        var message = data.message;
-        var status = data.status;
-        if (status === 0) {
-            term.write(message)
-        } else if (status === 1 || status === 2 ) {
-            //window.location.reload() 端口连接后刷新页面
-			//term.clear()
-			term.write(message)
-			$("body").removeAttr("onbeforeunload"); //删除刷新关闭提示属性
-			$(".session-close").attr("hidden", true);
-			toastr.options.closeButton = true;
-			toastr.options.showMethod = 'slideDown';
-			toastr.options.hideMethod = 'fadeOut';
-			toastr.options.closeMethod = 'fadeOut';
-			toastr.options.timeOut = 0;	
-			toastr.options.extendedTimeOut = 3000;	
-			toastr.options.progressBar = true;
-			toastr.options.positionClass = 'toast-top-right';
-			toastr.error(message);
-			//$(document).keyup(function(event){	// 监听回车按键事件
-			//	if(event.keyCode == 13){
-					//window.location.reload();
-			//	}
-			//});
-			//term.dispose()
-			//$('#django-webssh-terminal').addClass('hide');
-			//$('#form').removeClass('hide');
-        } else if (status === 3 ) {		// 锁定会话
-			toastr.options.closeButton = true;
-			toastr.options.showMethod = 'slideDown';
-			toastr.options.hideMethod = 'fadeOut';
-			toastr.options.closeMethod = 'fadeOut';
-			toastr.options.timeOut = 0;	
-			toastr.options.extendedTimeOut = 3000;	
-			toastr.options.progressBar = true;
-			toastr.options.positionClass = 'toast-top-right'; 
-			toastr.warning(message);
-			$(".session-close").attr("hidden", true);
-		} else if (status === 6 ) {		// 解锁会话
-			toastr.options.closeButton = true;
-			toastr.options.showMethod = 'slideDown';
-			toastr.options.hideMethod = 'fadeOut';
-			toastr.options.closeMethod = 'fadeOut';
-			toastr.options.timeOut = 0;	
-			toastr.options.extendedTimeOut = 3000;	
-			toastr.options.progressBar = true;
-			toastr.options.positionClass = 'toast-top-right'; 
-			toastr.success(message);
-			$(".session-close").attr("hidden", false);
-		};
+    	if (typeof(recv.data) === 'string') {
+			var data = JSON.parse(recv.data);
+			var message = data.message;
+			var status = data.status;
+			if (status === 0) {
+				term.write(message)
+			} else if (status === 1 || status === 2) {
+				//window.location.reload() 端口连接后刷新页面
+				//term.clear()
+				term.write(message)
+				$("body").removeAttr("onbeforeunload"); //删除刷新关闭提示属性
+				$(".session-close").attr("hidden", true);
+				toastr.options.closeButton = true;
+				toastr.options.showMethod = 'slideDown';
+				toastr.options.hideMethod = 'fadeOut';
+				toastr.options.closeMethod = 'fadeOut';
+				toastr.options.timeOut = 0;
+				toastr.options.extendedTimeOut = 3000;
+				toastr.options.progressBar = true;
+				toastr.options.positionClass = 'toast-top-right';
+				toastr.error(message);
+				//$(document).keyup(function(event){	// 监听回车按键事件
+				//	if(event.keyCode == 13){
+				//window.location.reload();
+				//	}
+				//});
+				//term.dispose()
+				//$('#django-webssh-terminal').addClass('hide');
+				//$('#form').removeClass('hide');
+			} else if (status === 3) {		// 锁定会话
+				toastr.options.closeButton = true;
+				toastr.options.showMethod = 'slideDown';
+				toastr.options.hideMethod = 'fadeOut';
+				toastr.options.closeMethod = 'fadeOut';
+				toastr.options.timeOut = 0;
+				toastr.options.extendedTimeOut = 3000;
+				toastr.options.progressBar = true;
+				toastr.options.positionClass = 'toast-top-right';
+				toastr.warning(message);
+				$(".session-close").attr("hidden", true);
+			} else if (status === 6) {		// 解锁会话
+				toastr.options.closeButton = true;
+				toastr.options.showMethod = 'slideDown';
+				toastr.options.hideMethod = 'fadeOut';
+				toastr.options.closeMethod = 'fadeOut';
+				toastr.options.timeOut = 0;
+				toastr.options.extendedTimeOut = 3000;
+				toastr.options.progressBar = true;
+				toastr.options.positionClass = 'toast-top-right';
+				toastr.success(message);
+				$(".session-close").attr("hidden", false);
+			}
+		} else {
+    		zsentry.consume(recv.data);
+		}
     });
-
-    /*
-    * status 为 0 时, 将用户输入的数据通过 websocket 传递给后台, data 为传递的数据, 忽略 cols 和 rows 参数
-    */
-    var message = {'status': 0, 'data': null, 'cols': null, 'rows': null};
 
     // 向服务器端发送数据
     term.on('data', function (data) {
         message['status'] = 0;
         message['data'] = data;
+		message['cols'] = null;
+		message['rows'] = null;
         var send_data = JSON.stringify(message);
         sock.send(send_data)
     });

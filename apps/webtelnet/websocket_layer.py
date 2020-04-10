@@ -264,7 +264,7 @@ class WebTelnet(WebsocketConsumer):
             else:
                 pass
         except Exception:
-            print(traceback.format_exc())
+            pass
 
     def lock_message(self, data):
         if not self.lock:

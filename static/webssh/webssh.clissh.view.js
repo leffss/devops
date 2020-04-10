@@ -27,15 +27,15 @@ function websocket() {
     var rows = get_term_size().rows;
     var connect_info = get_connect_info();
 
-	Terminal.applyAddon(attach);
-	Terminal.applyAddon(fit);
-	Terminal.applyAddon(fullscreen);
-	Terminal.applyAddon(search);
-	Terminal.applyAddon(terminado);
-	Terminal.applyAddon(webLinks);
-	Terminal.applyAddon(zmodem);
+	// Terminal.applyAddon(attach);
+	// Terminal.applyAddon(fit);
+	// Terminal.applyAddon(fullscreen);
+	// Terminal.applyAddon(search);
+	// Terminal.applyAddon(terminado);
+	// Terminal.applyAddon(webLinks);
+	// Terminal.applyAddon(zmodem);
 
-    var term = new Terminal(
+    term = new Terminal(
         {
             cols: cols,
             rows: rows,
@@ -50,7 +50,7 @@ function websocket() {
         protocol = (location.protocol === 'https:') ? 'wss://' : 'ws://',
         socketURL = protocol + location.hostname + ((location.port) ? (':' + location.port) : '') + '/ws/clissh/view/?' + connect_info;
 
-    var sock;
+    sock;
     sock = new WebSocket(socketURL);
 
     // 打开 websocket 连接, 打开 web 终端
@@ -59,6 +59,7 @@ function websocket() {
         term.open(document.getElementById('terminal'));
 		//term.focus();
 		//term.write('Connecting...\n\r');
+        term.resize(cols, rows);
 		$("body").attr("onbeforeunload",'checkwindow()'); //增加刷新关闭提示属性
 		
     });
@@ -107,7 +108,7 @@ function websocket() {
 			toastr.warning(message);
 		} else if (status === 5 ) {
 			term.write(message)
-		};
+		}
     });
 
     /*

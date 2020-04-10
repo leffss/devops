@@ -15,7 +15,6 @@ logging.basicConfig(level=logging.INFO, format='[%(asctime)s] - %(name)s - %(lev
 logger = logging.getLogger(__name__)
 from django.utils.encoding import smart_str, force_str
 
-
 try:
     terminal_exipry_time = settings.CUSTOM_TERMINAL_EXIPRY_TIME
 except Exception:
@@ -43,9 +42,7 @@ class Telnet:
                         tmp_date2 + '_' + gen_rand_char(16) + '.txt'
         self.last_save_time = self.start_time
         self.res_asciinema = []
-
         self._buffer = b''
-        
         self.tn = telnetlib.Telnet()
 
     def connect(self, host, user, password, port=23, timeout=60 * 30, wait_time=3, user_pre=b"ogin:", password_pre=b"assword:"):
@@ -123,12 +120,6 @@ class Telnet:
                 if self.cmd_tmp.strip() != '':
                     self.cmd_tmp += data
                     self.cmd += self.cmd_tmp
-
-                    # print('-----------------------------------')
-                    # print(self.cmd_tmp)
-                    # print(self.cmd_tmp.encode())
-                    # print('-----------------------------------')
-                    
                     self.cmd_tmp = ''
             elif data.encode() == b'\x07':
                 pass
@@ -140,28 +131,29 @@ class Telnet:
                 else:
                     self.cmd_tmp += data
         except Exception:
-            print(traceback.format_exc())
             self.close()
 
     def websocket_to_django(self):
         try:
             while 1:
-                data = ''
                 # read_very_eager 方法读取时会是无限循环，性能比较低
                 # data = self.tn.read_very_eager().decode('utf-8')
                 # if not len(data):
                 #     continue
 
                 # expect 使用正则匹配所有返回内容，还可以实现超时无返回内容断开连接
+                if len(self._buffer) >= 1:
+                    data = self._buffer[:4096]
+                    self._buffer = self._buffer[4096:]
+                else:
+                    x, y, z = self.tn.expect([br'[\s\S]+'], timeout=terminal_exipry_time)
+                    self._buffer += z
+                    data = self._buffer[:4096]  # 一次最多截取4096个字符
+                    self._buffer = self._buffer[4096:]
+                if not len(data):
+                    raise socket.timeout
+
                 try:
-                    if len(self._buffer) >= 1:
-                        data = self._buffer[:4096]
-                        self._buffer = self._buffer[4096:]
-                    else:
-                        x, y, z = self.tn.expect([br'[\s\S]+'], timeout=terminal_exipry_time)
-                        self._buffer += z
-                        data = self._buffer[:4096]  # 一次最多截取4096个字符
-                        self._buffer = self._buffer[4096:]
                     data = data.decode('utf-8')
                 except UnicodeDecodeError:  # utf-8中文占3个字符，可能会被截断，需要拼接
                     try:
@@ -192,11 +184,7 @@ class Telnet:
                                     data += z
                             data = data.decode('utf-8')
                         except UnicodeDecodeError:
-                            print(traceback.format_exc())
                             data = data.decode('utf-8', 'ignore')  # 拼接2次后还是报错则证明结果是乱码，强制转换
-
-                if not len(data):
-                    raise socket.timeout
                 self.message['status'] = 0
                 self.message['message'] = data
                 self.res += data
@@ -208,7 +196,7 @@ class Telnet:
                         "type": "chat.message",
                         "text": message,
                     })
-                
+
                 delay = round(time.time() - self.start_time, 6)
                 self.res_asciinema.append(json.dumps([delay, 'o', data]))
                 # 指定条结果或者指定秒数或者占用指定大小内存就保存一次
@@ -246,7 +234,6 @@ class Telnet:
                 })
             self.close(send_message=False)
         except Exception:
-            print(traceback.format_exc())
             self.close()
 
     def close(self, send_message=True):
@@ -265,7 +252,7 @@ class Telnet:
             self.websocker.close()
             self.tn.close()
         except Exception:
-            print(traceback.format_exc())
+            pass
 
     def shell(self, data):
         self.django_to_telnet(data)

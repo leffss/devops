@@ -218,7 +218,7 @@ class ServerInterface(paramiko.ServerInterface):
                                 self.chan_cli.send(recv_message)
                                 continue
                             else:
-                                if b'rz\r**\x18B00000000000000\r\x8a\x11' in recv_message or b'rz waiting to receive.**\x18B0100000023be50\r\x8a\x11' in recv_message :
+                                if b'rz\r**\x18B00000000000000\r\x8a' in recv_message or b'rz waiting to receive.**\x18B0100000023be50\r\x8a' in recv_message:
                                     self.zmodem = True
                                     # logger.info("zmodem start")
                                     self.chan_cli.send(recv_message)

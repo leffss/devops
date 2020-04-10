@@ -232,24 +232,40 @@ class WebSSH(WebsocketConsumer):
             TerminalSession.objects.filter(name=self.channel_name, group=self.group).delete()
 
     def receive(self, text_data=None, bytes_data=None):
-        data = json.loads(text_data)
-        if type(data) == dict:
-            if data['data'] and '\r' in data['data']:
-                self.check_login()
-            status = data['status']
-            if status == 0:
-                data = data['data']
-                if self.lock:
-                    self.message['status'] = 3
-                    self.message['message'] = '当前会话已被管理员锁定'
-                    message = json.dumps(self.message)
-                    self.send(message)
-                else:
-                    self.ssh.shell(data)
-            else:
-                cols = data['cols']
-                rows = data['rows']
-                self.ssh.resize_pty(cols=cols, rows=rows)
+        if text_data is None:
+            self.ssh.django_bytes_to_ssh(bytes_data)
+        else:
+            if not self.ssh.zmodem:     # zmodem 模式下不接受 xterm.js 输入的 string 数据
+                data = json.loads(text_data)
+                if type(data) == dict:
+                    if data['data'] and '\r' in data['data']:
+                        self.check_login()
+                    status = data['status']
+                    if status == 0:
+                        data = data['data']
+                        if self.lock:
+                            self.message['status'] = 3
+                            self.message['message'] = '当前会话已被管理员锁定'
+                            message = json.dumps(self.message)
+                            self.send(message)
+                        else:
+                            self.ssh.shell(data)
+                    elif status == 1:
+                        cols = data['cols']
+                        rows = data['rows']
+                        self.ssh.resize_pty(cols=cols, rows=rows)
+                    elif status == 2:
+                        delay = round(time.time() - self.ssh.start_time, 6)
+                        self.ssh.res_asciinema.append(json.dumps([delay, 'o', data['data']]))
+            else:   # 兼容 rz 完成后客户端发送过来的信息
+                data = json.loads(text_data)
+                if type(data) == dict:
+                    if data['data'] and '\r' in data['data']:
+                        self.check_login()
+                    status = data['status']
+                    if status == 2:
+                        delay = round(time.time() - self.ssh.start_time, 6)
+                        self.ssh.res_asciinema.append(json.dumps([delay, 'o', data['data']]))
 
     def check_login(self):
         lasttime = int(self.scope['session']['lasttime'])
