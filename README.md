@@ -91,8 +91,8 @@ nohup celery -A devops beat -l info --pidfile logs/celery_worker.pid > logs/cele
 - gunicorn  处理 http 请求，监听 8000 端口
 - daphne 处理 websocket 请求，监听 8001 端口
 - sshd 为 ssh 代理服务器，监听 2222 端口，提供调用 securecrt、xshell、putty 以及 winscp 客户端支持，非必须
-- celery 后台任务处理，`export PYTHONOPTIMIZE=1` 此环境变量非常重要，不设置无法后台运行 ansible api
-- celery_beat 处理 `devops/settings.py` 中设置的 `CELERY_BEAT_SCHEDULE` 定时任务
+- celery 后台任务处理进程，`export PYTHONOPTIMIZE=1` 此环境变量非常重要，不设置无法后台运行 ansible api
+- celery_beat 定时任务处理进程，读取 `devops/settings.py` 中设置的 `CELERY_BEAT_SCHEDULE` 定时任务，详见 v1.8.8 升级日志
 
 **nginx  前端代理**
 ```
@@ -250,10 +250,18 @@ systemctl start nginx
 
 # 存在问题
 web 终端（包括 webssh，webtelnet）在使用 chrome 浏览器打开时，很大机率会出现一片空白无法显示 xterm.js 终端的情况。
-解决方法是改变一下 chrome 的缩放比例就好了（ctrl + 鼠标滚轮），在 firefox 下无此问题，具体原因未知。
+解决方法是改变一下 chrome 的缩放比例就好了（ctrl + 鼠标滚轮），在 firefox 下也有无此问题，但出现的机率小一些，具体原因未知。
 
 
 # 升级日志
+
+### ver1.8.8
+新增修改版 celery beat：
+- 兼容读取原版配置文件中的静态任务；
+- 使用 redis 有序集合存储任务，在此基础上实现了任务的动态添加、修改和删除；
+- 新增 redis 分布式锁，实现运行多个 beat 实例而不会重复执行任务（官方只允许运行一个 beat 实例）；
+- 新增 limit_run_time 参数限制任务运行次数；
+- 具体使用方法参考 `devops/settings.py` 配置以及 `redismultibeat/scheduler.py` 注释；
 
 ### ver1.8.7
 webssh 新增 zmodem(sz, rz) 上传下载文件支持（webtelnet 理论上也可以实现，原理一样，应该淘汰的协议，就懒得做了）；
@@ -267,11 +275,11 @@ webssh 新增 zmodem(sz, rz) 上传下载文件支持（webtelnet 理论上也�
 
 新增 django mysql 连接 ENGINE 优化版本：真正的支持连接池；
 
-修正 clissh 使用 Zmodem 使用 sz 和 rz 时的 BUG；
+修正 clissh 使用 zmodem(sz, rz) 时的一些 bug；
 
 更新 xterm.js 到 v3.14.5 版本，支持 webssh 与 webtelnet 复制文本内容；
 
-- 此版本新增了一个任务调度模块，目前还是一个不完善的功能，不要太在意，仅供参考
+- 此版本新增了一个任务调度模块，目前只是一个尝试，估计要烂尾，不要太在意，仅供参考
 
 ### ver1.8.5
 新增批量操作，比如批量删除，批量更新等；

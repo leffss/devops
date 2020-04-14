@@ -9,6 +9,7 @@ CELERY_BEAT_SCHEDULE = {    # celery 定时任务, 会覆盖 redis 当中相同�
         'schedule': timedelta(seconds=30),  # 任务循环时间
         # "args": None,  # 参数
         "args": (None, 0, 3),  # 参数
+        "limit_run_time": 5,    # 限制运行次数
     },
     'task_check_scheduler_cron': {
         'task': 'tasks.tasks.task_check_scheduler',
@@ -40,6 +41,7 @@ schduler.modify(**{
     'task': 'tasks.tasks.task_check_scheduler',
     'schedule': timedelta(seconds=1600),
     "args": (None, 1, 3),
+    "limit_run_time": 5,    # 限制运行次数
 })
 
 """
@@ -49,7 +51,7 @@ import sys
 from time import mktime
 from functools import partial
 import jsonpickle
-from celery.beat import Scheduler
+from celery.beat import Scheduler, ScheduleEntry
 from redis import Redis
 from redis.sentinel import Sentinel
 from celery import current_app
@@ -68,11 +70,44 @@ DEFAULT_CELERY_BEAT_REDIS_MULTI_NODE_MODE = False
 DEFAULT_CELERY_BEAT_REDIS_LOCK_KEY = 'celery:beat:lock'
 DEFAULT_CELERY_BEAT_REDIS_LOCK_TTL = 60
 DEFAULT_CELERY_BEAT_REDIS_LOCK_SLEEP = None
+DEFAULT_CELERY_BEAT_FLUSH_TASKS = False
+
+
+class CustomScheduleEntry(ScheduleEntry):
+    """
+    重写官方 ScheduleEntry 以支持 limit_run_time 设置
+    Arguments:
+        name (str): 参考 celery 官方文档
+        schedule (~celery.schedules.schedule): 参考 celery 官方文档
+        args (Tuple): 参考 celery 官方文档
+        kwargs (Dict): 参考 celery 官方文档
+        options (Dict): 参考 celery 官方文档
+        last_run_at (~datetime.datetime): 参考 celery 官方文档
+        total_run_count (int): 参考 celery 官方文档
+        relative (bool): 参考 celery 官方文档
+        limit_run_time (int): 限制任务执行次数，>=0, 0 为不限制
+    """
+
+    limit_run_time = 0
+
+    def __init__(self, limit_run_time=None, *args, **kwargs):
+        self.limit_run_time = limit_run_time or 0
+        ScheduleEntry.__init__(self, *args, **kwargs)
+
+    def __reduce__(self):
+        return self.__class__, (
+            self.limit_run_time,
+            self.name, self.task, self.last_run_at, self.total_run_count,
+            self.schedule, self.args, self.kwargs, self.options,
+        )
 
 
 class RedisMultiScheduler(Scheduler):
+    Entry = CustomScheduleEntry
+
     def __init__(self, *args, **kwargs):
         app = kwargs['app']
+        self.flush_tasks = app.conf.get("CELERY_BEAT_FLUSH_TASKS", DEFAULT_CELERY_BEAT_FLUSH_TASKS)
         self.schedule_url = app.conf.get("CELERY_BEAT_REDIS_SCHEDULER_URL", DEFAULT_CELERY_BEAT_REDIS_SCHEDULER_URL)
         self.key = app.conf.get("CELERY_BEAT_REDIS_SCHEDULER_KEY", DEFAULT_CELERY_BEAT_REDIS_SCHEDULER_KEY)
         # redis 哨兵模式 sentinels 支持
@@ -96,13 +131,17 @@ class RedisMultiScheduler(Scheduler):
         return mktime(entry.schedule.now().timetuple()) + (self.adjust(next_time_to_run) or 0)
 
     def setup_schedule(self):
+        # if self.flush_tasks:
+        #     self.remove_all()
+
         # init entries
         self.merge_inplace(self.app.conf.CELERY_BEAT_SCHEDULE)
         tasks = [jsonpickle.decode(entry) for entry in self.rdb.zrange(self.key, 0, -1)]    # -1 表示取所有
         for entry in tasks:
             if hasattr(entry.schedule, 'human_seconds'):
                 info('current task: ' + str('name: ' + entry.name + '; func: ' + entry.task + '; args: ' +
-                                         entry.args.__str__() + '; each: ' + entry.schedule.human_seconds))
+                     entry.args.__str__() + '; each: ' + entry.schedule.human_seconds) + '; limit_run_time: ' + str(entry.limit_run_time)
+                     )
             else:
                 cron = '{minute} {hour} {day_of_month} {month_of_year} {day_of_week} ' \
                        '(minute/hour/day_of_month/month_of_year/day_of_week)'.format(
@@ -113,19 +152,20 @@ class RedisMultiScheduler(Scheduler):
                     day_of_week=entry.schedule._orig_day_of_week,
                 )
                 info('current task: ' + str('name: ' + entry.name + '; func: ' + entry.task + '; args: ' +
-                                         entry.args.__str__() + '; cron: ' + cron))
+                                         entry.args.__str__() + '; cron: ' + cron) + '; limit_run_time: ' + str(entry.limit_run_time))
 
     def merge_inplace(self, tasks):
         # 重启 beat 调度会执行该函数
+        if self.flush_tasks:
+            self.remove_all()
+
         old_entries = self.rdb.zrangebyscore(self.key, 0, MAXINT, withscores=True)
         old_entries_dict = dict({})
         for task, score in old_entries:
             if not task:
                 break
-            debug("ready to loads old entry: ", str(task))
             entry = jsonpickle.decode(task)
             old_entries_dict[entry.name] = (entry, score)
-        debug("old_entries: {}".format(old_entries_dict))
         # 清空调度任务
         self.rdb.delete(self.key)
         # tasks 是配置文件中写的定时任务
@@ -159,19 +199,21 @@ class RedisMultiScheduler(Scheduler):
                 is_due, next_time_to_run = self.is_due(entry)
                 next_times.append(next_time_to_run)
                 if is_due:
-                    next_entry = self.reserve(entry)
                     try:
-                        info("scheduler task entry: {} to publisher".format(entry.name))
+                        info("scheduler task entry: {} to publisher, total_run_count: {}, limit_run_time: {}".format(entry.name, entry.total_run_count + 1, entry.limit_run_time))
                         result = self.apply_async(entry)  # 添加任务到worker队列
                     except Exception as exc:
                         error('Message Error: %s\n%s',
                               exc, traceback.format_stack(), exc_info=True)
                     else:
                         debug('%s sent. id->%s', entry.task, result.id)
+                    next_entry = self.reserve(entry)
                     pipe.zrem(self.key, task)  # 删除旧的任务
-                    # 将旧任务重新计算时间后再添加
-                    pipe.zadd(self.key, {jsonpickle.encode(next_entry): self._when(next_entry,
-                                                                                       next_time_to_run, ) or 0})
+                    if next_entry.limit_run_time == 0 or next_entry.total_run_count < next_entry.limit_run_time:
+                        # 将旧任务重新计算时间后再添加
+                        pipe.zadd(self.key, {jsonpickle.encode(next_entry): self._when(next_entry, next_time_to_run, ) or 0})
+                    else:
+                        logger.info("task entry: {} limit to run {} times, stopped".format(entry.name, entry.limit_run_time))
             pipe.execute()
 
         # 获取最近一个需要执行的任务的时间

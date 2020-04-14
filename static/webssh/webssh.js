@@ -218,16 +218,14 @@ function websocket() {
         sender: function(octets) { sock.send(new Uint8Array(octets)) },
      });
 
-
     // 打开 websocket 连接, 打开 web 终端
     sock.addEventListener('open', function () {
         //$('#django-webssh-terminal').removeClass('hide');
-        term.open(document.getElementById('terminal'));
+		term.open(document.getElementById('terminal'));
 		term.focus();
 		term.resize(cols, rows);
 		term.write('Connecting...\n\r');
 		$("body").attr("onbeforeunload",'checkwindow()'); //增加刷新关闭提示属性
-		
     });
 
     // 读取服务器端发送的数据并写入 web 终端

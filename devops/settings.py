@@ -91,9 +91,9 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'util.middleware.NewNextMiddleware',
     'util.middleware.GetRealClientMiddleware',  # 前端有代理，获取真实 IP
-    'util.middleware.BlackListMiddleware',  # IP 黑名单
+    # 'util.middleware.BlackListMiddleware',  # IP 黑名单
     'util.middleware.LockScreenMiddleware',     # 锁屏
-    'util.middleware.DebugMiddleware',      # 非 DEBUG 模式下管理员显示 DEBUG 页面
+    # 'util.middleware.DebugMiddleware',      # 非 DEBUG 模式下管理员显示 DEBUG 页面
     'util.middleware.PermissionMiddleware',      # 验证权限
 ]
 
@@ -111,8 +111,7 @@ ROOT_URLCONF = 'devops.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')]
-        ,
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -196,10 +195,10 @@ STATICFILES_DIRS = [
 # SIMPLEUI_STATIC_OFFLINE = True
 
 # session 如果在此期间未做任何操作，则退出， django 本身要么设置固定时间，要么关闭浏览器失效
-CUSTOM_SESSION_EXIPRY_TIME = 60 * 120    # 30 分钟
+CUSTOM_SESSION_EXIPRY_TIME = 60 * 30    # 秒
 
 # 终端过期时间，最好小于等于 CUSTOM_SESSION_EXIPRY_TIME
-CUSTOM_TERMINAL_EXIPRY_TIME = 60 * 120
+CUSTOM_TERMINAL_EXIPRY_TIME = 60 * 15      # 秒
 
 REDIS_SETTING = {
     'host': '192.168.223.111',
@@ -209,7 +208,7 @@ REDIS_SETTING = {
 # celery 配置 redis
 CELERY_BROKER_URL = 'redis://{0}:{1}/0'.format(REDIS_SETTING['host'], REDIS_SETTING['port'])
 # beat 中 Scheduler 循环调度任务的最大等待时间(s)
-CELERY_BEAT_MAX_LOOP_INTERVAL = 60
+CELERY_BEAT_MAX_LOOP_INTERVAL = 30
 # RedisMultiScheduler 利用 redis 实现 beat 的动态添加，修改，删除任务
 CELERY_BEAT_SCHEDULER = 'redismultibeat.RedisMultiScheduler'
 CELERY_BEAT_REDIS_SCHEDULER_URL = 'redis://{0}:{1}/0'.format(REDIS_SETTING['host'], REDIS_SETTING['port'])
@@ -217,7 +216,7 @@ CELERY_BEAT_REDIS_SCHEDULER_KEY = 'devops:celery:beat:tasks'
 # redis 锁，实现运行多个 beat 实例而不会重复执行任务， beat 官方只能运行一个实例
 CELERY_BEAT_REDIS_MULTI_NODE_MODE = True      # 是否开启多实例模式
 CELERY_BEAT_REDIS_LOCK_KEY = 'devops:celery:beat:lock'
-CELERY_BEAT_REDIS_LOCK_TTL = 60
+CELERY_BEAT_REDIS_LOCK_TTL = 15
 # 多实例模式下，未获取到锁的实例等待多长时间(s)再试，如果设置为 None 或者不设置,
 # 则会随机等待 1 - CELERY_BEAT_REDIS_LOCK_TTL 之间的一个值，设置越小丢失任务的
 # 可能性越低，但是对 redis 的性能消耗也越高，根据实际情况权衡
@@ -239,19 +238,27 @@ celery beat 中间隔时间任务有个小问题，比如任务10秒间隔执行
 你会发现每次执行时间都会延迟 10-30 毫秒之间（程序执行逻辑耗费的时间），如果任务有严格时间要求，则不适合使用这种类型的任务
 cron 任务暂时没发现这个问题
 """
+# 启动 beat 时是否清空已有任务
+CELERY_BEAT_FLUSH_TASKS = True
+
 CELERY_BEAT_SCHEDULE = {    # celery 定时任务, 会覆盖 redis 当中相同任务名任务
-    'task_check_scheduler_interval': {  # 任务名(随意起)
-        'task': 'tasks.tasks.task_check_scheduler',  # 定时任务函数路径
-        'schedule': timedelta(seconds=30),  # 任务循环时间
-        # "args": None,  # 参数
-        "args": (None, 0, 3),  # 参数
-    },
+    # 'task_check_scheduler_interval': {  # 任务名(随意起)
+    #     'task': 'tasks.tasks.task_check_scheduler',  # 定时任务函数路径
+    #     'schedule': timedelta(seconds=30),  # 任务循环时间
+    #     # "args": None,  # 参数
+    #     "args": (None, 0, 3),  # 参数
+    # },
     'task_check_scheduler_cron': {
         'task': 'tasks.tasks.task_check_scheduler',
         'schedule': crontab(minute='*/1', hour='*', day_of_week='*', day_of_month='*', month_of_year='*'),  # cron 任务
         # "args": None,  # 参数
         "args": (None, 0, 3),  # 参数
-    }
+    },
+    'task_cls_terminalsession': {   # 清除 terminalsession 表，系统异常退出时此表可能会有垃圾数据，仅启动时运行一次
+        'task': 'tasks.tasks.task_cls_terminalsession',
+        'schedule': timedelta(seconds=3),
+        "limit_run_time": 1,   # 限制任务执行次数，>=0, 0 为不限制。注意：celery 原版 beat 是不支持此参数
+    },
 }
 
 # channels channel_layers 使用 redis
@@ -276,7 +283,7 @@ CACHES = {
             'PARSER_CLASS': 'redis.connection.HiredisParser',
             'CONNECTION_POOL_CLASS': 'redis.BlockingConnectionPool',
             'CONNECTION_POOL_CLASS_KWARGS': {
-                'max_connections': 500,
+                'max_connections': 1000,
                 'timeout': 15,
             },
             "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",   # 开启压缩
@@ -287,7 +294,6 @@ CACHES = {
 
 SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 SESSION_COOKIE_HTTPONLY = True
-
 
 # proxy_sshd 监听配置
 PROXY_SSHD = {
@@ -334,7 +340,7 @@ ANSIBLE_CONNECTION_TYPE = 'paramiko'
 # None 表示无限制，具体见 https://django-ratelimit.readthedocs.io/en/stable/rates.html
 # RATELIMIT_LOGIN = None
 RATELIMIT_LOGIN = '600/30s'
-RATELIMIT_NOLOGIN = '20/30s'
+RATELIMIT_NOLOGIN = '30/30s'
 
 
 # 用户加密密钥

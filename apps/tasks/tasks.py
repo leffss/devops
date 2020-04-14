@@ -3,7 +3,7 @@ from util.ansible_api import AnsibleAPI
 from util.callback import SetupCallbackModule, ModuleCallbackModule, CopyCallbackModule, PlayBookCallbackModule
 from util.inventory import BaseInventory
 from server.models import RemoteUserBindHost, ServerDetail
-from webssh.models import TerminalLog
+from webssh.models import TerminalLog, TerminalSession
 from user.models import LoginLog
 from scheduler.models import SchedulerHost
 from django.conf import settings
@@ -353,6 +353,15 @@ def task_check_scheduler(id=None, retry=2, timeout=5):
         if not success:
             scheduler_host.status = False
             scheduler_host.save()
+
+
+@app.task()
+def task_cls_terminalsession():
+    try:
+        TerminalSession.objects.all().delete()
+    except Exception:
+        import traceback
+        print(traceback.format_exc())
 
 
 @app.task()

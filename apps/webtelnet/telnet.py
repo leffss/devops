@@ -9,11 +9,9 @@ import traceback
 import socket
 import sys
 import os
-import re
 import logging
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-from django.utils.encoding import smart_str, force_str
 
 try:
     terminal_exipry_time = settings.CUSTOM_TERMINAL_EXIPRY_TIME

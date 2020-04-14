@@ -4,7 +4,6 @@
 并插入部分测试数据
 """
 import os
-import sys
 
 
 def main():

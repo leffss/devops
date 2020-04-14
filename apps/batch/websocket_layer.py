@@ -83,7 +83,7 @@ class Cmd(WebsocketConsumer):
         try:
             async_to_sync(self.channel_layer.group_discard)(self.group, self.channel_name)  # 退出组
         except Exception:
-            print(traceback.format_exc())
+            pass
 
     def receive(self, text_data=None, bytes_data=None):
         if self.is_running:
@@ -155,7 +155,7 @@ class Cmd(WebsocketConsumer):
         try:
             self.send(data['text'])
         except Exception:
-            print(traceback.format_exc())
+            logger.error("send message error: {0}".format(traceback.format_exc()))
 
     def close_channel(self, data):
         try:
@@ -163,7 +163,7 @@ class Cmd(WebsocketConsumer):
             time.sleep(0.3)
             self.close()
         except Exception:
-            print(traceback.format_exc())
+            logger.error("close channel error: {0}".format(traceback.format_exc()))
 
 
 class Script(WebsocketConsumer):

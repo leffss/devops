@@ -1,5 +1,5 @@
 """
-基于 ansible v2.8.5 的 api，低于 v2.8 不适用
+基于 ansible v2.8.5 的 api，低于 v2.8 不适用，经测试兼容 v2.9
 """
 import os
 import json

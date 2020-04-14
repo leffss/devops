@@ -500,7 +500,7 @@
       "title": "调度主机",
       "url": "/scheduler/hosts/",
       "menu": "任务调度",
-      "men_icon": "<i class=\"nav-icon fas fa-history fa-xs\"></i>",
+      "men_icon": "<i class=\"nav-icon fas fa-tasks fa-xs\"></i>",
       "order": 17
     }
   },

@@ -36,6 +36,11 @@ try:
 except Exception:
     terminal_exipry_time = 60 * 30
 
+zmodemszstart = b'rz\r**\x18B00000000000000\r\x8a'
+zmodemszend = b'**\x18B0800000000022d\r\x8a'
+zmodemrzstart = b'rz waiting to receive.**\x18B0100000023be50\r\x8a'
+zmodemrzend = b'**\x18B0800000000022d\r\x8a'
+
 
 def transport_keepalive(transport):
     # 对后端transport每隔x秒发送空数据以保持连接
@@ -210,7 +215,7 @@ class ServerInterface(paramiko.ServerInterface):
                             recv_message = self.chan_ser.recv(1024)
 
                             if self.zmodem:
-                                if b'**\x18B0800000000022d\r\x8a' in recv_message:
+                                if zmodemszend in recv_message or zmodemrzend in recv_message:
                                     self.zmodem = False
                                     delay = round(time.time() - self.start_time, 6)
                                     self.res_asciinema.append(json.dumps([delay, 'o', '\r\n']))
@@ -218,13 +223,11 @@ class ServerInterface(paramiko.ServerInterface):
                                 self.chan_cli.send(recv_message)
                                 continue
                             else:
-                                if b'rz\r**\x18B00000000000000\r\x8a' in recv_message or b'rz waiting to receive.**\x18B0100000023be50\r\x8a' in recv_message:
+                                if zmodemszstart in recv_message or zmodemrzstart in recv_message:
                                     self.zmodem = True
                                     # logger.info("zmodem start")
                                     self.chan_cli.send(recv_message)
                                     continue
-
-                            # logger.info(recv_message)
 
                             if len(recv_message) == 0:
                                 self.chan_cli.send("\r\n\033[31m服务端已断开连接....\033[0m\r\n")
