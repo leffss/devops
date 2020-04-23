@@ -37,6 +37,7 @@ urlpatterns = [
     path('webtelnet/', include('webtelnet.urls', namespace='webtelnet')),
 
     path('webguacamole/', include('webguacamole.urls', namespace='webguacamole')),
+    path('api/webguacamole/', include('webguacamole.urls_api', namespace='webguacamole_api')),
 
     path('batch/', include('batch.urls', namespace='batch')),
     path('api/batch/', include('batch.urls_api', namespace='batch_api')),

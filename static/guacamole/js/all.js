@@ -1171,7 +1171,12 @@ Guacamole.Client = function(h) {
 				$("body").removeAttr("onbeforeunload"); //删除刷新关闭提示属性
 			} else {
 				toastr.info(data);
-			};
+			}
+		},
+		group: function(Q) {	// 自定义处理协议，连接成功后设置 group 信息，用于页面上传文件到 guacd 挂载是目录
+			var lable = Q[0];
+			var data = Q[1];
+			$("#" + lable).attr("text", data);
 		},
 	};
 	h.oninstruction = function(P, O) {

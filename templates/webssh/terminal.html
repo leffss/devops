@@ -48,7 +48,7 @@
 		
 		{% if request|has_permission:'webssh终端文件上传' %}
 		<div class="col-lg-3" id="up">
-			<input type="file" id="upload_file" class="file pb-2" name="upload_file" multiple required>
+			<input type="file" id="upload_file" class="file pb-2" name="upload_file" required>
 		</div>
 		{% endif %}
 		
@@ -171,7 +171,6 @@
                 //    type: 'green',
                 //    content: response.msg,
                 //})
-				console.log("上传成功", response);
 				toastr.options.closeButton = true;
 				toastr.options.showMethod = 'slideDown';
 				toastr.options.hideMethod = 'fadeOut';
@@ -183,7 +182,7 @@
 				if (response.complete == true && response.uploaded == true) {
 					// 消息框
 					toastr.success('文件"' + response.filename + '"已上传到目录"' + response.remote_path + '"');
-				} else {};
+				} else {}
             },
 		},
         //ajaxSettings: {
@@ -209,9 +208,9 @@
         removeLabel: '清空',
         uploadLabel: '上传',
     }).on('fileuploaded', function(event, previewId, index, fileId) {
-        console.log('File uploaded', previewId, index, fileId);
+        //console.log('File uploaded', previewId, index, fileId);
     }).on('fileuploaderror', function(event, data, msg) {
-        console.log('File uploaded error', data.previewId, data.index, data.fileId, msg);
+        //console.log('File uploaded error', data.previewId, data.index, data.fileId, msg);
 		toastr.options.closeButton = true;
 		toastr.options.showMethod = 'slideDown';
 		toastr.options.hideMethod = 'fadeOut';
@@ -222,7 +221,7 @@
 		toastr.options.positionClass = 'toast-top-right';
 		toastr.error('文件上传错误: ' + data.fileId);
     }).on('filebatchuploadcomplete', function(event, preview, config, tags, extraData) {
-        console.log('File batch upload complete', preview, config, tags, extraData);
+        //console.log('File batch upload complete', preview, config, tags, extraData);
     });
 	// 上传文件 -- end
 	

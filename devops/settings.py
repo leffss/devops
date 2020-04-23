@@ -34,6 +34,11 @@ SCRIPT_ROOT = os.path.join(MEDIA_ROOT, SCRIPT_DIR)
 if not os.path.isdir(SCRIPT_ROOT):
     os.makedirs(SCRIPT_ROOT)
 
+GUACD_DIR = 'guacd'     # guacd 挂载目录，用于 rdp 下载上传文件
+GUACD_ROOT = os.path.join(MEDIA_ROOT, GUACD_DIR)
+if not os.path.isdir(GUACD_ROOT):
+    os.makedirs(GUACD_ROOT)
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 
 TMP_DIR = 'tmp'
@@ -248,15 +253,15 @@ CELERY_BEAT_SCHEDULE = {    # celery 定时任务, 会覆盖 redis 当中相同�
     #     # "args": None,  # 参数
     #     "args": (None, 0, 3),  # 参数
     # },
-    'task_check_scheduler_cron': {
-        'task': 'tasks.tasks.task_check_scheduler',
-        'schedule': crontab(minute='*/1', hour='*', day_of_week='*', day_of_month='*', month_of_year='*'),  # cron 任务
-        # "args": None,  # 参数
-        "args": (None, 0, 3),  # 参数
-    },
+    # 'task_check_scheduler_cron': {
+    #     'task': 'tasks.tasks.task_check_scheduler',
+    #     'schedule': crontab(minute='*/1', hour='*', day_of_week='*', day_of_month='*', month_of_year='*'),  # cron 任务
+    #     # "args": None,  # 参数
+    #     "args": (None, 0, 3),  # 参数
+    # },
     'task_cls_terminalsession': {   # 清除 terminalsession 表，系统异常退出时此表可能会有垃圾数据，仅启动时运行一次
         'task': 'tasks.tasks.task_cls_terminalsession',
-        'schedule': timedelta(seconds=3),
+        'schedule': timedelta(seconds=2),
         "limit_run_time": 1,   # 限制任务执行次数，>=0, 0 为不限制。注意：celery 原版 beat 是不支持此参数
     },
 }

@@ -9,10 +9,13 @@ from asgiref.sync import async_to_sync
 from util.tool import gen_rand_char, terminal_log, res
 from util.crypto import decrypt
 import time
-from .guacamoleclient import Client
+from .guacamoleclient import Client, ClientView
 import re
 import base64
 from django.http.request import QueryDict
+import sys
+import os
+import shutil
 
 
 try:
@@ -72,17 +75,49 @@ class WebGuacamole(WebsocketConsumer):
         if self.remote_host.get_protocol_display() == 'vnc':    # vnc 登陆不需要账号
             _type = 8
 
+        # guacamole 连接性能参数设置
+        # enable_wallpaper    如果设置为true，则开启桌面壁纸渲染。默认为不开启
+        # enable_theming    如果设置为true，则开启窗口和控件的主题。默认为不开启
+        # enable_font_smoothing 如果设置为“true”，文本将以平滑的边缘呈现。默认情况下，RDP上的文本粗体呈现，因为这减少了文本使用的颜色数量，从而减少了连接所需的带宽。
+        # enable_full_window_drag   如果设置为“true”，窗口的内容将随着窗口的移动而显示。默认情况下，RDP服务器将仅在窗口拖动时绘制窗口边框。
+        # enable_desktop_composition    如果设置为“true”，则允许使用透明窗口和阴影等图形效果。默认情况下，此类效果（如果可用）被禁用。
+        # enable_menu_animations    如果设置为“true”，菜单开启和关闭动画将被允许。默认情况下禁用菜单动画。
+
         self.guacamoleclient = Client(websocker=self)
-        self.guacamoleclient.connect(
-            protocol=self.remote_host.get_protocol_display(),
-            hostname=self.remote_host.ip,
-            port=self.remote_host.port,
-            username=self.remote_host.remote_user.username,
-            password=decrypt(self.remote_host.remote_user.password),
-            width=self.width,
-            height=self.height,
-            dpi=self.dpi,
-        )
+        if 'webguacamole终端文件上传下载' not in self.session[settings.INIT_PERMISSION]['titles']:  # 判断权限
+            self.guacamoleclient.connect(
+                protocol=self.remote_host.get_protocol_display(),
+                hostname=self.remote_host.ip,
+                port=self.remote_host.port,
+                username=self.remote_host.remote_user.username,
+                password=decrypt(self.remote_host.remote_user.password),
+                width=self.width,
+                height=self.height,
+                dpi=self.dpi,
+                enable_font_smoothing="true",
+            )
+        else:
+            self.guacamoleclient.connect(
+                protocol=self.remote_host.get_protocol_display(),
+                hostname=self.remote_host.ip,
+                port=self.remote_host.port,
+                username=self.remote_host.remote_user.username,
+                password=decrypt(self.remote_host.remote_user.password),
+                width=self.width,
+                height=self.height,
+                dpi=self.dpi,
+                enable_drive="true",
+                drive_name="filesystem",
+                drive_path="/fs/{}".format(self.group),
+                create_drive_path="true",
+
+                # enable_wallpaper="true",
+                # enable_theming="true",
+                enable_font_smoothing="true",   # 字体平滑开启就可以了
+                # enable_full_window_drag="true",
+                # enable_desktop_composition="true",
+                # enable_menu_animations="true",
+            )
 
         for i in self.scope['headers']:
             if i[0].decode('utf-8') == 'user-agent':
@@ -109,16 +144,25 @@ class WebGuacamole(WebsocketConsumer):
             'type': _type,  # 7 webrdp  8 webvnc
             'address': self.client,
             'useragent': self.user_agent,
+            'connect_info': '{0}_{1}_{2}_{3}'.format(self.width, self.height, self.dpi, self.guacamoleclient.guacamoleclient.id)
         }
         TerminalSession.objects.create(**data)
         t = threading.Thread(target=self.check_timeout)
         t.daemon = True
         t.start()
+        # 给客户端发送组信息，用于web页面上传文件，需要在 guacamole/js/all.js 中自定义 group 的处理处理方法
+        self.send('5.group,10.group_name,{0}.{1};'.format(len(self.group), self.group))
 
     def disconnect(self, close_code):
         time.sleep(0.5)
         if not self.closed:
             self.closed = True
+            if 'webguacamole终端文件上传下载' in self.session[settings.INIT_PERMISSION]['titles']:
+                try:
+                    upload_file_path = os.path.join(settings.GUACD_ROOT, self.group)
+                    shutil.rmtree(upload_file_path, ignore_errors=True)
+                except Exception:
+                    pass
             try:
                 async_to_sync(self.channel_layer.group_discard)(self.group, self.channel_name)
                 if close_code != 3001:
@@ -211,3 +255,54 @@ class WebGuacamole(WebsocketConsumer):
                 break
 
             time.sleep(sleep_time)
+
+
+class WebGuacamole_view(WebsocketConsumer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.session = None
+
+    def connect(self):
+        self.accept('guacamole')
+        self.session = self.scope.get('session', None)
+        if not self.session.get('islogin', None):  # 未登录直接断开 websocket 连接
+            self.close()
+
+        if '终端会话查看' not in self.session[settings.INIT_PERMISSION]['titles']:    # 判断权限
+            self.close()
+
+        query_string = self.scope.get('query_string').decode()
+        args = QueryDict(query_string=query_string, encoding='utf-8')
+        self.group = args.get('group')
+
+        terminalsession = object
+        try:
+            terminalsession = TerminalSession.objects.get(group=self.group)
+        except Exception:
+            self.close()
+
+        tmp = terminalsession.connect_info.split("_")
+        width = tmp[0]
+        height = tmp[1]
+        dpi = tmp[2]
+        protocol = tmp[3]
+
+        self.guacamoleclient = ClientView(websocker=self)
+        self.guacamoleclient.connect(
+            protocol=protocol,
+            hostname='',
+            port='',
+            username='',
+            password='',
+            width=width,
+            height=height,
+            dpi=dpi,
+            enable_font_smoothing="true",
+        )
+
+    def disconnect(self, close_code):
+        self.guacamoleclient.close()
+
+    def receive(self, text_data=None, bytes_data=None):
+        if text_data.startswith('4.sync') or text_data.startswith('3.nop'):
+            self.guacamoleclient.shell(text_data)

@@ -108,6 +108,13 @@
 							<input type="text" name="group" value="{{ session.group  }}" hidden>
 							<button type="submit" class="btn btn-sm btn-success mb-1"><i class="far fa-eye"></i> 查看</button>
 							</form>&nbsp;&nbsp;
+                        {% elif session.get_type_display == 'webrdp' or session.get_type_display == 'webvnc' %}
+                            <form method="post" action="{% url 'webguacamole:terminal_view' %}" target="_blank" style="display:inline;">
+							{% csrf_token %}
+							<input type="text" name="sessionname" value="{{ session.name  }}" hidden>
+							<input type="text" name="group" value="{{ session.group  }}" hidden>
+							<button type="submit" class="btn btn-sm btn-success mb-1"><i class="far fa-eye"></i> 查看</button>
+							</form>&nbsp;&nbsp;
 						{% endif %}
 					{% endif %}
 					

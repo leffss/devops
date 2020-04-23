@@ -23,10 +23,11 @@ docker run --name redis-server -p 6379:6379 -d redis:latest
 
 **安装 guacd（docker 方式）**
 ```bash
-docker run --name guacd -p 4822:4822 -d guacamole/guacd
+docker run --name guacd -e GUACD_LOG_LEVEL=info -v /home/workspace/devops/media/guacd:/fs -p 4822:4822 -d guacamole/guacd
 ```
 - rdp 与 vnc 连接支持所需，非必须
-- windows rdp 必须设置为`允许运行任意版本远程桌面的计算机连接(较不安全)(L)`才能连接
+- rdp 必须设置为`允许运行任意版本远程桌面的计算机连接(较不安全)(L)`才能连接，也就说目前暂不支持 nla 登陆方式
+- `-v /home/workspace/devops/media/guacd:/fs` 挂载磁盘，用于远程挂载文件系统实现上传和下载文件
 
 **安装 python 依赖库**
 ```bash
@@ -78,29 +79,30 @@ python3 init.py
 - initial_data.json 为权限数据
 - init.py 创建超级管理员 admin 以及部分测试数据
 
-**启动 django 服务**
+**启动响应服务**
 ```bash
 rm -rf logs/*
 export PYTHONOPTIMIZE=1		# 解决 celery 不允许创建子进程的问题
-nohup gunicorn -c gunicorn.cfg devops.wsgi:application > logs/gunicorn.log 2>&1 &
-nohup daphne -b 0.0.0.0 -p 8001 --access-log=logs/daphne_access.log devops.asgi:application > logs/daphne.log 2>&1 &
-nohup python3 manage.py sshd > logs/sshd.log 2>&1 &
 nohup celery -A devops worker -l info -c 3 --max-tasks-per-child 40 --prefetch-multiplier 1 --pidfile logs/celery_worker.pid > logs/celery.log 2>&1 &
 nohup celery -A devops beat -l info --pidfile logs/celery_worker.pid > logs/celery_beat.log 2>&1 &
+nohup python3 manage.py sshd > logs/sshd.log 2>&1 &
+nohup daphne -b 0.0.0.0 -p 8001 --access-log=logs/daphne_access.log devops.asgi:application > logs/daphne.log 2>&1 &
+nohup gunicorn -c gunicorn.cfg devops.wsgi:application > logs/gunicorn.log 2>&1 &
 ```
 - gunicorn  处理 http 请求，监听 8000 端口
 - daphne 处理 websocket 请求，监听 8001 端口
 - sshd 为 ssh 代理服务器，监听 2222 端口，提供调用 securecrt、xshell、putty 以及 winscp 客户端支持，非必须
 - celery 后台任务处理进程，`export PYTHONOPTIMIZE=1` 此环境变量非常重要，不设置无法后台运行 ansible api
 - celery_beat 定时任务处理进程，读取 `devops/settings.py` 中设置的 `CELERY_BEAT_SCHEDULE` 定时任务，详见 v1.8.8 升级日志
+- 需要停止时 kill 相应的进程即可
 
-**nginx  前端代理**
+**nginx 前端代理**
 ```
 yum install -y nginx
 ```
-- 为了方便，就不编译安装，直接 yum 安装，版本是 `nginx-1.16.1`
+- 为了方便，就不编译安装，直接 yum 安装，版本 `nginx-1.16.1`
 
-修改 nginx 配置 /etc/nginx/nginx.conf：
+修改 nginx 配置 /etc/nginx/nginx.conf 如下：
 ```
 # For more information on configuration, see:
 #   * Official English Documentation: http://nginx.org/en/docs/
@@ -248,12 +250,33 @@ systemctl start nginx
 有点多，看图，不想描述了。
 
 
-# 存在问题
-web 终端（包括 webssh，webtelnet）在使用 chrome 浏览器打开时，很大机率会出现一片空白无法显示 xterm.js 终端的情况。
+# 已知问题或者不足
+1. web 终端（包括 webssh，webtelnet）在使用 chrome 浏览器打开时，很大机率会出现一片空白无法显示 xterm.js 终端的情况。
 解决方法是改变一下 chrome 的缩放比例就好了（ctrl + 鼠标滚轮），在 firefox 下也有无此问题，但出现的机率小一些，具体原因未知。
 
+2. webssh，clissh，webtelnet 记录命令功能有瑕疵：
+- 无法很好记录 tab 补全命令，暂时无解决方案
+- 无法很好记录使用上下箭头调用的历史命令，暂时无解决方案
+- 无法很好记录包括控制字符的命令（使用了退格、del 删除、关闭移动等操作），这个应该可以使用 gnu-readline 是解决
+- 无法识别进入和退出文本编辑模式（使用 vi、vim、emacs 等类似编辑器编辑文本），从而错误地把文本输入也记录为命令，
+看了国内比较出名的开源堡垒机 jumpserver 组件 koko 的源码也有类似问题，至少目前为止他们也是无法解决这个问题的
+- 正在寻找解决方案
 
 # 升级日志
+
+### ver1.8.9
+修正 clissh 与 webssh 使用 zmodem 时传输中途执行了取消操作后会丢失后续操作记录的 bug；
+
+新增 webrdp 与 webvnc 挂载文件系统实现上传和下载文件；
+- 下载文件的方法是将需要下载的文件拖动到挂载的文件系统中的 `download` 文件夹中
+- 上传文件的方法是通过点击浏览器上传文件，上传好的文件会在挂载的文件系统根目录中
+- 仅测试过 webrdp
+
+新增 webrdp 与 webvnc 会话实时查看功能；
+- 仅测试过 webrdp
+
+新增 webrdp 与 webvnc 屏幕键盘
+- 仅测试过 webrdp
 
 ### ver1.8.8
 新增修改版 celery beat：

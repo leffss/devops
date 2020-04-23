@@ -178,11 +178,11 @@
 		
 		function LoadFunction() {
 			
-		};
+		}
 		
 		function errFunction() {
 			toastr.error('关闭会话错误 "{{ session.name }}"');
-		};
+		}
 		
 		function succFunction(res) {
 			if (res.code != 200) {
@@ -195,8 +195,8 @@
 				$("#session-unlock").attr("hidden", true);
 				$("#session-lock").attr("hidden", true);
 				$("body").removeAttr("onbeforeunload"); //删除刷新关闭提示属性
-			};
-		};
+			}
+		}
 	};
 	// 关闭会话 -- end
 
@@ -223,7 +223,7 @@
 			action_url = "{% url 'webssh_api:session_clissh_lock' %}";
 		} else if (type == 'webssh' || type == 'webtelnet' || type == 'webrdp' || type == 'webvnc' ) {
 			action_url = "{% url 'webssh_api:session_lock' %}";
-		};
+		}
 		$.ajax({
 			url: action_url,
 			async: true,
@@ -242,11 +242,11 @@
 		
 		function LoadFunction() {
 			
-		};
+		}
 		
 		function errFunction() {
 			toastr.error('锁定会话错误 "{{ session.name }}"');
-		};
+		}
 		
 		function succFunction(res) {
 			if (res.code != 200) {
@@ -258,8 +258,8 @@
 				$("#session-lock").removeClass("btn-info").addClass("btn-primary");
 				$("#session-lock").html('<i class="fas fa-lock-open"></i> 解锁');
 				$("#session-lock").attr('id', 'session-unlock');
-			};
-		};
+			}
+		}
 	};
 	// 锁定会话 -- end
 
@@ -321,8 +321,8 @@
 				$("#session-unlock").removeClass("btn-primary").addClass("btn-info");
 				$("#session-unlock").html('<i class="fas fa-lock"></i> 锁定');
 				$("#session-unlock").attr('id', 'session-lock');
-			};
-		};
+			}
+		}
 	};
 	// 解锁会话 -- end
 

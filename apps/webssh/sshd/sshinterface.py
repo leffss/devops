@@ -40,6 +40,7 @@ zmodemszstart = b'rz\r**\x18B00000000000000\r\x8a'
 zmodemszend = b'**\x18B0800000000022d\r\x8a'
 zmodemrzstart = b'rz waiting to receive.**\x18B0100000023be50\r\x8a'
 zmodemrzend = b'**\x18B0800000000022d\r\x8a'
+zmodemcancel = b'\x18\x18\x18\x18\x18\x08\x08\x08\x08\x08'
 
 
 def transport_keepalive(transport):
@@ -220,6 +221,10 @@ class ServerInterface(paramiko.ServerInterface):
                                     delay = round(time.time() - self.start_time, 6)
                                     self.res_asciinema.append(json.dumps([delay, 'o', '\r\n']))
                                     # logger.info("zmodem end")
+                                if zmodemcancel in recv_message:
+                                    self.zmodem = False
+                                    self.chan_ser.send(b'\n')
+                                    # logger.info("zmodem cancel")
                                 self.chan_cli.send(recv_message)
                                 continue
                             else:

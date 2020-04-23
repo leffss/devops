@@ -1,4 +1,5 @@
 {% load staticfiles %}
+{% load user_tags %}
 
 <!DOCTYPE html>
 <html>
@@ -17,12 +18,16 @@
   
   <!-- Toastr -->
   <link rel="stylesheet" href="{% static 'adminlte/plugins/toastr/toastr.min.css' %}">
-  
+
+  <!-- bootstrap-fileinput -->
+  <link rel="stylesheet" href="{% static 'bootstrap-fileinput/css/fileinput.min.css' %}">
+
   <!-- 弹出窗口插件 -->
   <link rel="stylesheet" href="{% static 'css/iziModal.min.css' %}">
   
   <link rel="stylesheet" href="{% static 'guacamole/css/guacamole.css' %}">
-  
+  <link rel="stylesheet" href="{% static 'guacamole/css/virtualkeyboard.css' %}">
+
     <style>
         #dpi {
             height: 1in;
@@ -46,18 +51,29 @@
 <div id='dpi'></div>
 
 <div class="container-fluid content-list" id="headers" style="background-color: #E3F2FD">
-	<div class="row">
-		<div class="col-12 mt-2">
+	<div class="row pt-2 pb-1">
+		<div class="col-lg-9">
 			<h5>
 			主机：{{ host.hostname }}&nbsp;&nbsp;协议：{{ host.get_protocol_display }}&nbsp;&nbsp;连接：{{ host.remote_user.username }}@{{ host.ip }}:{{ host.port }}
 			<a href="javascript:void(0)" class="btn btn-sm btn-danger ml-2 session-close"><i class="far fa-times-circle"></i> 断开</a>
+
+            <a href="javascript:void(0)" class="btn btn-sm btn-info ml-2" id="osk-show" onclick="show_osk();"><i class="fas fa-keyboard"></i> 屏幕键盘</a>
 			</h5>
 		</div>
+
+        {% if request|has_permission:'webguacamole终端文件上传下载' %}
+		<div class="col-lg-3" id="up">
+			<input type="file" id="upload_file" class="file pb-2" name="upload_file" required>
+		</div>
+		{% endif %}
+
 	</div>
 </div>
 
 <!-- Display -->
 <div class="mt-1 content-list" id="display"></div>
+<!-- 虚拟键盘 -->
+<div class="keyboard-container p-1" id="osk" style="display: none;"></div>
 
 <!-- 断开连接 -->
 <div id="modal-close" class="iziModal">
@@ -79,6 +95,9 @@
 <!-- 剪切板 -->
 <button id="clipboard" data-clipboard-text="" hidden></button>
 
+<!-- 用于保存连接的组信息 -->
+<span id="group_name" text="" hidden></span>
+
 <!-- jQuery -->
 <script src="{% static 'adminlte/plugins/jquery/jquery.min.js' %}"></script>
 <!-- Bootstrap 4 -->
@@ -99,7 +118,11 @@
 <script src="{% static 'guacamole/js/all.js' %}"></script>
 <!--script src="{% static 'guacamole/js/all.min.js' %}"></script-->
 
-<script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+<script src="//cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+
+<!-- bootstrap-fileinput -->
+<script src="{% static 'bootstrap-fileinput/js/fileinput.min.js' %}"></script>
+<!--script src="{% static 'bootstrap-fileinput/js/locales/zh.js' %}"></script-->
 
 <!-- Init -->
 <script type="text/javascript">
@@ -147,9 +170,9 @@
 					var clipboard = new ClipboardJS('#clipboard');
 					$('#clipboard').click();
 					clipboard.destroy();
-				};
+				}
             };
-		};
+		}
 	};
 	
 	//将内容传送到往堡垒机，data 是获取到的内容，怎么自动获取本机剪切板内容暂时未实现
@@ -177,6 +200,32 @@
                 guac.sendMouseState(mouseState);
             };
 
+    // touchpad
+    try {
+        var touchpad = new Guacamole.Touchpad(guac.getDisplay().getElement());
+
+        touchpad.onmousedown =
+            touchpad.onmouseup =
+                touchpad.onmousemove = function (mouseState) {
+                    guac.sendMouseState(mouseState);
+                };
+    } catch (e) {
+        console.log(e);
+    }
+
+    // or touchscreen
+    try {
+        var touchscreen = new Guacamole.Touchscreen(guac.getDisplay().getElement());
+
+        touchscreen.onmousedown =
+            touchscreen.onmouseup =
+                touchscreen.onmousemove = function (mouseState) {
+                    guac.sendMouseState(mouseState);
+                };
+    } catch (e) {
+        console.log(e);
+    }
+
     // Keyboard
     var keyboard = new Guacamole.Keyboard(document);
 
@@ -187,6 +236,36 @@
     keyboard.onkeyup = function (keysym) {
         guac.sendKeyEvent(0, keysym);
     };
+
+    // 虚拟键盘数据
+    var virtualkeyboard = {"language":"en_US","type":"qwerty","width":32,"keys":{"0":[{"title":"0","requires":[]},{"title":")","requires":["shift"]}],"1":[{"title":"1","requires":[]},{"title":"!","requires":["shift"]}],"2":[{"title":"2","requires":[]},{"title":"@","requires":["shift"]}],"3":[{"title":"3","requires":[]},{"title":"#","requires":["shift"]}],"4":[{"title":"4","requires":[]},{"title":"$","requires":["shift"]}],"5":[{"title":"5","requires":[]},{"title":"%","requires":["shift"]}],"6":[{"title":"6","requires":[]},{"title":"^","requires":["shift"]}],"7":[{"title":"7","requires":[]},{"title":"&","requires":["shift"]}],"8":[{"title":"8","requires":[]},{"title":"*","requires":["shift"]}],"9":[{"title":"9","requires":[]},{"title":"(","requires":["shift"]}],"Back":65288,"Tab":65289,"Enter":65293,"Esc":65307,"Home":65360,"PgUp":65365,"PgDn":65366,"End":65367,"Ins":65379,"F1":65470,"F2":65471,"F3":65472,"F4":65473,"F5":65474,"F6":65475,"F7":65476,"F8":65477,"F9":65478,"F10":65479,"F11":65480,"F12":65481,"Del":65535,"Space":" ","Left":[{"title":"←","keysym":65361}],"Up":[{"title":"↑","keysym":65362}],"Right":[{"title":"→","keysym":65363}],"Down":[{"title":"↓","keysym":65364}],"Menu":[{"title":"Menu","keysym":65383}],"LShift":[{"title":"Shift","modifier":"shift","keysym":65505}],"RShift":[{"title":"Shift","modifier":"shift","keysym":65506}],"LCtrl":[{"title":"Ctrl","modifier":"control","keysym":65507}],"RCtrl":[{"title":"Ctrl","modifier":"control","keysym":65508}],"Caps":[{"title":"Caps","modifier":"caps","keysym":65509}],"LAlt":[{"title":"Alt","modifier":"alt","keysym":65513}],"RAlt":[{"title":"Alt","modifier":"alt","keysym":65514}],"Super":[{"title":"Win","modifier":"super","keysym":65515}],"`":[{"title":"`","requires":[]},{"title":"~","requires":["shift"]}],"-":[{"title":"-","requires":[]},{"title":"_","requires":["shift"]}],"=":[{"title":"=","requires":[]},{"title":"+","requires":["shift"]}],",":[{"title":",","requires":[]},{"title":"<","requires":["shift"]}],".":[{"title":".","requires":[]},{"title":">","requires":["shift"]}],"/":[{"title":"/","requires":[]},{"title":"?","requires":["shift"]}],"[":[{"title":"[","requires":[]},{"title":"{","requires":["shift"]}],"]":[{"title":"]","requires":[]},{"title":"}","requires":["shift"]}],"\\":[{"title":"\\","requires":[]},{"title":"|","requires":["shift"]}],";":[{"title":";","requires":[]},{"title":":","requires":["shift"]}],"'":[{"title":"'","requires":[]},{"title":"\"","requires":["shift"]}],"q":[{"title":"q","requires":[]},{"title":"Q","requires":["caps"]},{"title":"Q","requires":["shift"]},{"title":"q","requires":["caps","shift"]}],"w":[{"title":"w","requires":[]},{"title":"W","requires":["caps"]},{"title":"W","requires":["shift"]},{"title":"w","requires":["caps","shift"]}],"e":[{"title":"e","requires":[]},{"title":"E","requires":["caps"]},{"title":"E","requires":["shift"]},{"title":"e","requires":["caps","shift"]}],"r":[{"title":"r","requires":[]},{"title":"R","requires":["caps"]},{"title":"R","requires":["shift"]},{"title":"r","requires":["caps","shift"]}],"t":[{"title":"t","requires":[]},{"title":"T","requires":["caps"]},{"title":"T","requires":["shift"]},{"title":"t","requires":["caps","shift"]}],"y":[{"title":"y","requires":[]},{"title":"Y","requires":["caps"]},{"title":"Y","requires":["shift"]},{"title":"y","requires":["caps","shift"]}],"u":[{"title":"u","requires":[]},{"title":"U","requires":["caps"]},{"title":"U","requires":["shift"]},{"title":"u","requires":["caps","shift"]}],"i":[{"title":"i","requires":[]},{"title":"I","requires":["caps"]},{"title":"I","requires":["shift"]},{"title":"i","requires":["caps","shift"]}],"o":[{"title":"o","requires":[]},{"title":"O","requires":["caps"]},{"title":"O","requires":["shift"]},{"title":"o","requires":["caps","shift"]}],"p":[{"title":"p","requires":[]},{"title":"P","requires":["caps"]},{"title":"P","requires":["shift"]},{"title":"p","requires":["caps","shift"]}],"a":[{"title":"a","requires":[]},{"title":"A","requires":["caps"]},{"title":"A","requires":["shift"]},{"title":"a","requires":["caps","shift"]}],"s":[{"title":"s","requires":[]},{"title":"S","requires":["caps"]},{"title":"S","requires":["shift"]},{"title":"s","requires":["caps","shift"]}],"d":[{"title":"d","requires":[]},{"title":"D","requires":["caps"]},{"title":"D","requires":["shift"]},{"title":"d","requires":["caps","shift"]}],"f":[{"title":"f","requires":[]},{"title":"F","requires":["caps"]},{"title":"F","requires":["shift"]},{"title":"f","requires":["caps","shift"]}],"g":[{"title":"g","requires":[]},{"title":"G","requires":["caps"]},{"title":"G","requires":["shift"]},{"title":"g","requires":["caps","shift"]}],"h":[{"title":"h","requires":[]},{"title":"H","requires":["caps"]},{"title":"H","requires":["shift"]},{"title":"h","requires":["caps","shift"]}],"j":[{"title":"j","requires":[]},{"title":"J","requires":["caps"]},{"title":"J","requires":["shift"]},{"title":"j","requires":["caps","shift"]}],"k":[{"title":"k","requires":[]},{"title":"K","requires":["caps"]},{"title":"K","requires":["shift"]},{"title":"k","requires":["caps","shift"]}],"l":[{"title":"l","requires":[]},{"title":"L","requires":["caps"]},{"title":"L","requires":["shift"]},{"title":"l","requires":["caps","shift"]}],"z":[{"title":"z","requires":[]},{"title":"Z","requires":["caps"]},{"title":"Z","requires":["shift"]},{"title":"z","requires":["caps","shift"]}],"x":[{"title":"x","requires":[]},{"title":"X","requires":["caps"]},{"title":"X","requires":["shift"]},{"title":"x","requires":["caps","shift"]}],"c":[{"title":"c","requires":[]},{"title":"C","requires":["caps"]},{"title":"C","requires":["shift"]},{"title":"c","requires":["caps","shift"]}],"v":[{"title":"v","requires":[]},{"title":"V","requires":["caps"]},{"title":"V","requires":["shift"]},{"title":"v","requires":["caps","shift"]}],"b":[{"title":"b","requires":[]},{"title":"B","requires":["caps"]},{"title":"B","requires":["shift"]},{"title":"b","requires":["caps","shift"]}],"n":[{"title":"n","requires":[]},{"title":"N","requires":["caps"]},{"title":"N","requires":["shift"]},{"title":"n","requires":["caps","shift"]}],"m":[{"title":"m","requires":[]},{"title":"M","requires":["caps"]},{"title":"M","requires":["shift"]},{"title":"m","requires":["caps","shift"]}]},"layout":[["Esc",0.7,"F1","F2","F3","F4",0.7,"F5","F6","F7","F8",0.7,"F9","F10","F11","F12"],[0.1],{"main":{"alpha":[["`","1","2","3","4","5","6","7","8","9","0","-","=","Back"],["Tab","q","w","e","r","t","y","u","i","o","p","[","]","\\"],["Caps","a","s","d","f","g","h","j","k","l",";","'","Enter"],["LShift","z","x","c","v","b","n","m",",",".","/","RShift"],["LCtrl","Super","LAlt","Space","RAlt","Menu","RCtrl"]],"movement":[["Ins","Home","PgUp"],["Del","End","PgDn"],[1],["Up"],["Left","Down","Right"]]}}],"keyWidths":{"Back":2,"Tab":1.5,"\\":1.5,"Caps":1.85,"Enter":2.25,"LShift":2.1,"RShift":3.1,"LCtrl":1.6,"Super":1.6,"LAlt":1.6,"Space":6.1,"RAlt":1.6,"Menu":1.6,"RCtrl":1.6,"Ins":1.6,"Home":1.6,"PgUp":1.6,"Del":1.6,"End":1.6,"PgDn":1.6}};
+
+    //虚拟键盘
+    var onScreenKeyboard = new Guacamole.OnScreenKeyboard(virtualkeyboard);
+
+    //var onScreenKeyboard = new Guacamole.OnScreenKeyboard("{% static 'guacamole/keyboard/keyboard.xml' %}");
+    document.getElementById('osk').appendChild(onScreenKeyboard.getElement());
+
+    onScreenKeyboard.resize(1280);
+
+    onScreenKeyboard.onkeydown = function(keysym) {
+        guac.sendKeyEvent(1, keysym);
+    };
+
+    onScreenKeyboard.onkeyup = function(keysym) {
+        guac.sendKeyEvent(0, keysym);
+    };
+
+    // 显示和隐藏虚拟键盘
+    function show_osk () {
+        $("#osk").css("display","inline");
+        $("#osk-show").attr('onclick', "hide_osk();");
+    }
+
+    function hide_osk () {
+        $("#osk").css("display","none");
+        $("#osk-show").attr('onclick', "show_osk();");
+    }
 
     function getDPI() {
         return jQuery('#dpi').height();
@@ -227,6 +306,198 @@
 		$("body").removeAttr("onbeforeunload"); //删除刷新关闭提示属性
 		$("#display").css("cursor", "auto");	// 还原鼠标默认样式
 	};
+
+    // 监听浏览器窗口, 根据浏览器窗口大小修改终端大小，根据官方文档发现目前 rdp 和 vnc 不支持连接后改变 size，所以不起作用
+    $(window).resize(function () {
+        var width = $(window).width() - 20;	// - 20像素防止滚动条挡住桌面内容
+        var height = $(window).height() - $("#headers").height() - 10;
+        //guac.sendSize(width, height);
+    })
+
+    guac.onfile = function (stream, mimetype, filename) {
+        //通知服务端，已经收到了stream
+        stream.sendAck('OK', Guacamole.Status.Code.SUCCESS);
+        //开始处理输入流，这里封装了一个downloadFile方法
+        downloadFile(stream, mimetype, filename);
+    }
+
+    downloadFile = (stream, mimetype, filename) => {
+        //拿到的流不能直接使用，先实例化一个处理器，使用blob reader处理数据
+        var blob_builder;
+        if      (window.BlobBuilder)       blob_builder = new BlobBuilder();
+        else if (window.WebKitBlobBuilder) blob_builder = new WebKitBlobBuilder();
+        else if (window.MozBlobBuilder)    blob_builder = new MozBlobBuilder();
+        else
+            blob_builder = new (function() {
+
+                var blobs = [];
+
+                /** @ignore */
+                this.append = function(data) {
+                    blobs.push(new Blob([data], {"type": mimetype}));
+                };
+
+                /** @ignore */
+                this.getBlob = function() {
+                    return new Blob(blobs, {"type": mimetype});
+                };
+
+            })();
+
+        // Append received blobs
+        stream.onblob = function(data) {
+
+            // Convert to ArrayBuffer
+            var binary = window.atob(data);
+            var arrayBuffer = new ArrayBuffer(binary.length);
+            var bufferView = new Uint8Array(arrayBuffer);
+
+            for (var i=0; i<binary.length; i++)
+                bufferView[i] = binary.charCodeAt(i);
+
+            //收到后就交给blob_builder
+            blob_builder.append(arrayBuffer);
+            length += arrayBuffer.byteLength;
+
+            // Send success response
+            stream.sendAck("OK", 0x0000);
+
+        };
+
+        stream.onend = function(){
+            //结束的时候，获取blob_builder里面的可用数据
+            var blob_data = blob_builder.getBlob();
+
+            //数据传输完成后进行下载等处理
+            if(mimetype.indexOf('stream-index+json') !== -1){
+                //如果是文件夹,使用filereader读取blob数据，可以获得该文件夹下的文件和目录的名称和类型，是一个json形式
+                var blob_reader = new FileReader();
+                blob_reader.addEventListener("loadend", function() {
+                    let folder_content = JSON.parse(blob_reader.result)
+                    //重新组织当前文件目录，appendFileItem是自己封装的文件系统动态展示
+                    appendFileItem(folder_content)
+                    $("#header_title").text(filename);
+                });
+                blob_reader.readAsBinaryString(blob_data);
+            } else {
+                //如果是文件，直接下载，但是需要解决个问题，就是如何下载blob数据
+                //借鉴了https://github.com/eligrey/FileSaver.js这个库
+                var file_arr = filename.split("/");
+                var download_file_name = file_arr[file_arr.length - 1];
+                saveAs(blob_data, download_file_name);
+            }
+        }
+    }
+
+    //var BlobBuilder = BlobBuilder || WebKitBlobBuilder || MozBlobBuilder;
+    var BlobBuilder = BlobBuilder;
+    var URL = URL || webkitURL || window;
+    function saveAs(blob, filename) {
+        var type = blob.type;
+        var force_saveable_type = 'application/octet-stream';
+        if (type && type !== force_saveable_type) { // 强制下载，而非在浏览器中打开
+            var slice = blob.slice || blob.webkitSlice || blob.mozSlice;
+            blob = slice.call(blob, 0, blob.size, force_saveable_type);
+        }
+        var url = URL.createObjectURL(blob);
+        var save_link = document.createElementNS('http://www.w3.org/1999/xhtml', 'a');
+        save_link.href = url;
+        save_link.download = filename;
+        var event = document.createEvent('MouseEvents');
+        event.initMouseEvent('click', true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+        save_link.dispatchEvent(event);
+        URL.revokeObjectURL(url);
+    }
+
+    var parameter;
+	// 上传文件 -- start
+	$("#upload_file").fileinput({
+        language: 'zh',
+        showUpload: true,
+		uploadAsync: false,
+        dropZoneEnabled: false,
+        msgPlaceholder: '上传文件，最大支持5GB',
+        showPreview: false,
+        showCaption: true,
+		showCancel: true,
+        maxFileSize: 5242880,	// 单位kb，最大文件5GB，
+        maxFileCount: 1,
+        uploadUrl: "{% url 'webguacamole_api:session_upload' %}",
+		enableResumableUpload: true,
+		resumableUploadOptions: {
+            chunkSize: 25600, // 分片大小 25 MB，设置更大速度更块一些，但是服务器侧占用资源也较多
+        },
+        uploadExtraData: function () {
+            return parameter
+        },
+		mergeAjaxCallbacks: true,
+		ajaxSettings: {
+			headers: {'X-CSRFToken': '{{ csrf_token }}'},
+			success: function (response) {
+                //$.alert({
+                //    title: 'Tips',
+                //    type: 'green',
+                //    content: response.msg,
+                //})
+				toastr.options.closeButton = true;
+				toastr.options.showMethod = 'slideDown';
+				toastr.options.hideMethod = 'fadeOut';
+				toastr.options.closeMethod = 'fadeOut';
+				toastr.options.timeOut = 5000;
+				toastr.options.extendedTimeOut = 0;
+				toastr.options.progressBar = true;
+				toastr.options.positionClass = 'toast-top-right';
+				if (response.complete == true) {
+					// 消息框
+					toastr.success('文件"' + response.filename + '"已上传');
+				} else {}
+            },
+		},
+        //ajaxSettings: {
+            //headers: {'X-CSRFToken': '{{ csrf_token }}'},
+            //success: function (response) {
+                //$.alert({
+                //    title: 'Tips',
+                //    type: 'green',
+                //    content: response.msg,
+                //})
+				//console.log("上传成功");
+            //},
+            //error: function (response) {
+                //$.alert({
+                //    title: 'Tips',
+                //    type: 'red',
+                //    content: response.msg,
+                //})
+				//console.log("上传错误");
+            //},
+        //},
+        browseLabel: '选择',
+        removeLabel: '清空',
+        uploadLabel: '上传',
+    }).on("filepreajax", function (event, previewId, index) { // 上传时动态获取 group 额外参数
+        let group_name = $("#group_name").attr("text");
+        console.log(group_name);
+        parameter = {
+            'group': group_name,
+        }
+    }).on('fileuploaded', function(event, previewId, index, fileId) {
+        //console.log('File uploaded', previewId, index, fileId);
+    }).on('fileuploaderror', function(event, data, msg) {
+        console.log('File uploaded error', data.previewId, data.index, data.fileId, msg);
+		toastr.options.closeButton = true;
+		toastr.options.showMethod = 'slideDown';
+		toastr.options.hideMethod = 'fadeOut';
+		toastr.options.closeMethod = 'fadeOut';
+		toastr.options.timeOut = 0;
+		toastr.options.extendedTimeOut = 0;
+		toastr.options.progressBar = true;
+		toastr.options.positionClass = 'toast-top-right';
+		toastr.error('文件上传错误: ' + data.fileId);
+    }).on('filebatchuploadcomplete', function(event, preview, config, tags, extraData) {
+        //console.log('File batch upload complete', preview, config, tags, extraData);
+    });
+	// 上传文件 -- end
 
 </script>
 

@@ -1,0 +1,11 @@
+<keyboard lang="en_US" layout="example" size="5">
+    <row>
+        <key size="4">
+            <cap modifier="shift" keysym="0xFFE1">Shift</cap>
+        </key>
+        <key>
+            <cap>a</cap>
+            <cap if="shift">A</cap>
+        </key>
+    </row>
+</keyboard>

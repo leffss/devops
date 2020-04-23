@@ -58,6 +58,8 @@ class TerminalSession(models.Model):
     useragent = models.CharField(max_length=512, blank=True, null=True, verbose_name='User_Agent')
     locked = models.BooleanField(default=False, verbose_name='会话状态')
     create_time = models.DateTimeField('会话时间', auto_now_add=True)
+    # 主要用于查看 rdp 会话
+    connect_info = models.CharField(max_length=128, blank=True, null=True, verbose_name='连接信息')
 
     def __str__(self):
         return '{0}'.format(self.name)

@@ -10,6 +10,7 @@ import sys
 import os
 import traceback
 from util.tool import gen_rand_char, res as save_res
+from mp_readline import mp_readline
 import logging
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -24,6 +25,7 @@ zmodemszstart = b'rz\r**\x18B00000000000000\r\x8a'
 zmodemszend = b'**\x18B0800000000022d\r\x8a'
 zmodemrzstart = b'rz waiting to receive.**\x18B0100000023be50\r\x8a'
 zmodemrzend = b'**\x18B0800000000022d\r\x8a'
+zmodemcancel = b'\x18\x18\x18\x18\x18\x08\x08\x08\x08\x08'
 
 
 class SSH:
@@ -46,6 +48,8 @@ class SSH:
         self.res_asciinema = []
         self.zmodem = False
         self.zmodemOO = False
+        mp_readline.TESTING = True
+        self.rl = mp_readline.MpReadline()
     
     # term 可以使用 ansi, linux, vt100, xterm, dumb，除了 dumb外其他都有颜色显示
     def connect(self, host, user, password=None, ssh_key=None, port=22, timeout=30,
@@ -137,6 +141,13 @@ class SSH:
                 if data == '\r':    # 记录命令
                     data = '\n'
                     if self.cmd_tmp.strip() != '':
+
+                        print(json.dumps([self.cmd_tmp]))
+                        sys.stdout.flush()
+
+                        print(json.dumps([self.rl.process_line(self.cmd_tmp.encode("utf-8"))]))
+                        sys.stdout.flush()
+
                         self.cmd_tmp += data
                         self.cmd += self.cmd_tmp
                         self.cmd_tmp = ''
@@ -150,6 +161,7 @@ class SSH:
                     else:
                         self.cmd_tmp += data
         except Exception:
+            logger.info(traceback.format_exc())
             self.close()
 
     def django_bytes_to_ssh(self, data):
@@ -181,6 +193,9 @@ class SSH:
                         self.zmodem = False
                         if zmodemszend in x:
                             self.zmodemOO = True
+                    if zmodemcancel in x:
+                        self.zmodem = False
+                        self.channel.send('\n')
                     self.websocker.send(bytes_data=x)
                 else:
                     if zmodemszstart in x or zmodemrzstart in x:
