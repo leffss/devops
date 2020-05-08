@@ -1178,6 +1178,16 @@ Guacamole.Client = function(h) {
 			var data = Q[1];
 			$("#" + lable).attr("text", data);
 		},
+		display: function(Q) {	// 自定义处理协议
+			toastr.options.closeButton = false;
+			toastr.options.showMethod = 'slideDown';
+			toastr.options.hideMethod = 'fadeOut';
+			toastr.options.closeMethod = 'fadeOut';
+			toastr.options.timeOut = 5000;
+			toastr.options.extendedTimeOut = 3000;
+			toastr.options.positionClass = 'toast-bottom-center';
+			toastr.info('分辨率: ' + Q[0] + ' x ' + Q[1] + ', DPI: ' + Q[2]);
+		},
 	};
 	h.oninstruction = function(P, O) {
 		var N = f[P];

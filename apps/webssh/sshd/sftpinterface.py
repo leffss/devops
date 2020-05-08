@@ -201,6 +201,7 @@ class SFTPInterface(paramiko.SFTPServerInterface):
 
     def open(self, path, flags, attr):
         self.last_operation_time = time.time()
+        cmd_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.last_operation_time))
         # if flags == 769:
         #     self.cmd += '上传文件 {0}\n'.format(path)
         # elif flags == 0:
@@ -221,9 +222,9 @@ class SFTPInterface(paramiko.SFTPServerInterface):
                 fstr = 'rb'
 
             if fstr == 'rb':
-                self.cmd += '下载文件 {0}\n'.format(path)
+                self.cmd += cmd_time + '\t' + '下载文件 {0}\n'.format(path)
             else:
-                self.cmd += '上传文件 {0}\n'.format(path)
+                self.cmd += cmd_time + '\t' + '上传文件 {0}\n'.format(path)
 
             f = self.client.open(self._parsePath(path), fstr)
 
@@ -240,7 +241,8 @@ class SFTPInterface(paramiko.SFTPServerInterface):
 
     def remove(self, path):
         self.last_operation_time = time.time()
-        self.cmd += '删除文件 {0}\n'.format(path)
+        cmd_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.last_operation_time))
+        self.cmd += cmd_time + '\t' + '删除文件 {0}\n'.format(path)
         try:
             self.client.remove(self._parsePath(path))
         except IOError as e:
@@ -249,7 +251,8 @@ class SFTPInterface(paramiko.SFTPServerInterface):
 
     def rename(self, oldpath, newpath):
         self.last_operation_time = time.time()
-        self.cmd += '重命名/移动 {0} --> {1}\n'.format(oldpath, newpath)
+        cmd_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.last_operation_time))
+        self.cmd += cmd_time + '\t' + '重命名/移动 {0} --> {1}\n'.format(oldpath, newpath)
         try:
             self.client.rename(self._parsePath(oldpath), self._parsePath(newpath))
         except IOError as e:
@@ -258,7 +261,8 @@ class SFTPInterface(paramiko.SFTPServerInterface):
 
     def mkdir(self, path, attr):
         self.last_operation_time = time.time()
-        self.cmd += '创建文件夹 {0}\n'.format(path)
+        cmd_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.last_operation_time))
+        self.cmd += cmd_time + '\t' + '创建文件夹 {0}\n'.format(path)
         try:
             if attr.st_mode is None:
                 self.client.mkdir(self._parsePath(path))
@@ -270,7 +274,8 @@ class SFTPInterface(paramiko.SFTPServerInterface):
 
     def rmdir(self, path):
         self.last_operation_time = time.time()
-        self.cmd += '删除文件夹 {0}\n'.format(path)
+        cmd_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.last_operation_time))
+        self.cmd += cmd_time + '\t' + '删除文件夹 {0}\n'.format(path)
         try:
             self.client.rmdir(self._parsePath(path))
         except IOError as e:
@@ -279,7 +284,8 @@ class SFTPInterface(paramiko.SFTPServerInterface):
 
     def chattr(self, path, attr):
         self.last_operation_time = time.time()
-        self.cmd += '权限变更 {0} {1}\n'.format(path, attr)
+        cmd_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.last_operation_time))
+        self.cmd += cmd_time + '\t' + '权限变更 {0} {1}\n'.format(path, attr)
         try:
             if attr._flags & attr.FLAG_PERMISSIONS:
                 self.client.chmod(self._parsePath(path), attr.st_mode)

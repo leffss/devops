@@ -5,6 +5,8 @@ from ratelimit.decorators import ratelimit      # 限速
 from ratelimit import ALL
 from util.rate import rate, key
 from util.tool import login_required, post_required, file_combine
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 import os
 import hashlib
 # Create your views here.
@@ -51,6 +53,13 @@ def session_upload(request):
             "filename": file_name,
             "complete": complete,
         }
+        if complete:
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(group, {
+                "type": "upload.message",
+                "text": file_name,
+            })
+
         return JsonResponse(mess)      # fileinput 分片上传
     except Exception:
         error_message = '上传文件错误!'

@@ -5,7 +5,7 @@
 
 # 部署安装
 
-主机操作系统为 Centos 7.5，python 版本 3.7.2，docker 版本 1.13.1。windows 上就不建议部署了，那是作死的事情。
+主机操作系统为 Centos 7.5，python 版本 3.7.2，docker 版本 1.13.1，项目目录为 `/home/workspace/devops` 。windows 上就不建议部署了，那是作死的事情。
 
 **安装依赖**
 ```bash
@@ -14,6 +14,7 @@ yum install -y sshpass python3-devel mysql-devel
 ```
 - ansible 连接插件 connection 使用 ssh 模式（还可以使用 paramiko 等模式）并且密码连接主机时需要使用 sshpass
 - python3-devel 与 mysql-devel 为 mysqlclient 库的依赖
+- 不建议使用 pymysql 代替 mysqlclient ，因为 pymysql 为纯 python 编写的库，性能较低
 
 **安装 redis（docker 方式）**
 ```bash
@@ -94,7 +95,7 @@ nohup gunicorn -c gunicorn.cfg devops.wsgi:application > logs/gunicorn.log 2>&1 
 - sshd 为 ssh 代理服务器，监听 2222 端口，提供调用 securecrt、xshell、putty 以及 winscp 客户端支持，非必须
 - celery 后台任务处理进程，`export PYTHONOPTIMIZE=1` 此环境变量非常重要，不设置无法后台运行 ansible api
 - celery_beat 定时任务处理进程，读取 `devops/settings.py` 中设置的 `CELERY_BEAT_SCHEDULE` 定时任务，详见 v1.8.8 升级日志
-- 需要停止时 kill 相应的进程即可
+- 需要停止时 kill 相应的进程，然后删除 logs 目录下所有的 pid 文件
 
 **nginx 前端代理**
 ```
@@ -254,21 +255,38 @@ systemctl start nginx
 1. web 终端（包括 webssh，webtelnet）在使用 chrome 浏览器打开时，很大机率会出现一片空白无法显示 xterm.js 终端的情况。
 解决方法是改变一下 chrome 的缩放比例就好了（ctrl + 鼠标滚轮），在 firefox 下也有无此问题，但出现的机率小一些，具体原因未知。
 
-2. webssh，clissh，webtelnet 记录命令功能有瑕疵：
-- 无法很好记录 tab 补全命令，暂时无解决方案
-- 无法很好记录使用上下箭头调用的历史命令，暂时无解决方案
-- 无法很好记录包括控制字符的命令（使用了退格、del 删除、关闭移动等操作），这个应该可以使用 gnu-readline 是解决
-- 无法识别进入和退出文本编辑模式（使用 vi、vim、emacs 等类似编辑器编辑文本），从而错误地把文本输入也记录为命令，
-看了国内比较出名的开源堡垒机 jumpserver 组件 koko 的源码也有类似问题，至少目前为止他们也是无法解决这个问题的
-- 正在寻找解决方案
+2. 关于前后端分离，有同学建议使用 vue 做前后端分离。这段时间也抽空看了一下 vue 全家桶的教程，看完后体会到是属于入门到放弃那种。
+而且我感觉前端的代码结构语法这些有点奇葩啊，太不习惯了，人老了也实时感觉是学不动了，遂暂时作罢（指定那天心血来潮又研究起来呢！）。
+即使要用 vue 也得先把后端 api 搞起来啥，所以还是先研究 django rest framework 吧。
 
 # 升级日志
+
+### ver1.9.0
+优化 webssh 与 webtelnet 终端大小自动调整功能；
+
+优化 webssh、webtelnet 与 clissh 命令记录功能；
+- 记录执行时间
+- 支持控制字符
+- 支持历史命令
+- 支持识别 vi/vim 与 emacs 编辑器（使用 dumb 等无颜色的终端类型时会识别错误，
+所以就限制 webssh 使用 xterm 终端类型， clissh 使用 linux\ansi\xterm 终端类型）
+- 支持识别 ctrl + c 与 ctrl + z（其他特殊操作可能部分会不兼容）
+- tab 自动补全命令无法正常识别（tab 补全操作太复杂，不好判断）
+- 无法识别 top 等类似命令中输入的操作命令
+- 无法识别中文命令
+- 识别命令的准确率只能尽可能的提高，应该没有那个堡垒机敢说自己准确率100%
+- 真正想实现 100% 准确率，应该只有修改 shell 源码或者调用 shell 历史命令了（但是这些方式都有很多弊端）
+
+优化 webrdp 下载文件时录像数据记录逻辑（不保存下载的文件内容到录像结果）
 
 ### ver1.8.9
 修正 clissh 与 webssh 使用 zmodem 时传输中途执行了取消操作后会丢失后续操作记录的 bug；
 
 新增 webrdp 与 webvnc 挂载文件系统实现上传和下载文件；
 - 下载文件的方法是将需要下载的文件拖动到挂载的文件系统中的 `download` 文件夹中
+，简单测试了下，在 chrome（版本 81）下下载 300MB 的文件会导致 chrome 占用过大内存而崩溃；
+而 firefox（版本 72）也会占用较大内存（比 chrome 稍微小一些），但是不会崩溃，可以正常下载文件。
+所以需要下载大文件时建议先在远程主机上分卷压缩一下，然后批量下载小的分卷文件即可。
 - 上传文件的方法是通过点击浏览器上传文件，上传好的文件会在挂载的文件系统根目录中
 - 仅测试过 webrdp
 
@@ -360,7 +378,7 @@ webssh 新增 zmodem(sz, rz) 上传下载文件支持（webtelnet 理论上也�
 
 个人信息中新增调用本地 SSH 客户端与本地 SFTP 客户端相关配置；
 
-webssh 终端页面新增文件上传与下载功能(支持 5GB 以下文件，分段上传，不占用服务器内存)；
+webssh 终端页面新增文件上传与下载功能(支持 4GB 以下文件，分段上传，不占用服务器内存)；
 
 修正 clissh 连接后无法使用 sz 下载文件和 rz 上传文件的 BUG（Zmodem 只适合上传下载小文件）；
 

@@ -28,7 +28,7 @@
   
   <!-- bootstrap-fileinput -->
   <link rel="stylesheet" href="{% static 'bootstrap-fileinput/css/fileinput.min.css' %}">
-  
+
   <!-- custom -->
   <link rel="stylesheet" href="{% static 'css/custom.css' %}">
 
@@ -151,11 +151,11 @@
         showUpload: true,
 		uploadAsync: false,
         dropZoneEnabled: false,
-        msgPlaceholder: '上传文件，最大支持5GB',
+        msgPlaceholder: '上传文件，最大支持4GB',
         showPreview: false,
         showCaption: true,
 		showCancel: true,
-        maxFileSize: 5242880,	// 单位kb，最大文件5GB，
+        maxFileSize: 4194304,	// 单位kb，最大文件4GB，
         maxFileCount: 1,
         uploadUrl: "{% url 'webssh_api:session_upload' host.id %}",
 		enableResumableUpload: true,

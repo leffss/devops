@@ -219,7 +219,7 @@ class RedisMultiScheduler(Scheduler):
         # 获取最近一个需要执行的任务的时间
         next_task = self.rdb.zrangebyscore(self.key, 0, MAXINT, withscores=True, num=1, start=0)
         if not next_task:
-            info("no next task found")
+            # info("no next task found")
             return min(next_times)
         entry = jsonpickle.decode(next_task[0][0])
         next_times.append(self.is_due(entry)[1])

@@ -9,6 +9,9 @@ import traceback
 import socket
 import sys
 import os
+import re
+from util.control import remove_control_chars
+from mp_readline import mp_readline
 import logging
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -17,6 +20,9 @@ try:
     terminal_exipry_time = settings.CUSTOM_TERMINAL_EXIPRY_TIME
 except Exception:
     terminal_exipry_time = 60 * 30
+
+
+BufferSize = 4096
 
 
 class Telnet:
@@ -29,8 +35,6 @@ class Telnet:
         self.cmd = ''       # 多行命令
         self.cmd_tmp = ''   # 一行命令
         self.res = ''
-        self.tab_mode = False   # 使用tab命令补全时需要读取返回数据然后添加到当前输入命令后
-        self.history_mode = False
         self.start_time = time.time()
         tmp_date1 = time.strftime("%Y-%m-%d", time.localtime(int(self.start_time)))
         tmp_date2 = time.strftime("%Y%m%d%H%M%S", time.localtime(int(self.start_time)))
@@ -42,6 +46,13 @@ class Telnet:
         self.res_asciinema = []
         self._buffer = b''
         self.tn = telnetlib.Telnet()
+        mp_readline.TESTING = True
+        self.rl = mp_readline.MpReadline()
+        self.tab_mode = False   # 使用tab命令补全时需要读取返回数据然后添加到当前输入命令后
+        self.history_mode = False
+        self.enter = False  # 是否输入回车 \r, 为 True 时则根据 ssh 服务端返回的数据判断是否是执行的命令或者是编辑文本
+        self.ctrl_z = False
+        self.ctrl_c = False
 
     def connect(self, host, user, password, port=23, timeout=60 * 30, wait_time=3, user_pre=b"ogin:", password_pre=b"assword:"):
         """
@@ -82,19 +93,19 @@ class Telnet:
                             "width": 250,  # 设置足够宽，以便播放时全屏不至于显示错乱
                             "height": 40,
                             "timestamp": int(self.start_time),
-                            "env": {"SHELL": "/bin/sh", "TERM": "linux"}
+                            "env": {"SHELL": "/bin/sh", "TERM": "xterm"}
                         }
                     )
                 )
                 delay = round(time.time() - self.start_time, 6)
                 self.res_asciinema.append(json.dumps([delay, 'o', command_result]))
-            self.tn.write(b'export TERM=ansi\n')    # 设置后才能使用clear清屏命令
+            self.tn.write(b'export TERM=xterm\n')    # 设置后才能使用clear清屏命令
             time.sleep(wait_time)
             self.tn.read_very_eager().decode('utf-8')
             # 创建1线程将服务器返回的数据发送到django websocket, 多个的话会极容易导致前端显示数据错乱
             Thread(target=self.websocket_to_django).start()
         except Exception:
-            print(traceback.format_exc())
+            logger.error(traceback.format_exc())
             self.message['status'] = 2
             self.message['message'] = 'connection faild...'
             message = json.dumps(self.message)
@@ -107,28 +118,29 @@ class Telnet:
         try:
             self.tn.write('{}\n'.format(superpassword).encode('utf-8'))
         except Exception:
-            print(traceback.format_exc())
+            logger.error(traceback.format_exc())
             self.close()
             
     def django_to_telnet(self, data):
         try:
             self.tn.write(data.encode('utf-8'))
-            if data == '\r':    # 记录命令
-                data = '\n'
+            if data == '\r':  # 回车，开始根据服务端返回判断是否是命令，这种判断方式的特性就导致了无法是否禁止命令功能，当然想绝对禁止命令本身就是一个伪命题
                 if self.cmd_tmp.strip() != '':
-                    self.cmd_tmp += data
-                    self.cmd += self.cmd_tmp
-                    self.cmd_tmp = ''
-            elif data.encode() == b'\x07':
+                    self.enter = True
+            elif data.encode() == b'\x07':  # 响铃
                 pass
+            elif data == '\t' or data.encode() == b'\x1b':  # \x1b 点击2下esc键也可以补全
+                self.tab_mode = True
+            elif data.encode() == b'\x1b[A' or data.encode() == b'\x1b[B':
+                self.history_mode = True
+            elif data.encode() == b'\x03':  # 输入命令后先 ctrl + v，然后 ctrl + c 需要两次才能取消
+                self.ctrl_c = True
+            elif data.encode() == b'\x1a':  # ctrl + z
+                self.ctrl_z = True
             else:
-                if data == '\t' or data.encode() == b'\x1b':    # \x1b 点击2下esc键也可以补全
-                    self.tab_mode = True
-                elif data.encode() == b'\x1b[A' or data.encode() == b'\x1b[B':
-                    self.history_mode = True
-                else:
-                    self.cmd_tmp += data
+                self.cmd_tmp += data
         except Exception:
+            logger.error(traceback.format_exc())
             self.close()
 
     def websocket_to_django(self):
@@ -141,48 +153,48 @@ class Telnet:
 
                 # expect 使用正则匹配所有返回内容，还可以实现超时无返回内容断开连接
                 if len(self._buffer) >= 1:
-                    data = self._buffer[:4096]
-                    self._buffer = self._buffer[4096:]
+                    x = self._buffer[:BufferSize]
+                    self._buffer = self._buffer[BufferSize:]
                 else:
-                    x, y, z = self.tn.expect([br'[\s\S]+'], timeout=terminal_exipry_time)
+                    n, y, z = self.tn.expect([br'[\s\S]+'], timeout=terminal_exipry_time)
                     self._buffer += z
-                    data = self._buffer[:4096]  # 一次最多截取4096个字符
-                    self._buffer = self._buffer[4096:]
-                if not len(data):
+                    x = self._buffer[:BufferSize]  # 一次最多截取 BufferSize 个字符
+                    self._buffer = self._buffer[BufferSize:]
+                if not len(x):
                     raise socket.timeout
 
                 try:
-                    data = data.decode('utf-8')
+                    data = x.decode('utf-8')
                 except UnicodeDecodeError:  # utf-8中文占3个字符，可能会被截断，需要拼接
                     try:
                         if len(self._buffer) >= 1:
-                            data += self._buffer[:1]
+                            x += self._buffer[:1]
                             self._buffer = self._buffer[1:]
                         else:
-                            x, y, z = self.tn.expect([br'[\s\S]+'], timeout=terminal_exipry_time)
+                            n, y, z = self.tn.expect([br'[\s\S]+'], timeout=terminal_exipry_time)
                             if len(z) > 1:
                                 self._buffer += z
-                                data += self._buffer[:1]
+                                x += self._buffer[:1]
                                 self._buffer = self._buffer[1:]
                             else:
-                                data += z
-                        data = data.decode('utf-8')
+                                x += z
+                        data = x.decode('utf-8')
                     except UnicodeDecodeError:
                         try:
                             if len(self._buffer) >= 1:
-                                data += self._buffer[:1]
+                                x += self._buffer[:1]
                                 self._buffer = self._buffer[1:]
                             else:
-                                x, y, z = self.tn.expect([br'[\s\S]+'], timeout=terminal_exipry_time)
+                                n, y, z = self.tn.expect([br'[\s\S]+'], timeout=terminal_exipry_time)
                                 if len(z) > 1:
                                     self._buffer += z
-                                    data += self._buffer[:1]
+                                    x += self._buffer[:1]
                                     self._buffer = self._buffer[1:]
                                 else:
-                                    data += z
-                            data = data.decode('utf-8')
+                                    x += z
+                            data = x.decode('utf-8')
                         except UnicodeDecodeError:
-                            data = data.decode('utf-8', 'ignore')  # 拼接2次后还是报错则证明结果是乱码，强制转换
+                            data = x.decode('utf-8', 'ignore')  # 拼接2次后还是报错则证明结果是乱码，强制转换
                 self.message['status'] = 0
                 self.message['message'] = data
                 self.res += data
@@ -205,20 +217,57 @@ class Telnet:
                     self.last_save_time = time.time()
                     save_res(self.res_file, tmp)
 
-                if self.tab_mode:
-                    tmp = data.split(' ')
-                    # tab 只返回一个命令时匹配
-                    # print(tmp)
-                    if len(tmp) == 2 and tmp[1] == '' and tmp[0] != '':
-                        self.cmd_tmp = self.cmd_tmp + tmp[0].encode().replace(b'\x07', b'').decode()
-                    elif len(tmp) == 1 and tmp[0].encode() != b'\x07':  # \x07 蜂鸣声
-                        self.cmd_tmp = self.cmd_tmp + tmp[0].encode().replace(b'\x07', b'').decode()
-                    self.tab_mode = False
-                if self.history_mode:   # 不完善，只支持向上翻一个历史命令
-                    # print(data)
-                    if data.strip() != '':
-                        self.cmd_tmp = data
-                    self.history_mode = False
+                if self.enter:
+                    self.enter = False
+                    if not data.startswith("\r\n"):  # 回车后结果不以\r\n开头的肯定不是命令
+                        self.cmd_tmp = ''
+                    else:
+                        if re.match(rb'^\r\n\s+\x1b.*$', x):  # 终端为 xterm,linux 等显示颜色类型时在 vi 编辑模式下回车
+                            self.cmd_tmp = ''
+                        # elif x == b'\r\n':     # todo 正常模式下 vi 文件会返回 \r\n ,终端为 dumb 类型时在 vi 编辑模式下回车也会返回 \r\n，
+                        #     self.cmd_tmp = ''
+                        else:  # 记录真正命令, rl 不支持中文命令
+                            cmd_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(int(time.time())))
+                            cmd = self.rl.process_line(self.cmd_tmp.encode("utf-8"))
+                            if not cmd:  # 有可能 rl 库会返回 None，重试一次
+                                mp_readline.TESTING = True
+                                self.rl = mp_readline.MpReadline()
+                                cmd = self.rl.process_line(self.cmd_tmp.encode("utf-8"))
+
+                            if cmd:
+                                self.cmd += cmd_time + "\t" + remove_control_chars(cmd) + '\n'
+                            else:
+                                logger.error(
+                                    "recv from server: {} \nerror command: {}".format(x, self.cmd_tmp.encode("utf-8")))
+                                self.cmd += cmd_time + "\t" + remove_control_chars(self.cmd_tmp) + '\n'
+                            self.cmd_tmp = ''
+                else:
+                    if self.tab_mode:  # todo 兼容有问题
+                        self.tab_mode = False
+                        tmp = data.split(' ')
+                        # tab 只返回一个命令时匹配
+                        # print(tmp)
+                        if len(tmp) == 2 and tmp[1] == '' and tmp[0] != '':
+                            self.cmd_tmp = self.cmd_tmp + tmp[0].encode().replace(b'\x07', b'').decode()
+                        elif len(tmp) == 1 and tmp[0].encode() != b'\x07':  # \x07 蜂鸣声
+                            self.cmd_tmp = self.cmd_tmp + tmp[0].encode().replace(b'\x07', b'').decode()
+
+                    # 多次上下箭头查找历史命令返回数据中可能会包含 \x1b[1P 导致 rl 无法解析命令，具体原因没有深究
+                    if self.history_mode:
+                        self.history_mode = False
+                        if x != b'' and x != b'\x07':
+                            x = re.sub(rb'\x1b\[\d+P', b'', x)
+                            self.cmd_tmp += x.decode("utf-8")
+
+                    if self.ctrl_c:  # 取消命令
+                        self.ctrl_c = False
+                        # if x == b'^C\r\n':
+                        if re.match(rb'^\^C\r\n[\s\S]*$', x) or re.match(rb'^\r\n[\s\S]*$', x):
+                            self.cmd_tmp = ""
+                    if self.ctrl_z:
+                        self.ctrl_z = False
+                        if re.match(rb'^[\s\S]*\[\d+\]\+\s+Stopped\s+\S+[\s\S]*$', x):
+                            self.cmd_tmp = ""
         except socket.timeout:
             self.message['status'] = 1
             self.message['message'] = '由于长时间没有操作或者没有数据返回，连接已断开!'
@@ -232,6 +281,7 @@ class Telnet:
                 })
             self.close(send_message=False)
         except Exception:
+            logger.error(traceback.format_exc())
             self.close()
 
     def close(self, send_message=True):
@@ -250,6 +300,7 @@ class Telnet:
             self.websocker.close()
             self.tn.close()
         except Exception:
+            # logger.error(traceback.format_exc())
             pass
 
     def shell(self, data):

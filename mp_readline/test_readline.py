@@ -53,6 +53,8 @@ class ReadLineTest(unittest.TestCase):
             # Down Arrow
             # Overwrite/Insert mode
             ('abcdefghi\x1b[7~\x1b[C\x1b[C\x1b[C\x1b[2~jkl\x1b[2~mno', 'abcjklmnoghi'),
+
+            ('ls\x08\x08\x1b[5@asdasda\x1b[C\x1b[C\x1b[C', 'asdasda -l'),
         )
         for rl_input, expected_result in tests:
             rl_input = bytes(rl_input, encoding='utf-8')
@@ -61,4 +63,5 @@ class ReadLineTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    x = b'ls -l\x08\x08\x08\x08\x08\x1b[5@asdasda\x1b[C\x1b[C\x1b[C'
     unittest.main()

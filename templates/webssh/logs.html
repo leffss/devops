@@ -87,6 +87,7 @@
 				  {% elif log.protocol == 'sftp' %}
 					  <a href="javascript:void(0)" class="btn btn-primary btn-sm mb-1" info="{{ log.user }}-{{ log.hostname }}-{{ log.username }}@{{ log.ip }}:{{ log.port }}" type="{{ log.protocol }}" onclick="viewcmd(this);"><cmd hidden>{{ log.cmd }}</cmd><i class="fas fa-list"></i> 命令详情</a>&nbsp;&nbsp;
 				  {% elif log.protocol == 'rdp' or log.protocol == 'vnc' %}
+					  <a href="javascript:void(0)" class="btn btn-primary btn-sm mb-1" info="{{ log.user }}-{{ log.hostname }}-{{ log.username }}@{{ log.ip }}:{{ log.port }}" type="{{ log.protocol }}" onclick="viewcmd(this);"><cmd hidden>{{ log.cmd }}</cmd><i class="fas fa-list"></i> 命令详情</a>&nbsp;&nbsp;
 					  <a href="javascript:void(0)" class="btn btn-info btn-sm mb-1" id="{{ log.detail }}" info="{{ log.user }}-{{ log.hostname }}-{{ log.username }}@{{ log.ip }}:{{ log.port }}" onclick="viewrdpvideo(this);"><i class="fas fa-video"></i> 回放</a>
 				  {% endif %}
 				  </td>

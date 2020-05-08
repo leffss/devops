@@ -11,6 +11,7 @@ from django.conf import settings
 from .sftp import SFTP
 from django.utils.http import urlquote
 import os
+import time
 import hashlib
 import django.utils.timezone as timezone
 from ratelimit.decorators import ratelimit      # 限速
@@ -253,6 +254,7 @@ def session_upload(request, pk):
         remote_path = None
         if complete:
             start_time = timezone.now()
+            cmd_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(int(time.time())))
             sftp = SFTP(
                 remote_host.ip, remote_host.port, remote_host.remote_user.username, decrypt(remote_host.remote_user.password)
             )
@@ -265,7 +267,7 @@ def session_upload(request, pk):
                 'sftp',
                 remote_host.port,
                 remote_host.remote_user.username,
-                '上传文件 {}/{}'.format(remote_path, file_name),
+                cmd_time + '\t' + '上传文件 {}/{}'.format(remote_path, file_name),
                 'nothing',
                 request.META.get('REMOTE_ADDR', None),  # 客户端 ip
                 request.META.get('HTTP_USER_AGENT', None),
@@ -298,6 +300,7 @@ def session_download(request, pk):
                 else:
                     break
         os.remove(file_name)
+        cmd_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(int(time.time())))
         terminal_log(
             username,
             remote_host.hostname,
@@ -305,7 +308,7 @@ def session_download(request, pk):
             'sftp',
             remote_host.port,
             remote_host.remote_user.username,
-            '下载文件 {}'.format(download_file),
+            cmd_time + '\t' + '下载文件 {}'.format(download_file),
             'nothing',
             request.META.get('REMOTE_ADDR', None),  # 客户端 ip
             request.META.get('HTTP_USER_AGENT', None),
@@ -531,7 +534,11 @@ def logs(request):
                                                                     cmd=i.cmd,
                                                                     )
         elif i.protocol == 'rdp' or i.protocol == 'vnc':
-            control_display = '<a href="javascript:void(0)" class="btn btn-info btn-sm mb-1" ' \
+            control_display = '<a href="javascript:void(0)" class="btn btn-primary btn-sm mb-1" ' \
+                              'info="{user}-{hostname}-{username}@{ip}:{port}" ' \
+                              'type="{protocol}" onclick="viewcmd(this);"><cmd hidden>{cmd}</cmd>' \
+                              '<i class="fas fa-list"></i> 命令详情</a>&nbsp;&nbsp;' \
+                              '<a href="javascript:void(0)" class="btn btn-info btn-sm mb-1" ' \
                               'id="{detail}" info="{user}-{hostname}-{username}@{ip}:{port}" ' \
                               'onclick="viewrdpvideo(this);">' \
                               '<i class="fas fa-video"></i> 回放</a>'.format(
@@ -540,6 +547,8 @@ def logs(request):
                                                                             username=i.username,
                                                                             ip=i.ip,
                                                                             port=i.port,
+                                                                            protocol=i.protocol,
+                                                                            cmd=i.cmd,
                                                                             detail=i.detail,
                                                                             )
         tmp.append(control_display)

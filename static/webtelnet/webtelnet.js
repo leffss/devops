@@ -227,6 +227,21 @@ function websocket() {
 		term.focus();
 		term.resize(cols, rows);
 		term.write('Connecting...\n\r');
+
+		toastr.options.closeButton = false;
+		toastr.options.showMethod = 'slideDown';
+		toastr.options.hideMethod = 'fadeOut';
+		toastr.options.closeMethod = 'fadeOut';
+		toastr.options.timeOut = 5000;
+		toastr.options.extendedTimeOut = 3000;
+		// toastr.options.progressBar = true;
+		toastr.options.positionClass = 'toast-bottom-center';
+		toastr.info('行列值: ' + cols + ' x ' + rows);
+
+		toastr.options.timeOut = 10000;
+		toastr.options.extendedTimeOut = 3000;
+		toastr.info('友情提醒: 如果画面出现空白，请使用 ctrl + 鼠标滚轮改变网页缩放比例修复');
+
 		$("body").attr("onbeforeunload",'checkwindow()'); //增加刷新关闭提示属性
 		
     });
@@ -300,10 +315,22 @@ function websocket() {
         sock.send(send_data)
     });
 
+    var timer = 0;
     // 监听浏览器窗口, 根据浏览器窗口大小修改终端大小
     $(window).resize(function () {
-        var cols = get_term_size().cols;
-        var rows = get_term_size().rows;
-        term.resize(cols, rows)
+    	clearTimeout(timer);
+    	timer = setTimeout(function() {
+			var cols_rows = get_term_size();
+			term.resize(cols_rows.cols, cols_rows.rows);
+			toastr.options.closeButton = false;
+			toastr.options.showMethod = 'slideDown';
+			toastr.options.hideMethod = 'fadeOut';
+			toastr.options.closeMethod = 'fadeOut';
+			toastr.options.timeOut = 3000;
+			toastr.options.extendedTimeOut = 3000;
+			// toastr.options.progressBar = true;
+			toastr.options.positionClass = 'toast-bottom-center';
+			toastr.info('调整行列值: ' + cols_rows.cols + ' x ' + cols_rows.rows);
+		}, 130)
     })
 }

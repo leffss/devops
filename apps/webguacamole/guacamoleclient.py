@@ -9,6 +9,10 @@ from guacamole.exceptions import GuacamoleError
 from guacamole.instruction import GuacamoleInstruction as Instruction
 import sys
 import os
+import base64
+import logging
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s] - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 # 重写 hanshake 方法以支持加入现有连接操作，实现查看会话功能
@@ -105,6 +109,8 @@ class Client:
                         tmp_date2 + '_' + gen_rand_char(16) + '.txt'
         self.res = []
         self.guacamoleclient = None
+        self.file_index = {}
+        self.file_cmd = ''
 
     def connect(self, protocol, hostname, port, username, password, width, height, dpi, **kwargs):
         try:
@@ -130,14 +136,14 @@ class Client:
             elif protocol == 'rdp':
                 self.guacamoleclient.handshake(
                     protocol=protocol,
-                    hostname=hostname,
                     port=port,
                     username=username,
                     password=password,
+                    hostname=hostname,
                     width=width,
                     height=height,
                     dpi=dpi,
-                    security="tls",     # rdp,nla,tls,any
+                    security='tls',     # rdp,nla,tls,any
                     ignore_cert="true",
                     disable_audio="true",
                     client_name="devops",
@@ -145,6 +151,7 @@ class Client:
                 )
             Thread(target=self.websocket_to_django).start()
         except Exception:
+            logger.error(traceback.format_exc())
             self.websocker.close(3001)
 
     def django_to_guacd(self, data):
@@ -159,7 +166,44 @@ class Client:
                 # time.sleep(0.00001)
                 data = self.guacamoleclient.receive()
                 if not data:
-                    return
+                    message = str(base64.b64encode('连接被断开或者协议不支持'.encode('utf-8')), 'utf-8')
+                    self.websocker.send('6.toastr,1.2,{0}.{1};'.format(len(message), message))
+                    break
+
+                save_res = True
+
+                if data.startswith("4.file,"):
+                    tmp = data.split(",")
+                    file_index = tmp[1].split(".")[1]
+                    file_type = tmp[2].split(".")[1]
+                    file_name_tmp = tmp[3].rstrip(";").split(".")
+                    del file_name_tmp[0]
+                    file_name = '.'.join(file_name_tmp)
+                    self.file_index[file_index] = [file_name, file_type]
+                    message = str(base64.b64encode('开始下载文件 - {}'.format(file_name).encode('utf-8')), 'utf-8')
+                    self.websocker.send('6.toastr,1.3,{0}.{1};'.format(len(message), message))
+                    save_res = False
+
+                if self.file_index:
+                    if data.startswith("4.blob,"):
+                        tmp = data.split(",")
+                        index = tmp[1].split(".")[1]
+                        if index in self.file_index:
+                            # lenx = tmp[2].split(".")[0]
+                            # logger.info("file: {} len: {}".format(self.file_index[index][0], lenx))
+                            save_res = False
+
+                    if data.startswith("3.end,"):
+                        tmp = data.split(",")
+                        index = tmp[1].rstrip(";").split(".")[1]
+                        if index in self.file_index:
+                            cmd_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(int(time.time())))
+                            self.file_cmd += cmd_time + "\t" + '下载文件 - {}'.format(self.file_index[index][0]) + '\n'
+                            message = str(base64.b64encode('文件下载完成 - {}'.format(self.file_index[index][0]).encode('utf-8')), 'utf-8')
+                            self.websocker.send('6.toastr,1.3,{0}.{1};'.format(len(message), message))
+                            save_res = False
+                            del self.file_index[index]
+
                 if self.websocker.send_flag == 0:
                     self.websocker.send(data)
                 elif self.websocker.send_flag == 1:
@@ -167,14 +211,17 @@ class Client:
                         "type": "group.message",
                         "text": data,
                     })
-                self.res.append(data)
-                # 指定条结果或者指定秒数就保存一次
-                if len(self.res) > 2000 or int(time.time() - self.last_save_time) > 60 or \
-                        sys.getsizeof(self.res) > 2097152:
-                    tmp = list(self.res)
-                    self.res = []
-                    self.last_save_time = time.time()
-                    res(self.res_file, tmp, False)
+
+                if save_res:    # 不保存下载文件时的数据到录像
+                    self.res.append(data)
+                    # 指定条结果或者指定秒数就保存一次
+                    if len(self.res) > 2000 or int(time.time() - self.last_save_time) > 60 or \
+                            sys.getsizeof(self.res) > 2097152:
+                        tmp = list(self.res)
+                        self.res = []
+                        self.last_save_time = time.time()
+                        res(self.res_file, tmp, False)
+
         except Exception:
             if self.websocker.send_flag == 0:
                 self.websocker.send('0.;')
@@ -187,8 +234,11 @@ class Client:
             self.close()
 
     def close(self):
-        self.websocker.close()
-        self.guacamoleclient.close()
+        try:
+            self.websocker.close()
+            self.guacamoleclient.close()
+        except Exception:
+            logger.error(traceback.format_exc())
 
     def shell(self, data):
         self.django_to_guacd(data)
@@ -228,7 +278,7 @@ class ClientView:
                 # time.sleep(0.00001)
                 data = self.guacamoleclient.receive()
                 if not data:
-                    return
+                    break
                 self.websocker.send(data)
         except Exception:
             self.websocker.send('0.;')

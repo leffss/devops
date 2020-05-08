@@ -13,9 +13,11 @@ from .guacamoleclient import Client, ClientView
 import re
 import base64
 from django.http.request import QueryDict
-import sys
 import os
 import shutil
+import logging
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s] - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 try:
@@ -164,6 +166,10 @@ class WebGuacamole(WebsocketConsumer):
                 except Exception:
                     pass
             try:
+                async_to_sync(self.channel_layer.group_send)(self.group, {  # 关闭 viewer
+                    "type": "close.viewer",
+                    "text": "",
+                })
                 async_to_sync(self.channel_layer.group_discard)(self.group, self.channel_name)
                 if close_code != 3001:
                     self.guacamoleclient.close()
@@ -186,7 +192,7 @@ class WebGuacamole(WebsocketConsumer):
                             self.remote_host.get_protocol_display(),
                             self.remote_host.port,
                             self.remote_host.remote_user.username,
-                            '',
+                            self.guacamoleclient.file_cmd,
                             self.guacamoleclient.res_file,
                             self.client,
                             self.user_agent,
@@ -256,6 +262,11 @@ class WebGuacamole(WebsocketConsumer):
 
             time.sleep(sleep_time)
 
+    def upload_message(self, data):
+        cmd_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(int(time.time())))
+        filename = data['text']
+        self.guacamoleclient.file_cmd += cmd_time + "\t" + '上传文件 - {}'.format(filename) + '\n'
+
 
 class WebGuacamole_view(WebsocketConsumer):
     def __init__(self, *args, **kwargs):
@@ -299,10 +310,23 @@ class WebGuacamole_view(WebsocketConsumer):
             dpi=dpi,
             enable_font_smoothing="true",
         )
+        # 发送分辨率信息到查看模式的客户端
+        self.send("7.display,{0}.{1},{2}.{3},{4}.{5};".format(len(width), width, len(height), height, len(dpi), dpi))
+
+        async_to_sync(self.channel_layer.group_add)(self.group, self.channel_name)  # 加入组
 
     def disconnect(self, close_code):
+        async_to_sync(self.channel_layer.group_discard)(self.group, self.channel_name)
         self.guacamoleclient.close()
 
     def receive(self, text_data=None, bytes_data=None):
         if text_data.startswith('4.sync') or text_data.startswith('3.nop'):
             self.guacamoleclient.shell(text_data)
+
+    def close_viewer(self, data):
+        message = str(base64.b64encode('会话已关闭'.encode('utf-8')), 'utf-8')
+        self.send('6.toastr,1.2,{0}.{1};'.format(len(message), message))
+        self.close()
+
+    def upload_message(self, data):
+        pass

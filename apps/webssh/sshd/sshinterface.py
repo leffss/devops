@@ -20,6 +20,9 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from django.conf import settings
 import traceback
+from util.control import remove_control_chars
+from mp_readline import mp_readline
+import re
 import sys
 import os
 import logging
@@ -42,6 +45,10 @@ zmodemrzstart = b'rz waiting to receive.**\x18B0100000023be50\r\x8a'
 zmodemrzend = b'**\x18B0800000000022d\r\x8a'
 zmodemcancel = b'\x18\x18\x18\x18\x18\x08\x08\x08\x08\x08'
 
+support_term = ["linux", "ansi", "xterm"]
+
+BufferSize = 4096   # 4096 足够，高于 4096 时使用 zmodem 传输时会出现错误
+
 
 def transport_keepalive(transport):
     # 对后端transport每隔x秒发送空数据以保持连接
@@ -54,7 +61,7 @@ class ServerInterface(paramiko.ServerInterface):
     # proxy_ssh = (proxy_server + proxy_client)
     def __init__(self):
         self.event = threading.Event()
-        self.tty_args = ['?', 80, 40]  # 终端参数(终端, 长, 宽)
+        self.tty_args = ['xterm', 80, 40]  # 终端参数(终端, 长, 宽)
         # self.ssh_args = None  # ssh连接参数
         self.ssh_args = None
         self.type = None
@@ -69,8 +76,6 @@ class ServerInterface(paramiko.ServerInterface):
         self.group = 'session_' + gen_rand_char()
         self.cmd = ''       # 多行命令
         self.cmd_tmp = ''   # 一行命令
-        self.tab_mode = False   # 使用tab命令补全时需要读取返回数据然后添加到当前输入命令后
-        self.history_mode = False
         self.start_time = time.time()
         tmp_date1 = time.strftime("%Y-%m-%d", time.localtime(int(self.start_time)))
         tmp_date2 = time.strftime("%Y%m%d%H%M%S", time.localtime(int(self.start_time)))
@@ -88,6 +93,13 @@ class ServerInterface(paramiko.ServerInterface):
         self.superpassword = None
         self.lock = False  # 锁定会话
         self.zmodem = False
+        mp_readline.TESTING = True
+        self.rl = mp_readline.MpReadline()
+        self.tab_mode = False   # 使用tab命令补全时需要读取返回数据然后添加到当前输入命令后
+        self.history_mode = False
+        self.enter = False  # 是否输入回车 \r, 为 True 时则根据 ssh 服务端返回的数据判断是否是执行的命令或者是编辑文本
+        self.ctrl_z = False
+        self.ctrl_c = False
 
     def close_ssh_self(self, sleep_time=3):
         try:
@@ -181,11 +193,12 @@ class ServerInterface(paramiko.ServerInterface):
                         "width": 250,  # 设置足够宽，以便播放时全屏不至于显示错乱
                         "height": 40,
                         "timestamp": int(self.start_time),
-                        "env": {"SHELL": "/bin/sh", "TERM": "linux"}
+                        "env": {"SHELL": "/bin/sh", "TERM": self.tty_args[0]}
                     }
                 )
             )
         except Exception:
+            logger.error(traceback.format_exc())
             self.close()
 
     def su_root(self, superuser, superpassword, wait_time=1):
@@ -197,6 +210,7 @@ class ServerInterface(paramiko.ServerInterface):
             time.sleep(wait_time)
             self.chan_ser.send('{}\n'.format(superpassword))
         except Exception:
+            logger.error(traceback.format_exc())
             self.close()
 
     def bridge(self):
@@ -213,8 +227,7 @@ class ServerInterface(paramiko.ServerInterface):
                 for key, n in events:
                     if key.fileobj == self.chan_ser:
                         try:
-                            recv_message = self.chan_ser.recv(1024)
-
+                            recv_message = self.chan_ser.recv(BufferSize)
                             if self.zmodem:
                                 if zmodemszend in recv_message or zmodemrzend in recv_message:
                                     self.zmodem = False
@@ -239,97 +252,104 @@ class ServerInterface(paramiko.ServerInterface):
                                 time.sleep(1)
                                 break
                             else:
+                                message = dict()
+                                message['status'] = 0
                                 try:
                                     # 发送数据给查看会话的 websocket 组
-                                    message = dict()
-                                    message['status'] = 0
                                     message['message'] = recv_message.decode('utf-8')
-                                    channel_layer = get_channel_layer()
-                                    async_to_sync(channel_layer.group_send)(self.group, {
-                                        "type": "chat.message",
-                                        "text": message,
-                                    })
                                 except UnicodeDecodeError:
                                     try:
                                         recv_message += self.chan_ser.recv(1)
-                                        message = dict()
-                                        message['status'] = 0
                                         message['message'] = recv_message.decode('utf-8')
-                                        channel_layer = get_channel_layer()
-                                        async_to_sync(channel_layer.group_send)(self.group, {
-                                            "type": "chat.message",
-                                            "text": message,
-                                        })
                                     except UnicodeDecodeError:
                                         try:
                                             recv_message += self.chan_ser.recv(1)
-                                            message = dict()
-                                            message['status'] = 0
                                             message['message'] = recv_message.decode('utf-8')
-                                            channel_layer = get_channel_layer()
-                                            async_to_sync(channel_layer.group_send)(self.group, {
-                                                "type": "chat.message",
-                                                "text": message,
-                                            })
                                         except UnicodeDecodeError:
                                             logger.error(traceback.format_exc())
-                                            message = dict()
-                                            message['status'] = 0
                                             # 拼接2次后还是报错则证明结果是乱码，强制转换
                                             message['message'] = recv_message.decode('utf-8', 'ignore')
-                                            channel_layer = get_channel_layer()
-                                            async_to_sync(channel_layer.group_send)(self.group, {
-                                                "type": "chat.message",
-                                                "text": message,
-                                            })
 
                                 self.chan_cli.send(recv_message)
 
+                                channel_layer = get_channel_layer()
+                                async_to_sync(channel_layer.group_send)(self.group, {
+                                    "type": "chat.message",
+                                    "text": message,
+                                })
+
+                                delay = round(time.time() - self.start_time, 6)
+                                self.res_asciinema.append(json.dumps([delay, 'o', recv_message.decode('utf-8')]))
+
+                                # 250条结果或者指定秒数就保存一次，这个任务可以优化为使用 celery
+                                if len(self.res_asciinema) > 2000 or int(time.time() - self.last_save_time) > 60 \
+                                        or sys.getsizeof(self.res_asciinema) > 2097152:
+                                    tmp = list(self.res_asciinema)
+                                    self.res_asciinema = []
+                                    self.last_save_time = time.time()
+                                    res(self.res_file, tmp)
+
                                 try:
                                     data = recv_message.decode('utf-8')
-                                    if self.tab_mode:
-                                        tmp = data.split(' ')
-                                        # tab 只返回一个命令时匹配
-                                        # print(tmp)
-                                        if len(tmp) == 2 and tmp[1] == '' and tmp[0] != '':
-                                            self.cmd_tmp = self.cmd_tmp + tmp[0].encode().replace(b'\x07', b'').decode()
-                                        elif len(tmp) == 1 and tmp[0].encode() != b'\x07':  # \x07 蜂鸣声
-                                            self.cmd_tmp = self.cmd_tmp + tmp[0].encode().replace(b'\x07', b'').decode()
-                                        self.tab_mode = False
-                                    if self.history_mode:  # 不完善，只支持向上翻一个历史命令
-                                        # print(data)
-                                        if data.strip() != '':
-                                            self.cmd_tmp = data
-                                        self.history_mode = False
+                                    if self.enter:
+                                        self.enter = False
+                                        if not data.startswith("\r\n"):  # 回车后结果不以\r\n开头的肯定不是命令
+                                            self.cmd_tmp = ''
+                                        else:
+                                            if re.match(rb'^\r\n\s+\x1b.*$', recv_message):  # 终端为 xterm,linux 等显示颜色类型时在 vi 编辑模式下回车
+                                                self.cmd_tmp = ''
+                                            # elif x == b'\r\n':     # todo 正常模式下 vi 文件会返回 \r\n ,终端为 dumb 类型时在 vi 编辑模式下回车也会返回 \r\n，
+                                            #     self.cmd_tmp = ''
+                                            else:  # 记录真正命令, rl 不支持中文命令
+                                                cmd_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(int(time.time())))
+                                                cmd = self.rl.process_line(self.cmd_tmp.encode("utf-8"))
+                                                if not cmd:  # 有可能 rl 库会返回 None，重试一次
+                                                    mp_readline.TESTING = True
+                                                    self.rl = mp_readline.MpReadline()
+                                                    cmd = self.rl.process_line(self.cmd_tmp.encode("utf-8"))
+
+                                                if cmd:
+                                                    self.cmd += cmd_time + "\t" + remove_control_chars(cmd) + '\n'
+                                                else:
+                                                    logger.error("recv from server: {} \nerror command: {}".format(recv_message, self.cmd_tmp.encode("utf-8")))
+                                                    self.cmd += cmd_time + "\t" + remove_control_chars(self.cmd_tmp) + '\n'
+                                                self.cmd_tmp = ''
+                                    else:
+                                        if self.tab_mode:  # todo 兼容有问题
+                                            self.tab_mode = False
+                                            tmp = data.split(' ')
+                                            # tab 只返回一个命令时匹配
+                                            # print(tmp)
+                                            if len(tmp) == 2 and tmp[1] == '' and tmp[0] != '':
+                                                self.cmd_tmp = self.cmd_tmp + tmp[0].encode().replace(b'\x07',
+                                                                                                      b'').decode()
+                                            elif len(tmp) == 1 and tmp[0].encode() != b'\x07':  # \x07 蜂鸣声
+                                                self.cmd_tmp = self.cmd_tmp + tmp[0].encode().replace(b'\x07',
+                                                                                                      b'').decode()
+
+                                        # 多次上下箭头查找历史命令返回数据中可能会包含 \x1b[1P 导致 rl 无法解析命令，具体原因没有深究
+                                        if self.history_mode:
+                                            self.history_mode = False
+                                            if recv_message != b'' and recv_message != b'\x07':
+                                                recv_message = re.sub(rb'\x1b\[\d+P', b'', recv_message)
+                                                self.cmd_tmp += recv_message.decode("utf-8")
+
+                                        if self.ctrl_c:  # 取消命令
+                                            self.ctrl_c = False
+                                            # if x == b'^C\r\n':
+                                            if re.match(rb'^\^C\r\n[\s\S]*$', recv_message) or re.match(rb'^\r\n[\s\S]*$', recv_message):
+                                                self.cmd_tmp = ""
+                                        if self.ctrl_z:
+                                            self.ctrl_z = False
+                                            if re.match(rb'^[\s\S]*\[\d+\]\+\s+Stopped\s+\S+[\s\S]*$', recv_message):
+                                                self.cmd_tmp = ""
                                 except Exception:
-                                    pass
-                                    # logger.error(traceback.format_exc())
-
-                                # 记录操作录像
-                                try:
-                                    """
-                                    防止 sz rz 传输文件时的报错
-                                    """
-                                    delay = round(time.time() - self.start_time, 6)
-                                    self.res_asciinema.append(json.dumps([delay, 'o', recv_message.decode('utf-8')]))
-
-                                    # 250条结果或者指定秒数就保存一次，这个任务可以优化为使用 celery
-                                    if len(self.res_asciinema) > 2000 or int(time.time() - self.last_save_time) > 60 \
-                                            or sys.getsizeof(self.res_asciinema) > 2097152:
-                                        tmp = list(self.res_asciinema)
-                                        self.res_asciinema = []
-                                        self.last_save_time = time.time()
-                                        res(self.res_file, tmp)
-
-                                except Exception:
-                                    pass
-                                    # logger.error(traceback.format_exc())
-
+                                    logger.error(traceback.format_exc())
                         except socket.timeout:
                             logger.error(traceback.format_exc())
                     if key.fileobj == self.chan_cli:
                         try:
-                            send_message = self.chan_cli.recv(4096)
+                            send_message = self.chan_cli.recv(BufferSize)
                             if len(send_message) == 0:
                                 logger.info('客户端断开了连接 {}....'.format(self.client_addr))
                                 # time.sleep(1)
@@ -340,24 +360,23 @@ class ServerInterface(paramiko.ServerInterface):
                                     if not self.zmodem:
                                         try:
                                             data = send_message.decode('utf-8')
-                                            if data == '\r':  # 记录命令
-                                                data = '\n'
+                                            if data == '\r':  # 回车，开始根据服务端返回判断是否是命令，这种判断方式的特性就导致了无法是否禁止命令功能，当然想绝对禁止命令本身就是一个伪命题
                                                 if self.cmd_tmp.strip() != '':
-                                                    self.cmd_tmp += data
-                                                    self.cmd += self.cmd_tmp
-                                                    self.cmd_tmp = ''
-                                            elif data.encode() == b'\x07':
+                                                    self.enter = True
+                                            elif data.encode() == b'\x07':  # 响铃
                                                 pass
+                                            elif data == '\t' or data.encode() == b'\x1b':  # \x1b 点击2下esc键也可以补全
+                                                self.tab_mode = True
+                                            elif data.encode() == b'\x1b[A' or data.encode() == b'\x1b[B':
+                                                self.history_mode = True
+                                            elif data.encode() == b'\x03':  # 输入命令后先 ctrl + v，然后 ctrl + c 需要两次才能取消
+                                                self.ctrl_c = True
+                                            elif data.encode() == b'\x1a':  # ctrl + z
+                                                self.ctrl_z = True
                                             else:
-                                                if data == '\t' or data.encode() == b'\x1b':  # \x1b 点击2下esc键也可以补全
-                                                    self.tab_mode = True
-                                                elif data.encode() == b'\x1b[A' or data.encode() == b'\x1b[B':
-                                                    self.history_mode = True
-                                                else:
-                                                    self.cmd_tmp += data
+                                                self.cmd_tmp += data
                                         except Exception:
-                                            pass
-                                            # logger.error(traceback.format_exc())
+                                            logger.error(traceback.format_exc())
                                 else:
                                     # 红色提示文字
                                     self.chan_cli.send("\r\n\033[31m当前会话已被管理员锁定\033[0m\r\n")
@@ -449,7 +468,8 @@ class ServerInterface(paramiko.ServerInterface):
                     "text": message,
                 })
             except Exception:
-                logger.error(traceback.format_exc())
+                # logger.error(traceback.format_exc())
+                pass
 
             cache.delete('{}_{}_{}_session'.format(self.http_user, self.password, terminal_type))
             cache.delete('{}_{}_{}_session_lock'.format(self.http_user, self.password, terminal_type))
@@ -539,7 +559,13 @@ class ServerInterface(paramiko.ServerInterface):
                     self.hostid = hostid
                     if not self.ssh_args:
                         self.set_ssh_args(self.hostid)
-                self.tty_args = [term, width, height]
+                if type(term) is bytes:
+                    self.tty_args = [term.decode("utf-8").lower(), width, height]
+                else:
+                    self.tty_args = [term.lower(), width, height]
+                # self.tty_args = ['dumb', width, height]
+                if self.tty_args[0] not in support_term:
+                    self.tty_args[0] = "xterm"
                 self.type = 'pty'
             else:
                 if ssh_count == 0 and sftp_count == 0:

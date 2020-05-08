@@ -150,11 +150,24 @@
     // Connect
     guac.connect(`hostid=${hostid}&width=${width}&height=${height}&dpi=${dpi}`);
 
+    toastr.options.closeButton = false;
+    toastr.options.showMethod = 'slideDown';
+    toastr.options.hideMethod = 'fadeOut';
+    toastr.options.closeMethod = 'fadeOut';
+    toastr.options.timeOut = 5000;
+    toastr.options.extendedTimeOut = 3000;
+    // toastr.options.progressBar = true;
+    toastr.options.positionClass = 'toast-bottom-center';
+    toastr.info('分辨率: ' + width + ' x ' + height + ', DPI: ' + dpi);
+
+    toastr.options.timeOut = 10000;
+    toastr.info('友情提醒: 目前不支持 NLA 验证模式');
+
     // Disconnect on close
     window.onunload = function () {
         guac.disconnect();
     };
-	
+
 	// 监听远程主机剪切板变化并复制到本机剪切板
 	guac.onclipboard = function (stream, mimetype) {
 		if (/^text\//.test(mimetype)) {
@@ -286,6 +299,7 @@
 		iconClass: 'icon-announcement',
 		width: 450,
 	});
+
 	$(document).on('click', '.session-close', function (event) {
 		event.preventDefault();
 		$('#modal-close').iziModal('open');
@@ -309,20 +323,20 @@
 
     // 监听浏览器窗口, 根据浏览器窗口大小修改终端大小，根据官方文档发现目前 rdp 和 vnc 不支持连接后改变 size，所以不起作用
     $(window).resize(function () {
-        var width = $(window).width() - 20;	// - 20像素防止滚动条挡住桌面内容
-        var height = $(window).height() - $("#headers").height() - 10;
+        //var width = $(window).width() - 20;	// - 20像素防止滚动条挡住桌面内容
+        //var height = $(window).height() - $("#headers").height() - 10;
         //guac.sendSize(width, height);
     })
 
     guac.onfile = function (stream, mimetype, filename) {
-        //通知服务端，已经收到了stream
+        // 通知服务端，已经收到了stream
         stream.sendAck('OK', Guacamole.Status.Code.SUCCESS);
-        //开始处理输入流，这里封装了一个downloadFile方法
+        // 开始处理输入流，这里封装了一个downloadFile方法
         downloadFile(stream, mimetype, filename);
     }
 
     downloadFile = (stream, mimetype, filename) => {
-        //拿到的流不能直接使用，先实例化一个处理器，使用blob reader处理数据
+        // 拿到的流不能直接使用，先实例化一个处理器，使用blob reader处理数据
         var blob_builder;
         if      (window.BlobBuilder)       blob_builder = new BlobBuilder();
         else if (window.WebKitBlobBuilder) blob_builder = new WebKitBlobBuilder();
@@ -416,11 +430,11 @@
         showUpload: true,
 		uploadAsync: false,
         dropZoneEnabled: false,
-        msgPlaceholder: '上传文件，最大支持5GB',
+        msgPlaceholder: '上传文件，最大支持4GB',
         showPreview: false,
         showCaption: true,
 		showCancel: true,
-        maxFileSize: 5242880,	// 单位kb，最大文件5GB，
+        maxFileSize: 4194304,	// 单位kb，最大文件4GB，
         maxFileCount: 1,
         uploadUrl: "{% url 'webguacamole_api:session_upload' %}",
 		enableResumableUpload: true,
