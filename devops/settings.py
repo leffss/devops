@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # 'debug_toolbar',
     'channels',
     'server',
     'user',
@@ -101,6 +102,31 @@ MIDDLEWARE = [
     # 'util.middleware.DebugMiddleware',      # 非 DEBUG 模式下管理员显示 DEBUG 页面
     'util.middleware.PermissionMiddleware',      # 验证权限
 ]
+
+# DEBUG_TOOLBAR_PANELS = [
+#     'debug_toolbar.panels.versions.VersionsPanel',
+#     'debug_toolbar.panels.timer.TimerPanel',
+#     'debug_toolbar.panels.settings.SettingsPanel',
+#     'debug_toolbar.panels.headers.HeadersPanel',
+#     'debug_toolbar.panels.request.RequestPanel',
+#     'debug_toolbar.panels.sql.SQLPanel',
+#     'debug_toolbar.panels.staticfiles.StaticFilesPanel',
+#     'debug_toolbar.panels.templates.TemplatesPanel',
+#     'debug_toolbar.panels.cache.CachePanel',
+#     'debug_toolbar.panels.signals.SignalsPanel',
+#     'debug_toolbar.panels.logging.LoggingPanel',
+#     'debug_toolbar.panels.redirects.RedirectsPanel',
+#     'debug_toolbar.panels.profiling.ProfilingPanel',
+# ]
+
+# INTERNAL_IPS = [
+#     # ...
+#     '172.17.0.1',
+#     '127.0.0.1',
+#     '192.168.223.1',
+#     '192.168.223.2',
+#     # ...
+# ]
 
 FILE_UPLOAD_HANDLERS = [
     # 'django.core.files.uploadhandler.MemoryFileUploadHandler',
@@ -150,9 +176,9 @@ DATABASES = {
         'PASSWORD': 'devops',
         'HOST': '192.168.223.111',
         'PORT': '3306',
-        'CONN_MAX_AGE': 600,    # 如果使用 django.db.backends.mysql 尽量不要设置此参数
+        # 'CONN_MAX_AGE': 600,    # 如果使用 db_pool.mysql 绝对不能设置此参数，否则会造成使用连接后不会快速释放到连接池，从而造成连接池阻塞
         # 数据库连接池大小，mysql 总连接数大小为：连接池大小 * 服务进程数
-        'DB_POOL_SIZE': 20,     # 默认 5 个
+        'DB_POOL_SIZE': 3,     # 默认 5 个
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
          },
@@ -297,7 +323,8 @@ CACHES = {
     }
 }
 
-SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+# SESSION_ENGINE = "django.contrib.sessions.backends.cached_db" # 使用数据库，比较慢
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'   # 使用 CACHES 设置的 redis
 SESSION_COOKIE_HTTPONLY = True
 
 # proxy_sshd 监听配置

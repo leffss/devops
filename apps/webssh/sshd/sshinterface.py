@@ -216,7 +216,7 @@ class ServerInterface(paramiko.ServerInterface):
     def bridge(self):
         # 桥接 客户终端 和 代理服务终端 交互
         # transport_keepalive(self.chan_ser.transport)
-        sel = selectors.DefaultSelector()  # Linux epol
+        sel = selectors.DefaultSelector()  # 根据平台自动选择 IO 模式(kqueue, devpoll, epoll, poll, select)
         sel.register(self.chan_cli, selectors.EVENT_READ)
         sel.register(self.chan_ser, selectors.EVENT_READ)
         try:

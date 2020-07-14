@@ -1,4 +1,5 @@
 django==2.2.11
+django-debug-toolbar==2.0
 supervisor==4.1.0
 # simpleui
 paramiko==2.6.0

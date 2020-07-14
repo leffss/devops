@@ -1,6 +1,36 @@
 # devops
-基于 python 3.7 + django 2.2.3 + channels 2.2.0 + celery 4.3.0 + ansible 2.8.5 + AdminLTE-3.0.0 实现的运维 devops 管理系统。具体见 `screenshots` 文件夹中的效果预览图。
-本人为运维工程师，非专业开发，此项目各个功能模块都是现学现用，可能有点地方没有考虑到合理和性能的问题，代码写得烂，不喜勿喷，欢迎 issue。功能持续完善中。
+基于 python 3.7 + django 2.2.11 + channels 2.2.0 + celery 4.3.0 + ansible 2.9.2 + AdminLTE-3.0.0 实现的运维 devops 管理系统。具体见 `screenshots` 文件夹中的效果预览图。
+本人为运维工程师，非专业开发，此项目各个功能模块都是现学现用，可能有的地方暂时没有考虑合理和性能的问题，欢迎 issue。
+
+
+# 功能
+有点多，看图，不想描述了。
+
+
+# 预览
+![效果](https://github.com/leffss/devops/blob/master/screenshots/1.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/2.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/3.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/4.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/5.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/6.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/7.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/8.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/9.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/10.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/12.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/13.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/14.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/16.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/17.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/18.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/19.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/20.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/21.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/22.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/23.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/24.PNG?raw=true)
+![效果](https://github.com/leffss/devops/blob/master/screenshots/25.PNG?raw=true)
 
 
 # 部署安装
@@ -45,25 +75,25 @@ pip3 install -i https://mirrors.aliyun.com/pypi/simple -r requirements.txt
 ```python
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        # 'ENGINE': 'db_pool.mysql',     # db_pool.mysql 为重写 django 官方 mysql 连接库实现了真正的连接池
+        #'ENGINE': 'django.db.backends.mysql',
+        'ENGINE': 'db_pool.mysql',     # db_pool.mysql 为重写 django 官方 mysql 连接库实现了真正的连接池
         'NAME': 'devops',
         'USER':'devops',
         'PASSWORD':'devops',
         'HOST':'127.0.0.1',
         'PORT':'3306',
-        'CONN_MAX_AGE': 600,    # 如果使用 db_pool.mysql 尽量不要设置此参数
+        # 'CONN_MAX_AGE': 600,    # 如果使用 db_pool.mysql 绝对不能设置此参数，否则会造成使用连接后不会快速释放到连接池，从而造成连接池阻塞
         # 数据库连接池大小，mysql 总连接数大小为：连接池大小 * 服务进程数
-        'DB_POOL_SIZE': 20,     # 默认 5 个
+        'DB_POOL_SIZE': 3,     # 默认 5 个
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
          },
     }
 }
 ```
-- 相关数据库与账号必须事先在 mysql 数据库中创建好并授权。
+- 相关数据库(不需创建表)与账号必须事先在 mysql 数据库中创建好并授权。
 
-**创建数据库**
+**迁移数据库**
 ```bash
 sh delete_makemigrations.sh
 rm -f db.sqlite3
@@ -78,9 +108,9 @@ python3 manage.py loaddata initial_data.json
 python3 init.py
 ```
 - initial_data.json 为权限数据
-- init.py 创建超级管理员 admin 以及部分测试数据
+- init.py 创建超级管理员 admin 以及部分测试数据，可根据实际情况修改
 
-**启动响应服务**
+**启动相关服务**
 ```bash
 rm -rf logs/*
 export PYTHONOPTIMIZE=1		# 解决 celery 不允许创建子进程的问题
@@ -90,18 +120,18 @@ nohup python3 manage.py sshd > logs/sshd.log 2>&1 &
 nohup daphne -b 0.0.0.0 -p 8001 --access-log=logs/daphne_access.log devops.asgi:application > logs/daphne.log 2>&1 &
 nohup gunicorn -c gunicorn.cfg devops.wsgi:application > logs/gunicorn.log 2>&1 &
 ```
-- gunicorn  处理 http 请求，监听 8000 端口
+- gunicorn 处理 http 请求，监听 8000 端口
 - daphne 处理 websocket 请求，监听 8001 端口
 - sshd 为 ssh 代理服务器，监听 2222 端口，提供调用 securecrt、xshell、putty 以及 winscp 客户端支持，非必须
 - celery 后台任务处理进程，`export PYTHONOPTIMIZE=1` 此环境变量非常重要，不设置无法后台运行 ansible api
 - celery_beat 定时任务处理进程，读取 `devops/settings.py` 中设置的 `CELERY_BEAT_SCHEDULE` 定时任务，详见 v1.8.8 升级日志
-- 需要停止时 kill 相应的进程，然后删除 logs 目录下所有的 pid 文件
+- 需要停止时 kill 相应的进程，然后删除 logs 目录下所有的 pid 文件即可
 
 **nginx 前端代理**
 ```
 yum install -y nginx
 ```
-- 为了方便，就不编译安装，直接 yum 安装，版本 `nginx-1.16.1`
+- 为了方便，就不编译安装，直接 yum 安装，版本为 `nginx-1.16.1`
 
 修改 nginx 配置 /etc/nginx/nginx.conf 如下：
 ```
@@ -233,7 +263,8 @@ http {
 	}
 }
 ```
-- 建议生产环境使用 https 方式，并开启 http2 与 Brotli 压缩（一种比 gzip 更好的压缩方案），具体方法不表
+- 建议生产环境使用 https 方式，并开启 http2 与 Brotli 压缩（一种比 gzip 更好的压缩方案），具体方法不表，
+可以参考根目录下的 `make_nginx.sh` 与 `nginx.conf`。
 
 启动 nginx：
 ```
@@ -247,19 +278,20 @@ systemctl start nginx
 > 账号： admin     密码：123456
 
 
-# 功能
-有点多，看图，不想描述了。
-
-
 # 已知问题或者不足
 1. web 终端（包括 webssh，webtelnet）在使用 chrome 浏览器打开时，很大机率会出现一片空白无法显示 xterm.js 终端的情况。
-解决方法是改变一下 chrome 的缩放比例就好了（ctrl + 鼠标滚轮），在 firefox 下也有无此问题，但出现的机率小一些，具体原因未知。
+解决方法是改变一下 chrome 窗口大小就好了，在 firefox 下也有无此问题，但出现的机率小一些，具体原因未知。
 
-2. 关于前后端分离，有同学建议使用 vue 做前后端分离。这段时间也抽空看了一下 vue 全家桶的教程，看完后体会到是属于入门到放弃那种。
-而且我感觉前端的代码结构语法这些有点奇葩啊，太不习惯了，人老了也实时感觉是学不动了，遂暂时作罢（指定那天心血来潮又研究起来呢！）。
-即使要用 vue 也得先把后端 api 搞起来啥，所以还是先研究 django rest framework 吧。
+2. 关于前后端分离，有同学建议使用 vue 做前后端分离。这是个很好的建议，但是由于个人时间精力的问题，只能是慢慢来吧。
+
+3. 数据权限是有一点小问题的，细心的同学可以在代码中发现。
 
 # 升级日志
+
+### ver2.0.0
+优化 web 终端无法显示 _ 符号的问题（xterm v3 默认的渲染器 canvas 有兼容问题 ，故改用 dom，v4 版本不存在此问题）；
+
+完全重构 db_pool.mysql 连接池（以前的版本存在的问题：会出现多个调用同时使用同一个连接，进而导致数据安全问题）；
 
 ### ver1.9.0
 优化 webssh 与 webtelnet 终端大小自动调整功能；
@@ -286,7 +318,7 @@ systemctl start nginx
 - 下载文件的方法是将需要下载的文件拖动到挂载的文件系统中的 `download` 文件夹中
 ，简单测试了下，在 chrome（版本 81）下下载 300MB 的文件会导致 chrome 占用过大内存而崩溃；
 而 firefox（版本 72）也会占用较大内存（比 chrome 稍微小一些），但是不会崩溃，可以正常下载文件。
-所以需要下载大文件时建议先在远程主机上分卷压缩一下，然后批量下载小的分卷文件即可。
+所以需要下载大文件时建议先在远程主机上分卷压缩一下，然后再批量下载小的分卷文件。
 - 上传文件的方法是通过点击浏览器上传文件，上传好的文件会在挂载的文件系统根目录中
 - 仅测试过 webrdp
 
@@ -326,7 +358,7 @@ webssh 新增 zmodem(sz, rz) 上传下载文件支持（webtelnet 理论上也�
 新增批量操作，比如批量删除，批量更新等；
 
 ### ver1.8.4
-基于 url 实现的粒度到按钮级别的权限控制；
+基于 url 实现的粒度到按钮级别的权限控制（有点像 RBAC ，但不是）；
 
 左侧菜单栏根据权限自动生成；
 
@@ -431,32 +463,6 @@ linux 平台下使用 celery 任务保存终端会话日志与录像（windows �
 
 ### ver1.0.0 
 初始版本
-
-
-# 预览
-![效果](https://github.com/leffss/devops/blob/master/screenshots/1.PNG?raw=true)
-![效果](https://github.com/leffss/devops/blob/master/screenshots/2.PNG?raw=true)
-![效果](https://github.com/leffss/devops/blob/master/screenshots/3.PNG?raw=true)
-![效果](https://github.com/leffss/devops/blob/master/screenshots/4.PNG?raw=true)
-![效果](https://github.com/leffss/devops/blob/master/screenshots/5.PNG?raw=true)
-![效果](https://github.com/leffss/devops/blob/master/screenshots/6.PNG?raw=true)
-![效果](https://github.com/leffss/devops/blob/master/screenshots/7.PNG?raw=true)
-![效果](https://github.com/leffss/devops/blob/master/screenshots/8.PNG?raw=true)
-![效果](https://github.com/leffss/devops/blob/master/screenshots/9.PNG?raw=true)
-![效果](https://github.com/leffss/devops/blob/master/screenshots/10.PNG?raw=true)
-![效果](https://github.com/leffss/devops/blob/master/screenshots/12.PNG?raw=true)
-![效果](https://github.com/leffss/devops/blob/master/screenshots/13.PNG?raw=true)
-![效果](https://github.com/leffss/devops/blob/master/screenshots/14.PNG?raw=true)
-![效果](https://github.com/leffss/devops/blob/master/screenshots/16.PNG?raw=true)
-![效果](https://github.com/leffss/devops/blob/master/screenshots/17.PNG?raw=true)
-![效果](https://github.com/leffss/devops/blob/master/screenshots/18.PNG?raw=true)
-![效果](https://github.com/leffss/devops/blob/master/screenshots/19.PNG?raw=true)
-![效果](https://github.com/leffss/devops/blob/master/screenshots/20.PNG?raw=true)
-![效果](https://github.com/leffss/devops/blob/master/screenshots/21.PNG?raw=true)
-![效果](https://github.com/leffss/devops/blob/master/screenshots/22.PNG?raw=true)
-![效果](https://github.com/leffss/devops/blob/master/screenshots/23.PNG?raw=true)
-![效果](https://github.com/leffss/devops/blob/master/screenshots/24.PNG?raw=true)
-![效果](https://github.com/leffss/devops/blob/master/screenshots/25.PNG?raw=true)
 
 
 # TODO LISTS

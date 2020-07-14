@@ -40,13 +40,17 @@ function websocket() {
     //var term = new Terminal(
 	term = new Terminal(
         {
+		  	rendererType: 'dom', // 渲染类型，canvas 与 dom, xterm v3 使用 canvas 会无法显示 _ ，故使用 dom，v4 版本就无此问题
+      		scrollback: 12800, // 终端回滚量
             cols: cols,
             rows: rows,
             useStyle: true,
             cursorBlink: true,
 			theme: {
 				//background: '#008080',
-				background: '#272822',
+				// background: '#272822',
+				foreground: '#7e9192',
+        		background: '#002833',
 			},
         }
         ),
@@ -240,7 +244,7 @@ function websocket() {
 
 		toastr.options.timeOut = 10000;
 		toastr.options.extendedTimeOut = 3000;
-		toastr.info('友情提醒: 如果画面出现空白，请使用 ctrl + 鼠标滚轮改变网页缩放比例修复');
+		toastr.info('友情提醒: 如果窗口出现空白，可通过改变浏览器窗口大小修复');
 
 		$("body").attr("onbeforeunload",'checkwindow()'); //增加刷新关闭提示属性
 		
