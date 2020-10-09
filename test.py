@@ -53,5 +53,3 @@ if __name__ == '__main__':
     #     print(task)
     #
     print(schduler.remove_all())
-
-    from redis import Redis

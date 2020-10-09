@@ -334,7 +334,7 @@ function websocket() {
 			toastr.options.extendedTimeOut = 3000;
 			// toastr.options.progressBar = true;
 			toastr.options.positionClass = 'toast-bottom-center';
-			toastr.info('调整行列值: ' + cols_rows.cols + ' x ' + cols_rows.rows);
+			toastr.info('行列值: ' + cols_rows.cols + ' x ' + cols_rows.rows);
 		}, 130)
     })
 }

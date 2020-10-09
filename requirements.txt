@@ -34,3 +34,4 @@ django-apscheduler==0.3.0
 requests==2.22.0
 jsonpickle==1.2
 redisbeat==1.2.3
+django-cachalot==2.3.1

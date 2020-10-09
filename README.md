@@ -1,10 +1,10 @@
 # devops
 基于 python 3.7 + django 2.2.11 + channels 2.2.0 + celery 4.3.0 + ansible 2.9.2 + AdminLTE-3.0.0 实现的运维 devops 管理系统。具体见 `screenshots` 文件夹中的效果预览图。
-本人为运维工程师，非专业开发，此项目各个功能模块都是现学现用，可能有的地方暂时没有考虑合理和性能的问题，欢迎 issue。
+本人为运维工程师，非专业开发，项目各个功能模块都是现学现用，可能有的地方暂时没有考虑合理和性能的问题。
 
 
 # 功能
-有点多，看图，不想描述了。
+看图。
 
 
 # 预览
@@ -35,24 +35,24 @@
 
 # 部署安装
 
-主机操作系统为 Centos 7.5，python 版本 3.7.2，docker 版本 1.13.1，项目目录为 `/home/workspace/devops` 。windows 上就不建议部署了，那是作死的事情。
+环境：Centos 7.5，python 3.7.2，docker 1.13.1，项目目录为 `/home/workspace/devops` 。
 
-**安装依赖**
+**1. 安装依赖**
 ```bash
 yum install -y epel-release
-yum install -y sshpass python3-devel mysql-devel
+yum install -y gcc sshpass python3-devel mysql-devel
 ```
 - ansible 连接插件 connection 使用 ssh 模式（还可以使用 paramiko 等模式）并且密码连接主机时需要使用 sshpass
 - python3-devel 与 mysql-devel 为 mysqlclient 库的依赖
 - 不建议使用 pymysql 代替 mysqlclient ，因为 pymysql 为纯 python 编写的库，性能较低
 
-**安装 redis（docker 方式）**
+**2. 安装 redis（docker 方式）**
 ```bash
 docker run --name redis-server -p 6379:6379 -d redis:latest
 ```
 - channels、缓存、celery以及 session 支持所需，必须
 
-**安装 guacd（docker 方式）**
+**3. 安装 guacd（docker 方式）**
 ```bash
 docker run --name guacd -e GUACD_LOG_LEVEL=info -v /home/workspace/devops/media/guacd:/fs -p 4822:4822 -d guacamole/guacd
 ```
@@ -60,14 +60,14 @@ docker run --name guacd -e GUACD_LOG_LEVEL=info -v /home/workspace/devops/media/
 - rdp 必须设置为`允许运行任意版本远程桌面的计算机连接(较不安全)(L)`才能连接，也就说目前暂不支持 nla 登陆方式
 - `-v /home/workspace/devops/media/guacd:/fs` 挂载磁盘，用于远程挂载文件系统实现上传和下载文件
 
-**安装 python 依赖库**
+**4. 安装 python 依赖库**
 ```bash
 # 安装相关库
 pip3 install -i https://mirrors.aliyun.com/pypi/simple -r requirements.txt
 ```
-- -i 指定阿里源，国外源慢得一逼，我大天朝威武，局域网玩得贼6
+- -i 指定阿里源，速度飞起，我大 TC 威武，局域网玩得贼 6
 
-**修改 devops/settings.py 配置**
+**5. 修改 devops/settings.py 配置**
 
 相关配置均有注释，根据实际情况修改。默认数据库使用的是 sqlite3，如果需要使用 mysql，方法如下：
 
@@ -93,7 +93,7 @@ DATABASES = {
 ```
 - 相关数据库(不需创建表)与账号必须事先在 mysql 数据库中创建好并授权。
 
-**迁移数据库**
+**6. 迁移数据库**
 ```bash
 sh delete_makemigrations.sh
 rm -f db.sqlite3
@@ -102,7 +102,7 @@ python3 manage.py makemigrations
 python3 manage.py migrate
 ```
 
-**初始化数据**
+**7. 初始化数据**
 ```bash
 python3 manage.py loaddata initial_data.json
 python3 init.py
@@ -110,7 +110,7 @@ python3 init.py
 - initial_data.json 为权限数据
 - init.py 创建超级管理员 admin 以及部分测试数据，可根据实际情况修改
 
-**启动相关服务**
+**8. 启动相关服务**
 ```bash
 rm -rf logs/*
 export PYTHONOPTIMIZE=1		# 解决 celery 不允许创建子进程的问题
@@ -127,7 +127,7 @@ nohup gunicorn -c gunicorn.cfg devops.wsgi:application > logs/gunicorn.log 2>&1 
 - celery_beat 定时任务处理进程，读取 `devops/settings.py` 中设置的 `CELERY_BEAT_SCHEDULE` 定时任务，详见 v1.8.8 升级日志
 - 需要停止时 kill 相应的进程，然后删除 logs 目录下所有的 pid 文件即可
 
-**nginx 前端代理**
+**9. 配置 nginx 前端代理**
 ```
 yum install -y nginx
 ```
@@ -272,21 +272,33 @@ systemctl start nginx
 ```
 - 启动前建议先检查下配置是否正确：`nginx -t`
 
-访问首页：http://127.0.0.1
+**10. 访问首页：http://127.0.0.1**
 
-超级管理员：
+初始超级管理员：
 > 账号： admin     密码：123456
 
 
 # 已知问题或者不足
-1. web 终端（包括 webssh，webtelnet）在使用 chrome 浏览器打开时，很大机率会出现一片空白无法显示 xterm.js 终端的情况。
+1. 代码的质量以我现在的眼光来看都太差了，但是这个项目的初衷也只是学习而已，也就没有动力重构优化了。
+
+2. web 终端（包括 webssh，webtelnet）在使用 chrome 浏览器打开时，很大机率会出现一片空白无法显示 xterm.js 终端的情况。
 解决方法是改变一下 chrome 窗口大小就好了，在 firefox 下也有无此问题，但出现的机率小一些，具体原因未知。
 
-2. 关于前后端分离，有同学建议使用 vue 做前后端分离。这是个很好的建议，但是由于个人时间精力的问题，只能是慢慢来吧。
+3. 关于使用 vue 做前后端分离，这肯定是以后的趋势，但是由于个人时间精力的问题，只能是慢慢来吧。
 
-3. 数据权限是有一点小问题的，细心的同学可以在代码中发现。
+4. 数据权限是有一点小问题的，在某些特定的情况下会越权，细心的同学可以在代码中发现。
+
+5. webssh 使用 zmodem 上传下载还有很多可以优化的地方，可以参考我的 go 项目 [gowebssh](https://github.com/leffss/gowebssh) 。
+
+6. webrdp 下载文件也还可以优化。
+
 
 # 升级日志
+
+### ver2.1.0
+增强 zmodem 命令兼容性，新增支持 rz -e \ rz -S \ rz -e -S 命令；
+
+新增 django_cachalot 缓存 sql 数据库查询结果，提高整体响应速度；
 
 ### ver2.0.0
 优化 web 终端无法显示 _ 符号的问题（xterm v3 默认的渲染器 canvas 有兼容问题 ，故改用 dom，v4 版本不存在此问题）；
@@ -306,8 +318,8 @@ systemctl start nginx
 - tab 自动补全命令无法正常识别（tab 补全操作太复杂，不好判断）
 - 无法识别 top 等类似命令中输入的操作命令
 - 无法识别中文命令
-- 识别命令的准确率只能尽可能的提高，应该没有那个堡垒机敢说自己准确率100%
-- 真正想实现 100% 准确率，应该只有修改 shell 源码或者调用 shell 历史命令了（但是这些方式都有很多弊端）
+- 识别命令的准确率只能尽可能的提高，应该没有那个堡垒机(包括商业的)敢说自己准确率 100% 吧
+- 真正想实现 100% 准确率，应该只有修改 shell 源码或者调用 shell 历史命令了（但是这些方式都不是太现实）
 
 优化 webrdp 下载文件时录像数据记录逻辑（不保存下载的文件内容到录像结果）
 
@@ -473,7 +485,7 @@ linux 平台下使用 celery 任务保存终端会话日志与录像（windows �
 
 # MIT License
 ```
-Copyright (c) 2019-2020 leffss
+Copyright (c) 2019-2020 leffss.
 ```
 
 

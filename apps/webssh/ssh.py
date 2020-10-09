@@ -23,11 +23,20 @@ try:
 except Exception:
     terminal_exipry_time = 60 * 30
 
-zmodemszstart = b'rz\r**\x18B00000000000000\r\x8a'
+# sz
+zmodemszstart = b'**\x18B00000000000000\r\x8a\x11'
 zmodemszend = b'**\x18B0800000000022d\r\x8a'
-zmodemrzstart = b'rz waiting to receive.**\x18B0100000023be50\r\x8a'
+
+# rz
+zmodemrzstart = b'**\x18B0100000023be50\r\x8a\x11'   # rz
+zmodemrzestart = b'**\x18B0100000063f694\r\x8a\x11'  # rz -e
+zmodemrzsstart = b'**\x18B0100000223d832\r\x8a\x11'  # rz -S
+zmodemrzesstart = b'**\x18B010000026390f6\r\x8a\x11'  # rz -e -S
 zmodemrzend = b'**\x18B0800000000022d\r\x8a'
+
+# zmodem cancel
 zmodemcancel = b'\x18\x18\x18\x18\x18\x08\x08\x08\x08\x08'
+
 
 BufferSize = 4096   # 4096 足够，高于 4096 时使用 zmodem 传输时会出现错误
 
@@ -199,7 +208,8 @@ class SSH:
                         self.channel.send('\n')
                     self.websocker.send(bytes_data=x)
                 else:
-                    if zmodemszstart in x or zmodemrzstart in x:
+                    if zmodemszstart in x or zmodemrzstart in x or zmodemrzestart in x or zmodemrzsstart in x \
+                            or zmodemrzesstart in x:
                         self.zmodem = True
                         self.websocker.send(bytes_data=x)
                     else:
@@ -333,5 +343,4 @@ class SSH:
         # Thread(target=self.django_to_ssh, args=(data,)).start()
         self.django_to_ssh(data)
         # 原作者将发送数据到django websocket的线程创建函数如果写到这，会导致每在客户端输入一个字符就创建一个线程
-        # 最终可能导致线程创建太多，故将其写到 connect 函数中
         # Thread(target=self.websocket_to_django).start()

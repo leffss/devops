@@ -39,10 +39,18 @@ try:
 except Exception:
     terminal_exipry_time = 60 * 30
 
-zmodemszstart = b'rz\r**\x18B00000000000000\r\x8a'
+# sz
+zmodemszstart = b'**\x18B00000000000000\r\x8a\x11'
 zmodemszend = b'**\x18B0800000000022d\r\x8a'
-zmodemrzstart = b'rz waiting to receive.**\x18B0100000023be50\r\x8a'
+
+# rz
+zmodemrzstart = b'**\x18B0100000023be50\r\x8a\x11'   # rz
+zmodemrzestart = b'**\x18B0100000063f694\r\x8a\x11'  # rz -e
+zmodemrzsstart = b'**\x18B0100000223d832\r\x8a\x11'  # rz -S
+zmodemrzesstart = b'**\x18B010000026390f6\r\x8a\x11'  # rz -e -S
 zmodemrzend = b'**\x18B0800000000022d\r\x8a'
+
+# zmodem cancel
 zmodemcancel = b'\x18\x18\x18\x18\x18\x08\x08\x08\x08\x08'
 
 support_term = ["linux", "ansi", "xterm"]
@@ -241,7 +249,9 @@ class ServerInterface(paramiko.ServerInterface):
                                 self.chan_cli.send(recv_message)
                                 continue
                             else:
-                                if zmodemszstart in recv_message or zmodemrzstart in recv_message:
+                                if zmodemszstart in recv_message or zmodemrzstart in recv_message or \
+                                        zmodemrzestart in recv_message or zmodemrzsstart in recv_message or \
+                                        zmodemrzesstart in recv_message:
                                     self.zmodem = True
                                     # logger.info("zmodem start")
                                     self.chan_cli.send(recv_message)

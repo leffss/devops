@@ -73,6 +73,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     # 'debug_toolbar',
+    'cachalot',
     'channels',
     'server',
     'user',
@@ -84,6 +85,14 @@ INSTALLED_APPS = [
     'scheduler'
     # 'django_apscheduler',
 ]
+
+# django-cachalot 原理是捕获 insert\update\delete 操作而刷新缓存，如果不是通过 django orm，而是直接改的数据库，那么就不能触发其缓存
+# 刷新机制，这是可以使用其提供的手动刷新命令解决：./manage.py invalidate_cachalot [app]
+# 具体参考文档：https://django-cachalot.readthedocs.io/en/latest/quickstart.html#manage-py-command
+# 并且 django-cachalot 不适用于 insert\update\delete 操作很频繁的项目，这种项目反而会使其性能下降
+CACHALOT_ENABLED = True     # 不懂官方这个配置什么意思，设置 False 还是会启用缓存
+CACHALOT_DATABASES = ['default']    # 需要缓存的数据库别名，必须设置，默认的 supported_only 只支持 django 默认的数据库引擎，不支持自定义的 db_pool.mysql 连接池引擎
+# 更多配置参考：https://django-cachalot.readthedocs.io/en/latest/quickstart.html#settings
 
 # 中间件
 MIDDLEWARE = [
@@ -117,6 +126,7 @@ MIDDLEWARE = [
 #     'debug_toolbar.panels.logging.LoggingPanel',
 #     'debug_toolbar.panels.redirects.RedirectsPanel',
 #     'debug_toolbar.panels.profiling.ProfilingPanel',
+#     'cachalot.panels.CachalotPanel',
 # ]
 
 # INTERNAL_IPS = [
@@ -172,8 +182,8 @@ DATABASES = {
         # 'ENGINE': 'django.db.backends.mysql',
         'ENGINE': 'db_pool.mysql',     # 重写 mysql 连接库实现连接池
         'NAME': 'devops',
-        'USER': 'devops',
-        'PASSWORD': 'devops',
+        'USER': 'root',
+        'PASSWORD': '123456',
         'HOST': '192.168.223.111',
         'PORT': '3306',
         # 'CONN_MAX_AGE': 600,    # 如果使用 db_pool.mysql 绝对不能设置此参数，否则会造成使用连接后不会快速释放到连接池，从而造成连接池阻塞

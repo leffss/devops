@@ -36,8 +36,7 @@ function websocket() {
 	// Terminal.applyAddon(zmodem);
 
     //var term = new Terminal(
-	term = new Terminal(
-        {
+	term = new Terminal({
 		  	rendererType: 'dom', // 渲染类型，canvas 与 dom, xterm v3 使用 canvas 会无法显示 _ ，故使用 dom，v4 版本就无此问题
       		scrollback: 12800, // 终端回滚量
             cols: cols,
@@ -50,8 +49,7 @@ function websocket() {
 				foreground: '#7e9192',
         		background: '#002833',
 			},
-        }
-        ),
+        })
         protocol = (location.protocol === 'https:') ? 'wss://' : 'ws://';
         socketURL = protocol + location.hostname + ((location.port) ? (':' + location.port) : '') + '/ws/webssh/?' + connect_info + '&width=' + cols + '&height=' + rows;
 
@@ -110,18 +108,44 @@ function websocket() {
 			file_el.onchange = function (e) {
 				let files_obj = file_el.files;
 				hideModal();
-				Zmodem.Browser.send_files(zsession, files_obj, {
+				let files = [];
+				for (let i of files_obj) {
+					if (i.size <= 2048 * 1024 * 1024) {
+						files.push(i);
+					} else {
+						toastr.warning(`${i.name} 超过 2048 MB, 无法上传`);
+						// console.log(i.name, i.size, '超过 2048 MB, 无法上传');
+					}
+				}
+				if (files.length === 0) {
+					try {
+						// zsession 每 5s 发送一个 ZACK 包，5s 后会出现提示最后一个包是 ”ZACK“ 无法正常关闭
+						// 这里直接设置 _last_header_name 为 ZRINIT，就可以强制关闭了
+						zsession._last_header_name = "ZRINIT";
+						zsession.close();
+					} catch (e) {
+						console.log(e);
+					}
+					return
+				} else if (files.length >= 25) {
+					toastr.warning("上传文件个数不能超过 25 个");
+					try {
+						// zsession 每 5s 发送一个 ZACK 包，5s 后会出现提示最后一个包是 ”ZACK“ 无法正常关闭
+						// 这里直接设置 _last_header_name 为 ZRINIT，就可以强制关闭了
+						zsession._last_header_name = "ZRINIT";
+						zsession.close();
+					} catch (e) {
+						console.log(e);
+					}
+					return
+				}
+				// Zmodem.Browser.send_files(zsession, files, {
+				Zmodem.Browser.send_block_files(zsession, files, {
 						on_offer_response(obj, xfer) {
 							if (xfer) {
 								// term.write("\r\n");
 							} else {
 								term.write(obj.name + " was upload skipped\r\n");
-								message['status'] = 2;
-								message['data'] = obj.name + " was upload skipped\r\n";
-								message['cols'] = null;
-								message['rows'] = null;
-								var send_data = JSON.stringify(message);
-								sock.send(send_data);
 							}
 						},
 						on_progress(obj, xfer) {
@@ -129,12 +153,7 @@ function websocket() {
 						},
 						on_file_complete(obj) {
                             term.write("\r\n");
-							message['status'] = 2;
-							message['data'] = obj.name + " was upload success\r\n";
-							message['cols'] = null;
-							message['rows'] = null;
-							var send_data = JSON.stringify(message);
-							sock.send(send_data);
+							sock.send(JSON.stringify({"status": 2, "data": obj.name + " was upload success\r\n"}));
 						},
 					}
 				).then(zsession.close.bind(zsession), console.error.bind(console)
@@ -166,6 +185,11 @@ function websocket() {
 	function downloadFile(zsession) {
 		zsession.on("offer", function(xfer) {
 			function on_form_submit() {
+				if (xfer.get_details().size > 2048 * 1024 * 1024) {
+					xfer.skip();
+					toastr.warning(`${xfer.get_details().name} 超过 2048 MB, 无法下载`);
+					return
+				}
 				let FILE_BUFFER = [];
 				xfer.on("input", (payload) => {
 					updateProgress(xfer);
@@ -176,12 +200,7 @@ function websocket() {
 					() => {
 						saveFile(xfer, FILE_BUFFER);
 						term.write("\r\n");
-						message['status'] = 2;
-						message['data'] = xfer.get_details().name + " was download success\r\n";
-						message['cols'] = null;
-						message['rows'] = null;
-						var send_data = JSON.stringify(message);
-						sock.send(send_data);
+						sock.send(JSON.stringify({"status": 2, "data": xfer.get_details().name + " was download success\r\n"}));
 					},
 					console.error.bind(console)
 				);
@@ -315,26 +334,16 @@ function websocket() {
 
     // 向服务器端发送数据
     term.on('data', function (data) {
-        message['status'] = 0;
-        message['data'] = data;
-		message['cols'] = null;
-		message['rows'] = null;
-        var send_data = JSON.stringify(message);
-        sock.send(send_data);
+        sock.send(JSON.stringify({"status": 0, "data": data}));
     });
 
     var timer = 0;
-    // 监听浏览器窗口, 根据浏览器窗口大小修改终端大小，延迟改变，防止
+    // 监听浏览器窗口, 根据浏览器窗口大小修改终端大小，延迟改变
     $(window).resize(function () {
     	clearTimeout(timer);
 		timer = setTimeout(function() {
-			var cols_rows = get_term_size();
-			message['status'] = 1;
-			message['data'] = null;
-			message['cols'] = cols_rows.cols;
-			message['rows'] = cols_rows.rows;
-			var send_data = JSON.stringify(message);
-			sock.send(send_data);
+			let cols_rows = get_term_size();
+			sock.send(JSON.stringify({"status": 1, "data": null, "cols": cols_rows.cols, "rows": cols_rows.rows}));
 			term.resize(cols_rows.cols, cols_rows.rows)
 			toastr.options.closeButton = false;
 			toastr.options.showMethod = 'slideDown';
@@ -344,7 +353,7 @@ function websocket() {
 			toastr.options.extendedTimeOut = 3000;
 			// toastr.options.progressBar = true;
 			toastr.options.positionClass = 'toast-bottom-center';
-			toastr.info('调整行列值: ' + cols_rows.cols + ' x ' + cols_rows.rows);
+			toastr.info('行列值: ' + cols_rows.cols + ' x ' + cols_rows.rows);
 		}, 130)
     })
 }
