@@ -92,6 +92,7 @@ keepalive = 5
 # 启动 worker 前加载代码，代码只执行一次，但是使用 kill -HUP 重启 gunicorn 后无法更新代码了
 preload = False
 
+
 # Server Hooks 模块设置
 def on_starting(server):    # master 主进程启动前执行，只允许一次
     pass

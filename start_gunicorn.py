@@ -14,4 +14,4 @@ def __external_cmd(cmd, code="utf8"):
 
 if __name__ == '__main__':
     # reload gunicorn 方法：kill -HUP gunicornpid
-    __external_cmd('rm -f logs/gunicorn.pid;/home/python372/bin/gunicorn -c gunicorn.cfg devops.wsgi:application')
+    __external_cmd('rm -f logs/gunicorn.pid;/home/python372/bin/gunicorn -c gunicorn.py devops.wsgi:application')

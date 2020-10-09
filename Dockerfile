@@ -1,4 +1,4 @@
-FROM python:3.7
+FROM python:3.7.2
 RUN mv /etc/apt/sources.list /etc/apt/sources.list.bak
 COPY ./sources.list /etc/apt
 ADD . /devops

@@ -18,7 +18,7 @@ from django.urls import path, include, re_path
 from server.views import index
 from django.conf import settings
 from django.conf.urls.static import static
-import debug_toolbar
+# import debug_toolbar
 
 urlpatterns = [
 

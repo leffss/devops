@@ -1,5 +1,5 @@
 # devops
-基于 python 3.7 + django 2.2.11 + channels 2.2.0 + celery 4.3.0 + ansible 2.9.2 + AdminLTE-3.0.0 实现的运维 devops 管理系统。具体见 `screenshots` 文件夹中的效果预览图。
+基于 python 3.7.2 + django 2.2.16 + channels 2.2.0 + celery 4.3.0 + ansible 2.9.2 + AdminLTE-3.0.0 实现的运维 devops 管理系统。具体见 `screenshots` 文件夹中的效果预览图。
 本人为运维工程师，非专业开发，项目各个功能模块都是现学现用，可能有的地方暂时没有考虑合理和性能的问题。
 
 
@@ -294,6 +294,9 @@ systemctl start nginx
 
 
 # 升级日志
+
+### ver2.1.1
+修正 greenlet 与 gunicorn 的兼容性问题；
 
 ### ver2.1.0
 增强 zmodem 命令兼容性，新增支持 rz -e \ rz -S \ rz -e -S 命令；
