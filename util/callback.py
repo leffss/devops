@@ -21,18 +21,18 @@ def gen_rand_char(length=16, chars='0123456789zyxwvutsrqponmlkjihgfedcbaZYXWVUTS
     return ''.join(random.sample(chars, length))
 
 
-def convert_byte(byte):
+def convert_byte(byte, digits=2):
     byte = int(byte)
     if byte <= 1024:
         return '{} B'.format(byte)
     elif 1024 < byte <= 1048576:
-        return '{} KB'.format('%.2f' % (byte / 1024))
+        return '{} KB'.format('%.{0}f'.format(digits) % (byte / 1024))
     elif 1048576 < byte <= 1073741824:
-        return '{} MB'.format('%.2f' % (byte / 1024 / 1024))
+        return '{} MB'.format('%.{0}f'.format(digits) % (byte / 1024 / 1024))
     elif 1073741824 < byte <= 1099511627776:
-        return '{} GB'.format('%.2f' % (byte / 1024 / 1024 / 1024))
+        return '{} GB'.format('%.{0}f'.format(digits) % (byte / 1024 / 1024 / 1024))
     elif byte > 1099511627776:
-        return '{} TB'.format('%.2f' % (byte / 1024 / 1024 / 1024 / 1024))
+        return '{} TB'.format('%.{0}f'.format(digits) % (byte / 1024 / 1024 / 1024 / 1024))
 
 
 def save_res(res_file, res):

@@ -63,6 +63,7 @@
 				  {% endif %}
 				  <th>名称</th>
 				  <th>用户名</th>
+                  <th>AD域</th>
 				  <th>已绑定主机数</th>
 				  <th>登陆后是否 su 跳转</th>
 				  <th>添加时间</th>
@@ -78,6 +79,7 @@
 				  
 				  <td>{{ user.name }}</td>
 				  <td>{{ user.username }}</td>
+                  <td>{% if user.domain %}{{ user.domain }}{% endif %}</td>
 				  <td>{{ user.remoteuserbindhost_set.all.count }}</td>
 				  <td>{% if user.enabled %}<span class="badge badge-success">是</span>{% else %}<span class="badge badge-danger">否</span>{% endif %}</td>
 				  <td>{{ user.create_time|date:"Y/m/d H:i:s" }}</td>
@@ -111,6 +113,7 @@
 				  {% endif %}
 				  <th>名称</th>
 				  <th>用户名</th>
+                  <th>AD域</th>
 				  <th>已绑定主机数</th>
 				  <th>登陆后是否 su 跳转</th>
 				  <th>添加时间</th>
@@ -163,9 +166,9 @@
 		bProcessing:true,  // 表格数据过多处理时显示: sProcessing
 		lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "全部"]],
 		{% if request|has_permission:'远程用户删除' %}
-		columnDefs : [ { targets : [0,6], "orderable" : false } ],
+		columnDefs : [ { targets : [0,7], "orderable" : false } ],
 		{% else %}
-		columnDefs : [ { targets : 5, "orderable" : false } ],
+		columnDefs : [ { targets : 6, "orderable" : false } ],
 		{% endif %}
 		order: [],
 		 //scrollY: 480,	// 滚动条
@@ -283,9 +286,9 @@
 					bProcessing:true,  // 表格数据过多处理时显示: sProcessing
 					lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "全部"]],
 					{% if request|has_permission:'远程用户删除' %}
-					columnDefs : [ { targets : [0,6], "orderable" : false } ],
+					columnDefs : [ { targets : [0,7], "orderable" : false } ],
 					{% else %}
-					columnDefs : [ { targets : 5, "orderable" : false } ],
+					columnDefs : [ { targets : 6, "orderable" : false } ],
 					{% endif %}
 					order: [],
 					 //scrollY: 480,	// 滚动条
@@ -422,9 +425,9 @@
 					bProcessing:true,  // 表格数据过多处理时显示: sProcessing
 					lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "全部"]],
 					{% if request|has_permission:'远程用户删除' %}
-					columnDefs : [ { targets : [0,6], "orderable" : false } ],
+					columnDefs : [ { targets : [0,7], "orderable" : false } ],
 					{% else %}
-					columnDefs : [ { targets : 5, "orderable" : false } ],
+					columnDefs : [ { targets : 6, "orderable" : false } ],
 					{% endif %}
 					order: [],
 					 //scrollY: 480,	// 滚动条

@@ -249,7 +249,7 @@ REDIS_SETTING = {
 # celery 配置 redis
 CELERY_BROKER_URL = 'redis://{0}:{1}/0'.format(REDIS_SETTING['host'], REDIS_SETTING['port'])
 # beat 中 Scheduler 循环调度任务的最大等待时间(s)
-CELERY_BEAT_MAX_LOOP_INTERVAL = 30
+CELERY_BEAT_MAX_LOOP_INTERVAL = 10
 # RedisMultiScheduler 利用 redis 实现 beat 的动态添加，修改，删除任务
 CELERY_BEAT_SCHEDULER = 'redismultibeat.RedisMultiScheduler'
 CELERY_BEAT_REDIS_SCHEDULER_URL = 'redis://{0}:{1}/0'.format(REDIS_SETTING['host'], REDIS_SETTING['port'])
@@ -257,7 +257,7 @@ CELERY_BEAT_REDIS_SCHEDULER_KEY = 'devops:celery:beat:tasks'
 # redis 锁，实现运行多个 beat 实例而不会重复执行任务， beat 官方只能运行一个实例
 CELERY_BEAT_REDIS_MULTI_NODE_MODE = True      # 是否开启多实例模式
 CELERY_BEAT_REDIS_LOCK_KEY = 'devops:celery:beat:lock'
-CELERY_BEAT_REDIS_LOCK_TTL = 15
+CELERY_BEAT_REDIS_LOCK_TTL = 5
 # 多实例模式下，未获取到锁的实例等待多长时间(s)再试，如果设置为 None 或者不设置,
 # 则会随机等待 1 - CELERY_BEAT_REDIS_LOCK_TTL 之间的一个值，设置越小丢失任务的
 # 可能性越低，但是对 redis 的性能消耗也越高，根据实际情况权衡
@@ -297,8 +297,8 @@ CELERY_BEAT_SCHEDULE = {    # celery 定时任务, 会覆盖 redis 当中相同�
     # },
     'task_cls_terminalsession': {   # 清除 terminalsession 表，系统异常退出时此表可能会有垃圾数据，仅启动时运行一次
         'task': 'tasks.tasks.task_cls_terminalsession',
-        'schedule': timedelta(seconds=2),
-        "limit_run_time": 1,   # 限制任务执行次数，>=0, 0 为不限制。注意：celery 原版 beat 是不支持此参数
+        'schedule': timedelta(seconds=3),
+        "limit_run_time": 1,   # 限制任务执行次数，>=0, 0 为不限制。注意：celery 原版 beat 是不支持此参数的
     },
 }
 
@@ -324,7 +324,7 @@ CACHES = {
             'PARSER_CLASS': 'redis.connection.HiredisParser',
             'CONNECTION_POOL_CLASS': 'redis.BlockingConnectionPool',
             'CONNECTION_POOL_CLASS_KWARGS': {
-                'max_connections': 1000,
+                'max_connections': 150,
                 'timeout': 15,
             },
             "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",   # 开启压缩
@@ -341,7 +341,7 @@ SESSION_COOKIE_HTTPONLY = True
 PROXY_SSHD = {
     'listen_host': '0.0.0.0',
     'listen_port': 2222,
-    'cons': 500,
+    'cons': 150,
 }
 
 # guacd 配置

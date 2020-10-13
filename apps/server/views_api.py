@@ -24,6 +24,7 @@ def user_update(request):
         userid = changeuser_form.cleaned_data.get('userid')
         username = changeuser_form.cleaned_data.get('username')
         password = changeuser_form.cleaned_data.get('password')
+        domain = changeuser_form.cleaned_data.get('domain', None)
         memo = changeuser_form.cleaned_data.get('memo')
         enabled = changeuser_form.cleaned_data.get('enabled')
         superusername = changeuser_form.cleaned_data.get('superusername', None)
@@ -36,6 +37,7 @@ def user_update(request):
         data = {
             'username': username,
             'password': encrypt(password),
+            'domain': domain,
             'memo': memo,
             'enabled': enabled,
             'superusername': superusername,
@@ -65,6 +67,7 @@ def user_add(request):
         name = adduser_form.cleaned_data.get('name')
         username = adduser_form.cleaned_data.get('username')
         password = adduser_form.cleaned_data.get('password')
+        domain = adduser_form.cleaned_data.get('domain', None)
         memo = adduser_form.cleaned_data.get('memo')
         enabled = adduser_form.cleaned_data.get('enabled')
         superusername = adduser_form.cleaned_data.get('superusername', None)
@@ -78,6 +81,7 @@ def user_add(request):
             'name': name,
             'username': username,
             'password': encrypt(password),
+            'domain': domain,
             'memo': memo,
             'enabled': enabled,
             'superusername': superusername,
@@ -178,6 +182,7 @@ def host_update(request):
         ip = changehost_form.cleaned_data.get('ip')
         wip = changehost_form.cleaned_data.get('wip')
         protocol = changehost_form.cleaned_data.get('protocol')
+        security = changehost_form.cleaned_data.get('security', None)
         env = changehost_form.cleaned_data.get('env')
         platform = changehost_form.cleaned_data.get('platform')
         port = changehost_form.cleaned_data.get('port')
@@ -190,6 +195,7 @@ def host_update(request):
             'ip': ip,
             'wip': wip,
             'protocol': protocol,
+            'security': security,
             'env': env,
             'platform': platform,
             'port': port,
@@ -232,6 +238,7 @@ def host_add(request):
         ip = addhost_form.cleaned_data.get('ip')
         wip = addhost_form.cleaned_data.get('wip')
         protocol = addhost_form.cleaned_data.get('protocol')
+        security = addhost_form.cleaned_data.get('security', None)
         env = addhost_form.cleaned_data.get('env')
         platform = addhost_form.cleaned_data.get('platform')
         port = addhost_form.cleaned_data.get('port')
@@ -245,6 +252,7 @@ def host_add(request):
             'ip': ip,
             'wip': wip,
             'protocol': protocol,
+            'security': security,
             'env': env,
             'platform': platform,
             'port': port,
@@ -258,7 +266,7 @@ def host_add(request):
             data['remote_user'] = remoteuser
             remoteuserbindhost = RemoteUserBindHost.objects.create(**data)
             if not request.session['issuperuser'] or request.session['username'] != 'admin':
-                user.remote_user_bind_hosts.add(remoteuserbindhost)     #  非 admin 添加的主机分配给自己
+                user.remote_user_bind_hosts.add(remoteuserbindhost)     # 非 admin 添加的主机分配给自己
             event_log(user, 12, '主机 [{}] 添加成功'.format(remoteuserbindhost.hostname),
                             request.META.get('REMOTE_ADDR', None), request.META.get('HTTP_USER_AGENT', None))
             hostinfo = dict()
@@ -292,7 +300,7 @@ def host_update_info(request):
     hostid = request.POST.get('id', None)
 
     try:
-        ids = [ int(x) for x in hostid.split(',')]
+        ids = [int(x) for x in hostid.split(',')]
     except Exception:
         error_message = '不合法的请求参数!'
         return JsonResponse({"code": 401, "err": error_message})

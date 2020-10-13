@@ -71,7 +71,7 @@
 				  {% elif host.get_protocol_display == 'telnet' %}
 					<span class="badge badge-primary">{{ host.get_protocol_display }}</span>
 				  {% else %}
-				    <span class="badge badge-secondary">{{ host.get_protocol_display }}</span>
+				    <span class="badge badge-secondary">{{ host.get_protocol_display }}{% if host.security %} ({{ host.security }}){% endif %}</span>
 				  {% endif %}
 				  </td>
 				  <td>{{ host.port }}</td>

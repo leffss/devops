@@ -50,6 +50,7 @@
 				<div class="col-3 pt-1 pb-1 border-bottom">名称：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ user.name }}</div>
 				<div class="col-3 pt-1 pb-1 border-bottom">用户名：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ user.username }}</div>
 				<div class="col-3 pt-1 pb-1 border-bottom">密码：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ user.password | decrypt_passwd }}</div>
+                {% if user.domain %}<div class="col-3 pt-1 pb-1 border-bottom">AD域</div><div class="col-9 pt-1 pb-1 border-bottom">{{ user.domain }}</div>{% endif %}
 				<div class="col-3 pt-1 pb-1 border-bottom">登陆后是否su跳转超级用户：</div><div class="col-9 pt-1 pb-1 border-bottom">{% if user.enabled %}<span class="badge badge-success">是</span>{% else %}<span class="badge badge-danger">否</span>{% endif %}</div>
 				{% if user.enabled %}
 				<div class="col-3 pt-1 pb-1 border-bottom">超级用户：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ user.superusername | default:'' }}</div>

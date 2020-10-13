@@ -1,5 +1,5 @@
 # devops
-基于 python 3.7.2 + django 2.2.16 + channels 2.2.0 + celery 4.3.0 + ansible 2.9.2 + AdminLTE-3.0.0 实现的运维 devops 管理系统。具体见 `screenshots` 文件夹中的效果预览图。
+基于 python 3.7.9 + django 2.2.16 + channels 2.4.0 + celery 4.4.7 + ansible 2.9.14 + AdminLTE-3.0.0 实现的运维 devops 管理系统。具体见 `screenshots` 文件夹中的效果预览图。
 本人为运维工程师，非专业开发，项目各个功能模块都是现学现用，可能有的地方暂时没有考虑合理和性能的问题。
 
 
@@ -35,7 +35,7 @@
 
 # 部署安装
 
-环境：Centos 7.5，python 3.7.2，docker 1.13.1，项目目录为 `/home/workspace/devops` 。
+环境：Centos 7.5，python 3.7.9，docker 1.13.1，项目目录为 `/home/workspace/devops` 。
 
 **1. 安装依赖**
 ```bash
@@ -46,28 +46,33 @@ yum install -y gcc sshpass python3-devel mysql-devel
 - python3-devel 与 mysql-devel 为 mysqlclient 库的依赖
 - 不建议使用 pymysql 代替 mysqlclient ，因为 pymysql 为纯 python 编写的库，性能较低
 
-**2. 安装 redis（docker 方式）**
+**2. 安装 mysql（docker 方式）**
 ```bash
-docker run --name redis-server -p 6379:6379 -d redis:latest
+docker run -d --name mysql -e MYSQL_ROOT_PASSWORD=123456 -p 3306:3306 mysql:5.7.31
+```
+
+**3. 安装 redis（docker 方式）**
+```bash
+docker run --name redis-server -p 6379:6379 -d redis:6.0.8
 ```
 - channels、缓存、celery以及 session 支持所需，必须
 
-**3. 安装 guacd（docker 方式）**
+**4. 安装 guacd（docker 方式）**
 ```bash
-docker run --name guacd -e GUACD_LOG_LEVEL=info -v /home/workspace/devops/media/guacd:/fs -p 4822:4822 -d guacamole/guacd
+docker run --name guacd -e GUACD_LOG_LEVEL=info -v /home/workspace/devops/media/guacd:/fs -p 4822:4822 -d guacamole/guacd:1.1.0
 ```
 - rdp 与 vnc 连接支持所需，非必须
 - rdp 必须设置为`允许运行任意版本远程桌面的计算机连接(较不安全)(L)`才能连接，也就说目前暂不支持 nla 登陆方式
 - `-v /home/workspace/devops/media/guacd:/fs` 挂载磁盘，用于远程挂载文件系统实现上传和下载文件
 
-**4. 安装 python 依赖库**
+**5. 安装 python 依赖库**
 ```bash
 # 安装相关库
 pip3 install -i https://mirrors.aliyun.com/pypi/simple -r requirements.txt
 ```
 - -i 指定阿里源，速度飞起，我大 TC 威武，局域网玩得贼 6
 
-**5. 修改 devops/settings.py 配置**
+**6. 修改 devops/settings.py 配置**
 
 相关配置均有注释，根据实际情况修改。默认数据库使用的是 sqlite3，如果需要使用 mysql，方法如下：
 
@@ -93,7 +98,7 @@ DATABASES = {
 ```
 - 相关数据库(不需创建表)与账号必须事先在 mysql 数据库中创建好并授权。
 
-**6. 迁移数据库**
+**7. 迁移数据库**
 ```bash
 sh delete_makemigrations.sh
 rm -f db.sqlite3
@@ -102,7 +107,7 @@ python3 manage.py makemigrations
 python3 manage.py migrate
 ```
 
-**7. 初始化数据**
+**8. 初始化数据**
 ```bash
 python3 manage.py loaddata initial_data.json
 python3 init.py
@@ -110,7 +115,7 @@ python3 init.py
 - initial_data.json 为权限数据
 - init.py 创建超级管理员 admin 以及部分测试数据，可根据实际情况修改
 
-**8. 启动相关服务**
+**9. 启动相关服务**
 ```bash
 rm -rf logs/*
 export PYTHONOPTIMIZE=1		# 解决 celery 不允许创建子进程的问题
@@ -127,7 +132,7 @@ nohup gunicorn -c gunicorn.cfg devops.wsgi:application > logs/gunicorn.log 2>&1 
 - celery_beat 定时任务处理进程，读取 `devops/settings.py` 中设置的 `CELERY_BEAT_SCHEDULE` 定时任务，详见 v1.8.8 升级日志
 - 需要停止时 kill 相应的进程，然后删除 logs 目录下所有的 pid 文件即可
 
-**9. 配置 nginx 前端代理**
+**10. 配置 nginx 前端代理**
 ```
 yum install -y nginx
 ```
@@ -272,7 +277,7 @@ systemctl start nginx
 ```
 - 启动前建议先检查下配置是否正确：`nginx -t`
 
-**10. 访问首页：http://127.0.0.1**
+**11. 访问首页：http://127.0.0.1**
 
 初始超级管理员：
 > 账号： admin     密码：123456
@@ -294,6 +299,26 @@ systemctl start nginx
 
 
 # 升级日志
+
+### ver2.2.0
+升级 webguacamole，支持设置 AD 域账号以及设置验证方式（any、rdp、tls、nla、nla-ext）；
+
+升级部分依赖：
+- celery 4.3.0 到 4.4.7；
+- channel 2.2.0 到 2.4.0；
+- channel-redis 2.4.0 到 3.1.0；
+- daphne 2.3.0 到 2.5.0；
+- pyasn1 0.4.3 到 0.4.8；
+- cryptography 2.7 到 2.8；
+- gunicorn 20.0.3 到 20.0.4；
+- supervisor 4.1.0 到 4.2.1；
+- redis 3.3.11 到 3.5.3；
+- django-redis 4.10.0 到 4.12.1；
+- requests==2.22.0 到 2.24.0；
+- jsonpickle 1.2 到 1.4.1；
+- gssapi==1.6.2 到 1.6.9；
+- django-cachalot 2.3.1 到 2.3.2；
+- ansible 2.9.2 到 2.9.14；
 
 ### ver2.1.1
 修正 greenlet 与 gunicorn 的兼容性问题；

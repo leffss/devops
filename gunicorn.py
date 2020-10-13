@@ -23,9 +23,9 @@ loglevel = 'info'  # 可设置debug info warning error critical
 # accesslog = 'logs/access.log'   # 访问日志，设置 '-' 打印到终端正确输出
 errorlog = '-'  # 错误日志，设置 '-' 打印到终端错误输出
 accesslog = '-'   # 访问日志，设置 '-' 打印到终端正确输出
-access_log_format = '%(h)s %({x-real-ip}i)s %({X-Forwarded-For}i)s %({X-Forwarded-Proto}i)s %({X-Forwarded-Port}i)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s" %(L)s'   # 访问日志格式
+access_log_format = '%(t)s %(h)s %({x-real-ip}i)s %({X-Forwarded-For}i)s %({X-Forwarded-Proto}i)s %({X-Forwarded-Port}i)s %({X-Forwarded-Host}i)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s" %(L)s'   # 访问日志格式
 # 含义如下
-# Identifier	Description
+# Identifier Description
 # h	remote address
 # l	'-'
 # u	user name
@@ -46,7 +46,7 @@ access_log_format = '%(h)s %({x-real-ip}i)s %({X-Forwarded-For}i)s %({X-Forwarde
 # p	process ID
 # {Header}i	request header
 # {Header}o	response header
-# {Variable}e	environment variable
+# {Variable}e environment variable
 
 # Process Naming 模块设置
 proc_name = 'devops_gunicorn'    # 进程名设置，默认：gunicorn

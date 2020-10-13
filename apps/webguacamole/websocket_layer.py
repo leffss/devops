@@ -87,40 +87,43 @@ class WebGuacamole(WebsocketConsumer):
 
         self.guacamoleclient = Client(websocker=self)
         if 'webguacamole终端文件上传下载' not in self.session[settings.INIT_PERMISSION]['titles']:  # 判断权限
-            self.guacamoleclient.connect(
-                protocol=self.remote_host.get_protocol_display(),
-                hostname=self.remote_host.ip,
-                port=self.remote_host.port,
-                username=self.remote_host.remote_user.username,
-                password=decrypt(self.remote_host.remote_user.password),
-                width=self.width,
-                height=self.height,
-                dpi=self.dpi,
-                enable_font_smoothing="true",
-            )
+            kwargs = {
+                'protocol': self.remote_host.get_protocol_display(),
+                'hostname': self.remote_host.ip,
+                'port': self.remote_host.port,
+                'username': self.remote_host.remote_user.username,
+                'password': decrypt(self.remote_host.remote_user.password),
+                'width': self.width,
+                'height': self.height,
+                'dpi': self.dpi,
+                'enable_font_smoothing': "true",
+            }
+            if self.remote_host.remote_user.domain:
+                kwargs['domain'] = self.remote_host.remote_user.domain
+            if self.remote_host.security:
+                kwargs['security'] = self.remote_host.security
+            self.guacamoleclient.connect(**kwargs)
         else:
-            self.guacamoleclient.connect(
-                protocol=self.remote_host.get_protocol_display(),
-                hostname=self.remote_host.ip,
-                port=self.remote_host.port,
-                username=self.remote_host.remote_user.username,
-                password=decrypt(self.remote_host.remote_user.password),
-                width=self.width,
-                height=self.height,
-                dpi=self.dpi,
-                enable_drive="true",
-                drive_name="filesystem",
-                drive_path="/fs/{}".format(self.group),
-                create_drive_path="true",
-
-                # enable_wallpaper="true",
-                # enable_theming="true",
-                enable_font_smoothing="true",   # 字体平滑开启就可以了
-                # enable_full_window_drag="true",
-                # enable_desktop_composition="true",
-                # enable_menu_animations="true",
-            )
-
+            kwargs = {
+                'protocol': self.remote_host.get_protocol_display(),
+                'hostname': self.remote_host.ip,
+                'port': self.remote_host.port,
+                'username': self.remote_host.remote_user.username,
+                'password': decrypt(self.remote_host.remote_user.password),
+                'width': self.width,
+                'height': self.height,
+                'dpi': self.dpi,
+                'enable_font_smoothing': "true",
+                'enable_drive': "true",
+                'drive_name': "filesystem",
+                'drive_path': "/fs/{}".format(self.group),
+                'create_drive_path': "true",
+            }
+            if self.remote_host.remote_user.domain:
+                kwargs['domain'] = self.remote_host.remote_user.domain
+            if self.remote_host.security:
+                kwargs['security'] = self.remote_host.security
+            self.guacamoleclient.connect(**kwargs)
         for i in self.scope['headers']:
             if i[0].decode('utf-8') == 'user-agent':
                 self.user_agent = i[1].decode('utf-8')

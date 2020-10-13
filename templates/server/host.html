@@ -52,6 +52,7 @@
 				<div class="col-3 pt-1 pb-1 border-bottom">主机IP：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.ip }}</div>
 				<div class="col-3 pt-1 pb-1 border-bottom">公网IP：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.wip | default:'' }}</div>
 				<div class="col-3 pt-1 pb-1 border-bottom">协议：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.get_protocol_display }}</div>
+                {% if host.security %}<div class="col-3 pt-1 pb-1 border-bottom">rdp验证方式：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.security }}</div>{% endif %}
 				<div class="col-3 pt-1 pb-1 border-bottom">环境：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.get_env_display }}</div>
 				<div class="col-3 pt-1 pb-1 border-bottom">端口：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.port }}</div>
 				<div class="col-3 pt-1 pb-1 border-bottom">平台：</div><div class="col-9 pt-1 pb-1 border-bottom">{{ host.get_platform_display }}</div>

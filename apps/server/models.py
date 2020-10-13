@@ -26,6 +26,7 @@ class RemoteUser(models.Model):
     name = models.CharField(unique=True, max_length=128, verbose_name="名称")
     username = models.CharField(max_length=128, verbose_name="用户名")
     password = models.CharField(max_length=512, verbose_name="密码")
+    domain = models.CharField(blank=True, null=True, max_length=256, verbose_name='AD域验证服务器')
     enabled = models.BooleanField(default=False, verbose_name='登陆后是否su跳转超级用户')
     superusername = models.CharField(max_length=128, blank=True, null=True, verbose_name="超级用户")
     superpassword = models.CharField(max_length=512, blank=True, null=True, verbose_name="超级密码")
@@ -78,6 +79,8 @@ class RemoteUserBindHost(models.Model):
     port = models.SmallIntegerField(default=22, verbose_name='端口')
     release = models.CharField(max_length=255, default='CentOS', verbose_name='系统/型号')
     platform = models.SmallIntegerField(default=1, choices=PLATFORM_CHOICES, verbose_name='平台')
+    # rdp 验证方式，可选项：rdp，tls，nla，nla-ext
+    security = models.CharField(blank=True, null=True, max_length=32, verbose_name='rdp验证方式')
     memo = models.TextField(blank=True, null=True, verbose_name='备注')
     # on_delete 当 RemoteUser 记录被删时，阻止其操作
     remote_user = models.ForeignKey('RemoteUser', blank=True, null=True, on_delete=models.PROTECT)

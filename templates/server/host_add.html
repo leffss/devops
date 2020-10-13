@@ -67,6 +67,10 @@
 						{% endfor %}
 					</select>
 				</div>
+
+				<div class="col-2 pt-1 pb-1">rdp验证方式：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="security" onkeyup="check_security();" onblur="check_security();" placeholder="选填，可选项 any\rdp\tls\nla\nla-ext"></div>
+				<div class="offset-2 col-10 pb-1"><small id="security_error" style="color:red;"></small></div>
+
 				<div class="col-2 pt-1 pb-1">环境：</div>
 				<div class="col-10 pt-1 pb-1">
 					<select class="form-control select2" id="env" style="width: 100%;">
@@ -218,6 +222,26 @@
 		};
 	}
 
+	check_security = function() {
+		var security = $('#security').val();
+		if (security == '') {
+			$('#security').removeClass("is-invalid");
+			$('#security').removeClass("is-valid");
+			$('#security_error').text('');
+			return true;
+		} else if(security.length > 32) {
+			$('#security').removeClass("is-valid");
+			$('#security').addClass("is-invalid");
+			$('#security_error').text('不能大于32个字符');
+			return false;
+		} else {
+			$('#security').removeClass("is-invalid");
+			$('#security').addClass("is-valid");
+			$('#security_error').text('');
+			return true;
+		};
+	}
+
 	check_port = function() {		// 只支持IPV4
 		var port = $('#port').val();
 		if (port == '') {
@@ -286,16 +310,19 @@
 		
 		var wip = $('#wip').val();
 		check_right[2] = check_wip();
+
+		var security = $('#security').val();
+		check_right[3] = check_security();
 		
 		var protocol = $('#protocol').val();
 		var env = $('#env').val();
 		var platform = $('#platform').val();
 		
 		var port = $('#port').val();
-		check_right[3] = check_port();
+		check_right[4] = check_port();
 		
 		var release = $('#release').val();
-		check_right[4] = check_release();
+		check_right[5] = check_release();
 		
 		var memo = $('#memo').val();
 		var binduserid = $('#binduserid').val();
@@ -322,6 +349,7 @@
 					'ip': ip,
 					'wip': wip,
 					'protocol': protocol,
+                    'security': security,
 					'env': env,
 					'platform': platform,
 					'port': port,

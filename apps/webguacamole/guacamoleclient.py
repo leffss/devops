@@ -134,6 +134,8 @@ class Client:
                     **kwargs,
                 )
             elif protocol == 'rdp':
+                if 'security' not in kwargs.keys():
+                    kwargs['security'] = 'any'
                 self.guacamoleclient.handshake(
                     protocol=protocol,
                     port=port,
@@ -143,7 +145,8 @@ class Client:
                     width=width,
                     height=height,
                     dpi=dpi,
-                    security='tls',     # rdp,nla,tls,any
+                    # domain='SWAD.COM',  # 域验证服务器
+                    # security='nla',  # rdp,nla,nla-ext,tls,any
                     ignore_cert="true",
                     disable_audio="true",
                     client_name="devops",

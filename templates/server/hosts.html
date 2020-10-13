@@ -73,6 +73,7 @@
 				  <th>IP</th>
 				  <th>状态</th>
 				  <th>协议</th>
+                  <th>rdp验证方式</th>
 				  <th>远程用户</th>
 				  <th>添加时间</th>
 				  <th>操作</th>
@@ -102,6 +103,8 @@
 				    <span class="badge badge-secondary">{{ host.get_protocol_display }}</span>
 				  {% endif %}
 				  </td>
+
+                  <td>{% if host.security %}{{ host.security }}{% endif %}</td>
 				  
 				  {% if host.remote_user %}
 				  <td>{{ host.remote_user.username }}</td>
@@ -149,6 +152,7 @@
 				  <th>IP</th>
 				  <th>状态</th>
 				  <th>协议</th>
+                  <th>rdp验证方式</th>
 				  <th>远程用户</th>
 				  <th>添加时间</th>
 				  <th>操作</th>
@@ -200,9 +204,9 @@
 		bProcessing:true,  // 表格数据过多处理时显示: sProcessing
 		lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "全部"]],
 		{% if request|has_permission:'主机删除' or request|has_permission:'主机更新' %}
-		columnDefs : [ { targets : [0,9], "orderable" : false } ],
+		columnDefs : [ { targets : [0,10], "orderable" : false } ],
 		{% else %}
-		columnDefs : [ { targets : 8, "orderable" : false } ],
+		columnDefs : [ { targets : 9, "orderable" : false } ],
 		{% endif %}
 		order: [],
 		 //scrollY: 480,	// 滚动条
@@ -320,9 +324,9 @@
 					bProcessing:true,  // 表格数据过多处理时显示: sProcessing
 					lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "全部"]],
 					{% if request|has_permission:'主机删除' or request|has_permission:'主机更新' %}
-					columnDefs : [ { targets : [0,9], "orderable" : false } ],
+					columnDefs : [ { targets : [0,10], "orderable" : false } ],
 					{% else %}
-					columnDefs : [ { targets : 8, "orderable" : false } ],
+					columnDefs : [ { targets : 9, "orderable" : false } ],
 					{% endif %}
 					order: [],
 					 //scrollY: 480,	// 滚动条
@@ -459,9 +463,9 @@
 					bProcessing:true,  // 表格数据过多处理时显示: sProcessing
 					lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "全部"]],
 					{% if request|has_permission:'主机删除' or request|has_permission:'主机更新' %}
-					columnDefs : [ { targets : [0,9], "orderable" : false } ],
+					columnDefs : [ { targets : [0,10], "orderable" : false } ],
 					{% else %}
-					columnDefs : [ { targets : 8, "orderable" : false } ],
+					columnDefs : [ { targets : 9, "orderable" : false } ],
 					{% endif %}
 					order: [],
 					 //scrollY: 480,	// 滚动条

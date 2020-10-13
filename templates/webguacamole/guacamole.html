@@ -160,9 +160,6 @@
     toastr.options.positionClass = 'toast-bottom-center';
     toastr.info('分辨率: ' + width + ' x ' + height + ', DPI: ' + dpi);
 
-    toastr.options.timeOut = 10000;
-    toastr.info('友情提醒: 目前不支持 NLA 验证模式');
-
     // Disconnect on close
     window.onunload = function () {
         guac.disconnect();

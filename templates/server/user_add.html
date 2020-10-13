@@ -45,15 +45,18 @@
 						提示：su 跳转功能只对有权限的用户有效。
 					</div>
 				</div>
-				<div class="col-2 pt-1 pb-1">名称<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="name" onkeyup="check_name();" onblur="check_name();"></div>
+				<div class="col-2 pt-1 pb-1">名称<span style="color:red;"> *</span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="name" onkeyup="check_name();" onblur="check_name();"></div>
 				<div class="offset-2 col-10 pb-1"><small id="name_error" style="color:red;"></small></div>
 				
-				<div class="col-2 pt-1 pb-1">用户名<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="username" onkeyup="check_username();" onblur="check_username();"></div>
+				<div class="col-2 pt-1 pb-1">用户名<span style="color:red;"> *</span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="username" onkeyup="check_username();" onblur="check_username();"></div>
 				<div class="offset-2 col-10 pb-1"><small id="username_error" style="color:red;"></small></div>
 				
-				<div class="col-2 pt-1 pb-1">密码<span style="color:red;"> * </span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="password" onkeyup="check_password();" onblur="check_password();"></div>
-				<div class="offset-2 col-10 pb-1"><small id="password_error" style="color:red;"></small></div>
-				
+				<div class="col-2 pt-1 pb-1">密码<span style="color:#ff0000;"> *</span>：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="password" onkeyup="check_password();" onblur="check_password();"></div>
+				<div class="offset-2 col-10 pb-1"><small id="password_error" style="color:#ff0000;"></small></div>
+
+                <div class="col-2 pt-1 pb-1">AD域(仅对rdp协议有效)：</div><div class="col-10 pt-1 pb-1"><input class="form-control" type="text" id="domain" onkeyup="check_domain();" onblur="check_domain();"></div>
+				<div class="offset-2 col-10 pb-1"><small id="domain_error" style="color:red;"></small></div>
+
 				<div class="offset-2 col-10 pt-1 pb-1" id="enabled_click">
 					<div class="custom-switch custom-switch-on-success">
                       <input type="checkbox" class="custom-control-input" id="enabled">
@@ -147,6 +150,26 @@
 		};
 	}
 
+    check_domain = function() {
+		var domain = $('#domain').val();
+		if (domain == '') {
+			$('#domain').removeClass("is-invalid");
+			$('#domain').removeClass("is-valid");
+			$('#domain_error').text('');
+			return true;
+		} else if(domain.length > 256) {
+			$('#domain').removeClass("is-valid");
+			$('#domain').addClass("is-invalid");
+			$('#domain_error').text('不能大于256个字符');
+			return false;
+		} else {
+			$('#domain').removeClass("is-invalid");
+			$('#domain').addClass("is-valid");
+			$('#domain_error').text('');
+			return true;
+		};
+	}
+
 	check_superusername = function() {
 		var superusername = $('#superusername').val();
 		if (superusername == '') {
@@ -212,7 +235,10 @@
 		
 		var password = $('#password').val();
 		check_right[2] = check_password();
-		
+
+		var domain = $('#domain').val();
+		check_right[3] = check_domain();
+
 		var memo = $('#memo').val();
 		
 		var superusername = $('#superusername').val();
@@ -220,8 +246,8 @@
 		var enabled;
 		if ($("#enabled").is(':checked')) {
 			enabled = true;
-			check_right[3] = check_superusername();
-			check_right[4] = check_superpassword();
+			check_right[4] = check_superusername();
+			check_right[5] = check_superpassword();
 		} else {
 			enabled = false;
 			superusername = '';
@@ -241,6 +267,7 @@
 					'name': name,
 					'username': username,
 					'password': password,
+                    'domain': domain,
 					'memo': memo,
 					'enabled': enabled,
 					'superusername': superusername,
