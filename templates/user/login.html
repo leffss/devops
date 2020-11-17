@@ -10,9 +10,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css" integrity="sha384-oS3vJWv+0UjzBfQzYUhtDYW+Pj2yciDJxpsK1OYPAYjqT085Qq/1cq5FLXAZQ7Ay" crossorigin="anonymous">
+  <link rel="stylesheet" href="{% static 'font-awesome/5.10.0-11/all.min.css' %}">
   <!-- Ionicons -->
-  <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+  <link rel="stylesheet" href="{% static 'ionicons/2.0.1/ionicons.min.css' %}">
   <!-- icheck bootstrap -->
   <link rel="stylesheet" href="{% static 'adminlte/plugins/icheck-bootstrap/icheck-bootstrap.min.css' %}">
   <!-- Theme style -->
@@ -160,8 +160,8 @@
 </script>
 
 <!-- 动画特效 -->
-<script src="//cdn.bootcss.com/velocity/1.5.2/velocity.min.js"></script>
-<script src="//cdn.bootcss.com/velocity/1.5.2/velocity.ui.min.js"></script>
+<script src="{% static 'velocity/1.5.2/velocity.min.js' %}"></script>
+<script src="{% static 'velocity/1.5.2/velocity.ui.min.js' %}"></script>
 <script>
 	$(".content-list").velocity("transition.slideDownIn", { stagger: 150, drag: true });
 	//$(".content-list").velocity("transition.slideRightBigIn", { stagger: 120, drag: true });	

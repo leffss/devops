@@ -12,8 +12,18 @@ class Command(BaseCommand):
     #                         help='''
     #                         SSH监听端口，默认为2222
     #                         ''')
+    #     parser.add_argument(
+    #         '-n',
+    #         '--name',
+    #         action='store',
+    #         dest='name',
+    #         default='close',
+    #         help='name of author.',
+    #     )
 
     def handle(self, *args, **options):
+        # if options['name']:
+        #     print('hello world, %s' % options['name'])
         host = settings.PROXY_SSHD.get('listen_host', '0.0.0.0')
         port = settings.PROXY_SSHD.get('listen_port', 2222)
         cons = settings.PROXY_SSHD.get('cons', 100)

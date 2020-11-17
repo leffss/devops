@@ -160,7 +160,7 @@
 		  {% endblock content %}
 
 {% block js %}
-<script src="https://cdn.bootcss.com/echarts/4.2.1/echarts.min.js"></script>
+<script src="{% static 'echarts/4.2.1/echarts.min.js' %}"></script>
 <script>
 	{% get_host_types request as res %}
 	

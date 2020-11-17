@@ -5,8 +5,10 @@ from util.inventory import BaseInventory
 from server.models import RemoteUserBindHost, ServerDetail
 from webssh.models import TerminalLog, TerminalSession
 from user.models import LoginLog
+from batch.models import BatchCmdLog
 from scheduler.models import SchedulerHost
 from django.conf import settings
+from datetime import datetime, timedelta
 import json
 import traceback
 import os
@@ -360,7 +362,30 @@ def task_cls_terminalsession():
     try:
         TerminalSession.objects.all().delete()
     except Exception:
-        import traceback
+        print(traceback.format_exc())
+
+
+@app.task()
+def task_cls_user_logs(keep_days=365):
+    try:
+        LoginLog.objects.filter(create_time__lt=datetime.now() - timedelta(days=keep_days)).delete()
+    except Exception:
+        print(traceback.format_exc())
+
+
+@app.task()
+def task_cls_terminal_logs(keep_days=365):
+    try:
+        TerminalLog.objects.filter(create_time__lt=datetime.now() - timedelta(days=keep_days)).delete()
+    except Exception:
+        print(traceback.format_exc())
+
+
+@app.task()
+def task_cls_batch_logs(keep_days=365):
+    try:
+        BatchCmdLog.objects.filter(create_time__lt=datetime.now() - timedelta(days=keep_days)).delete()
+    except Exception:
         print(traceback.format_exc())
 
 

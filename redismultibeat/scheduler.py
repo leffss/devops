@@ -139,7 +139,7 @@ class RedisMultiScheduler(Scheduler):
         tasks = [jsonpickle.decode(entry) for entry in self.rdb.zrange(self.key, 0, -1)]    # -1 表示取所有
         for entry in tasks:
             if hasattr(entry.schedule, 'human_seconds'):
-                info('current task: ' + str('name: ' + entry.name + '; func: ' + entry.task + '; args: ' +
+                info('add task: ' + str('name: ' + entry.name + '; func: ' + entry.task + '; args: ' +
                      entry.args.__str__() + '; each: ' + entry.schedule.human_seconds) + '; limit_run_time: ' + str(entry.limit_run_time)
                      )
             else:
@@ -151,7 +151,7 @@ class RedisMultiScheduler(Scheduler):
                     month_of_year=entry.schedule._orig_month_of_year,
                     day_of_week=entry.schedule._orig_day_of_week,
                 )
-                info('current task: ' + str('name: ' + entry.name + '; func: ' + entry.task + '; args: ' +
+                info('add task: ' + str('name: ' + entry.name + '; func: ' + entry.task + '; args: ' +
                                          entry.args.__str__() + '; cron: ' + cron) + '; limit_run_time: ' + str(entry.limit_run_time))
 
     def merge_inplace(self, tasks):
@@ -286,7 +286,7 @@ class RedisMultiScheduler(Scheduler):
 
     def remove_all(self):
         if self.rdb.exists(self.key):
-            info("remove all tasks now")
+            info("remove all exist tasks in rdb")
             self.rdb.delete(self.key)
             return True
         else:

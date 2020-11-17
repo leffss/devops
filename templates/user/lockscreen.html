@@ -10,10 +10,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <!-- Font Awesome -->
-  <link href="https://cdn.bootcss.com/font-awesome/5.10.0-11/css/all.min.css" rel="stylesheet">
+  <link href="{% static 'font-awesome/5.10.0-11/all.min.css' %}" rel="stylesheet">
   
   <!-- Ionicons -->
-  <link href="https://cdn.bootcss.com/ionicons/2.0.1/css/ionicons.min.css" rel="stylesheet">
+  <link href="{% static 'ionicons/2.0.1/ionicons.min.css' %}" rel="stylesheet">
   
   <!-- Theme style -->
   <link rel="stylesheet" href="{% static 'adminlte/dist/css/adminlte.min.css' %}">
@@ -83,8 +83,8 @@
 <script src="{% static 'adminlte/plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
 
 <!-- 动画特效 -->
-<script src="//cdn.bootcss.com/velocity/1.5.2/velocity.min.js"></script>
-<script src="//cdn.bootcss.com/velocity/1.5.2/velocity.ui.min.js"></script>
+<script src="{% static 'velocity/1.5.2/velocity.min.js' %}"></script>
+<script src="{% static 'velocity/1.5.2/velocity.ui.min.js' %}"></script>
 <script>
 	$(".content-list").velocity("transition.slideDownIn", { stagger: 150, drag: true });
 	//$(".content-list").velocity("transition.slideRightBigIn", { stagger: 120, drag: true });	

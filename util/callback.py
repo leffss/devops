@@ -1,7 +1,6 @@
 """
 基于 ansible v2.8.5 的 api，低于 v2.8 不适用
 """
-import traceback
 import os
 import sys
 import time

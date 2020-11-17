@@ -299,9 +299,11 @@ systemctl start nginx
 
 
 # 升级日志
+### ver2.2.1
+新增 celery beat 定时任务自动清除数据库历史数据，详见 devops/settings.py 相关设置；
 
 ### ver2.2.0
-升级 webguacamole，支持设置 AD 域账号以及设置验证方式（any、rdp、tls、nla、nla-ext）；
+升级 webguacamole，支持设置 AD 域账号以及设置多种验证方式（any、rdp、tls、nla、nla-ext）；
 
 升级部分依赖：
 - celery 4.3.0 到 4.4.7；

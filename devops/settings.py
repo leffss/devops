@@ -13,6 +13,9 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 
 import os
 import sys
+from datetime import timedelta
+from celery.schedules import crontab
+
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -143,7 +146,6 @@ FILE_UPLOAD_HANDLERS = [
     'django.core.files.uploadhandler.TemporaryFileUploadHandler',
 ]
 
-
 # 添加 websocket 支持
 ASGI_APPLICATION = 'devops.routing.application'
 
@@ -217,15 +219,10 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/2.2/topics/i18n/
 
 LANGUAGE_CODE = 'zh-hans'
-
 TIME_ZONE = 'Asia/Shanghai'
-
 USE_I18N = True
-
 USE_L10N = True
-
 USE_TZ = False
-
 
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
@@ -262,9 +259,6 @@ CELERY_BEAT_REDIS_LOCK_TTL = 5
 # 则会随机等待 1 - CELERY_BEAT_REDIS_LOCK_TTL 之间的一个值，设置越小丢失任务的
 # 可能性越低，但是对 redis 的性能消耗也越高，根据实际情况权衡
 CELERY_BEAT_REDIS_LOCK_SLEEP = None
-
-from datetime import timedelta
-from celery.schedules import crontab
 """
 celery beat 中间隔时间任务有个小问题，比如任务10秒间隔执行，则执行时间会如下：
 2019-12-04 13:20:38,105
@@ -279,26 +273,44 @@ celery beat 中间隔时间任务有个小问题，比如任务10秒间隔执行
 你会发现每次执行时间都会延迟 10-30 毫秒之间（程序执行逻辑耗费的时间），如果任务有严格时间要求，则不适合使用这种类型的任务
 cron 任务暂时没发现这个问题
 """
-# 启动 beat 时是否清空已有任务
-CELERY_BEAT_FLUSH_TASKS = True
-
+CELERY_BEAT_FLUSH_TASKS = True  # 启动 beat 时是否清空已有任务
+CELERY_TIMEZONE = TIME_ZONE     # celery 使用的是 utc 时间，需要设置为 django 相同时区
+CELERY_ENABLE_UTC = True
+USER_LOGS_KEEP_DAYS = 1095   # 操作日志保留天数，需开启 CELERY_BEAT_SCHEDULE 中相应的定时任务才生效
+TERMINAL_LOGS_KEEP_DAYS = 1095   # 终端日志保留天数，需开启 CELERY_BEAT_SCHEDULE 中相应的定时任务才生效
+BATCH_LOGS_KEEP_DAYS = 1095  # 批量日志保留天数，需开启 CELERY_BEAT_SCHEDULE 中相应的定时任务才生效
 CELERY_BEAT_SCHEDULE = {    # celery 定时任务, 会覆盖 redis 当中相同任务名任务
     # 'task_check_scheduler_interval': {  # 任务名(随意起)
     #     'task': 'tasks.tasks.task_check_scheduler',  # 定时任务函数路径
     #     'schedule': timedelta(seconds=30),  # 任务循环时间
     #     # "args": None,  # 参数
-    #     "args": (None, 0, 3),  # 参数
+    #     "args": (None, 0, 3),  # 参数，可迭代对象，元组或者列表
     # },
     # 'task_check_scheduler_cron': {
     #     'task': 'tasks.tasks.task_check_scheduler',
     #     'schedule': crontab(minute='*/1', hour='*', day_of_week='*', day_of_month='*', month_of_year='*'),  # cron 任务
     #     # "args": None,  # 参数
-    #     "args": (None, 0, 3),  # 参数
+    #     "args": (None, 0, 3),  # 参数，可迭代对象，元组或者列表
     # },
     'task_cls_terminalsession': {   # 清除 terminalsession 表，系统异常退出时此表可能会有垃圾数据，仅启动时运行一次
         'task': 'tasks.tasks.task_cls_terminalsession',
         'schedule': timedelta(seconds=3),
-        "limit_run_time": 1,   # 限制任务执行次数，>=0, 0 为不限制。注意：celery 原版 beat 是不支持此参数的
+        "limit_run_time": 1,   # 限制任务执行次数，>=0, 默认 0 为不限制。注意：celery 原版 beat 是不支持此参数的
+    },
+    # 'task_cls_user_logs': {     # 清除操作日志定时任务，如不自动清除，注释此任务即可
+    #     'task': 'tasks.tasks.task_cls_user_logs',
+    #     'schedule': crontab(minute=5, hour=2),
+    #     "args": (USER_LOGS_KEEP_DAYS,),
+    # },
+    'task_cls_terminal_logs': {     # 清除终端日志定时任务，如不自动清除，注释此任务即可
+        'task': 'tasks.tasks.task_cls_terminal_logs',
+        'schedule': crontab(minute=10, hour=2),
+        "args": (TERMINAL_LOGS_KEEP_DAYS,),
+    },
+    'task_cls_batch_logs': {        # 清除批量日志定时任务，如不自动清除，注释此任务即可
+        'task': 'tasks.tasks.task_cls_batch_logs',
+        'schedule': crontab(minute=15, hour=2),
+        "args": [BATCH_LOGS_KEEP_DAYS],
     },
 }
 
@@ -377,18 +389,15 @@ ANSIBLE_DENY_VARIBLE_LISTS = [
 # 详情参考 https://docs.ansible.com/ansible/latest/plugins/connection.html
 ANSIBLE_CONNECTION_TYPE = 'paramiko'
 
-
 # django-ratelimit 限制页面访问频率，超过则返回 403
 # None 表示无限制，具体见 https://django-ratelimit.readthedocs.io/en/stable/rates.html
 # RATELIMIT_LOGIN = None
 RATELIMIT_LOGIN = '600/30s'
 RATELIMIT_NOLOGIN = '30/30s'
 
-
 # 用户加密密钥
 # 第一次设置后切勿再随意更改
 PASSWD_TOKEN = '__leffss__qaz__devops'
-
 
 # cryptography 加密解密密钥
 # 生成方法：
@@ -396,7 +405,6 @@ PASSWD_TOKEN = '__leffss__qaz__devops'
 # cipher_key = Fernet.generate_key()
 # 非常重要，修改后会便无法解密数据库中储存的主机密码，所以第一次生成后切勿再随意更改
 CRYPTOGRAPHY_TOKEN = 'a0pLIWQvKYXp27uhQ7Bm5MDnQPvYSJ2oLaDZ6gJ_EJs='
-
 
 # 权限和菜单 key ，用于设置 session
 INIT_PERMISSION = 'devops_init_permission'
