@@ -61,7 +61,7 @@ import urllib.parse as urlparse
 
 logger = get_logger(__name__)
 debug, info, error, warning = (logger.debug, logger.info, logger.error, logger.warning)
-MAXINT = sys.maxsize    # 最大整数，用于使用提取 redis 中所有任务
+MAXINT = sys.maxsize    # 最大整数，用于提取 redis 中所有任务
 DEFAULT_CELERY_BEAT_REDIS_SCHEDULER_URL = 'redis://127.0.0.1:6379/0'
 DEFAULT_CELERY_BEAT_REDIS_SCHEDULER_KEY = 'celery:beat:tasks'
 DEFAULT_CELERY_BROKER_TRANSPORT_OPTIONS = {"master_name": "master"}

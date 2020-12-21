@@ -299,6 +299,11 @@ systemctl start nginx
 
 
 # 升级日志
+### ver2.2.2
+优化 supervisord 日志输出配置；
+
+修正 ‘日志审计 - 操作日志’ 中无法按类型排序的问题；
+
 ### ver2.2.1
 新增 celery beat 定时任务自动清除数据库历史数据，详见 devops/settings.py 相关设置；
 

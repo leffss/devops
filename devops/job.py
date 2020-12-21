@@ -1,3 +1,6 @@
+"""
+废弃，已使用 celery beat 任务替代
+"""
 from __future__ import absolute_import, unicode_literals
 import os
 # 设置默认的Django设置模块。

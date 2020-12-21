@@ -667,7 +667,7 @@ def logs(request):
     search_regex = True if search_regex == 'true' else False
     orders = [
         'user',
-        'type',
+        'event_type',
         'detail',
         'address',
         'useragent',

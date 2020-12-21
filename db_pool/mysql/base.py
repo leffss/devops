@@ -53,12 +53,12 @@ class ConnectPool(object):
     def __init__(self, conn_params, pool_size):
         self.conn_params = conn_params
         self.pool_size = pool_size
-        self.count = 0
+        self.connect_count = 0
         self.connects = queue.Queue()
 
     def get_connection(self):
-        if self.count < self.pool_size:
-            self.count = self.count + 1
+        if self.connect_count < self.pool_size:
+            self.connect_count = self.connect_count + 1
             return Database.connect(**self.conn_params)
         conn = self.connects.get()
         try:
