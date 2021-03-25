@@ -184,15 +184,19 @@ class SSH:
         try:
             while 1:
                 if self.zmodemOO:
+                    # 部分 lrzsz 版本（如 0.12.21rc），在 sz 结束后不会发送 b'OO'，这样会导致
+                    # 前端 zmodemjs 库认为 sz 下载未结束，故根据情况需要手动发送 b'OO'
                     self.zmodemOO = False
                     x = self.channel.recv(2)
                     if not len(x):
                         return
+
                     if x == b'OO':
-                        self.websocker.send(bytes_data=x)
+                        self.websocker.send(bytes_data=b'OO')
                         continue
                     else:
-                        x += self.channel.recv(BufferSize)
+                        self.websocker.send(bytes_data=b'OO')
+
                 else:
                     x = self.channel.recv(BufferSize)
                     if not len(x):

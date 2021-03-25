@@ -299,6 +299,9 @@ systemctl start nginx
 
 
 # 升级日志
+### ver2.2.3
+修复部分 linux 发行版 webssh 使用 sz 无法连续下载文件的问题；
+
 ### ver2.2.2
 优化 supervisord 日志输出配置；
 
