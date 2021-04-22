@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devops-daphne-deployment
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: devops-daphne
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: devops-daphne
+    spec:
+      containers:
+      - name: devops-daphne
+        image: devops:ver2.2.3
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8001
+        volumeMounts:
+        - name: devops-pvc
+          mountPath: "/devops/media"
+        command: ["supervisord","-c","/etc/supervisord_devops_daphne.conf"]
+      volumes:
+      - name: devops-pvc
+        persistentVolumeClaim:
+          claimName: devops-nfs-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: devops-daphne-service
+  namespace: default
+  labels: 
+    app: devops-daphne
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8001
+    protocol: TCP
+    targetPort: 8001
+  selector: 
+    app: devops-daphne
+

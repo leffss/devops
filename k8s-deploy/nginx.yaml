@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: default
+  name: nginx-devops
+spec:
+  selector:
+    matchLabels:
+      app: nginx-devops
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: nginx-devops
+    spec:
+      containers:
+      - name: nginx
+        image: devops-nginx:1.16.1
+        ports:
+        - containerPort: 80
+          name: http
+        volumeMounts:
+        - name: devops-pvc
+          mountPath: "/devops/media"
+        - name: nginx-conf
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+      volumes:
+      - name: devops-pvc
+        persistentVolumeClaim:
+          claimName: devops-nfs-pvc
+      - name: nginx-conf
+        configMap:
+          name: nginx-configmap
+          items:
+          - key: nginx_conf
+            path: nginx.conf
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-devops-service
+spec:
+  selector:
+    app: nginx-devops
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: nginx-devops-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: 'true' #http 自动转https
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600" #修改代理超时时间，默认是60s
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+spec:
+  tls:
+  - hosts:
+    - devops.leffss.com
+    secretName: devops-ingress-secret
+  rules:
+  - host: devops.leffss.com
+    http:
+      paths:
+      - backend:
+          serviceName: nginx-devops-service
+          servicePort: 80
+        path: /
+

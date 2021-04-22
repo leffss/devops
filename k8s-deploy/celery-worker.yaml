@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-worker-deployment
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: celery-worker
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: celery-worker
+    spec:
+      containers:
+      - name: celery-worker
+        image: devops:ver2.2.3
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: devops-pvc
+          mountPath: "/devops/media"
+        command: ["supervisord","-c","/etc/supervisord_celery_worker.conf"]
+      volumes:
+      - name: devops-pvc
+        persistentVolumeClaim:
+          claimName: devops-nfs-pvc
+

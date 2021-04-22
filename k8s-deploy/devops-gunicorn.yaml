@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devops-gunicorn-deployment
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: devops-gunicorn
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: devops-gunicorn
+    spec:
+      containers:
+      - name: devops-gunicorn
+        image: devops:ver2.2.3
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+        volumeMounts:
+        - name: devops-pvc
+          mountPath: "/devops/media"
+        command: ["supervisord","-c","/etc/supervisord_devops_gunicorn.conf"]
+      volumes:
+      - name: devops-pvc
+        persistentVolumeClaim:
+          claimName: devops-nfs-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: devops-gunicorn-service
+  namespace: default
+  labels: 
+    app: devops-gunicorn
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    protocol: TCP
+    targetPort: 8000
+  selector: 
+    app: devops-gunicorn
+

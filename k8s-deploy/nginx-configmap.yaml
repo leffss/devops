@@ -1,0 +1,118 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-configmap
+data:
+  nginx_conf: |-
+    user nginx;
+    worker_processes 4;
+    error_log /var/log/nginx/error.log error;
+    pid /run/nginx.pid;
+    include /usr/share/nginx/modules/*.conf;
+    events {
+        worker_connections 1024;
+        accept_mutex on;
+        use epoll;
+    }
+    http {
+        log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                          '$status $body_bytes_sent "$http_referer" '
+                          '"$http_user_agent" "$http_x_forwarded_for" "$server_name" $server_port';
+        access_log  /var/log/nginx/access.log  main buffer=32k flush=1m;
+        sendfile            on;
+        tcp_nopush          on;
+        tcp_nodelay         on;
+        keepalive_timeout   30;
+        types_hash_max_size 2048;
+        server_tokens  off;
+        include             /etc/nginx/mime.types;
+        default_type        application/octet-stream;
+        gzip on;
+        gzip_min_length 2k;
+        gzip_comp_level 4;
+        gzip_types text/css text/xml image/gif image/jpeg application/javascript application/rss+xml text/plain image/png image/tiff image/x-icon image/x-ms-bmp image/svg+xml application/json;
+        gzip_vary on;
+        gzip_buffers 4 16k;
+        upstream wsgi-backend {
+    	    ip_hash;
+            server devops-gunicorn-service:8000 max_fails=3 fail_timeout=0;
+        }
+        upstream asgi-backend {
+    	    ip_hash;
+            server devops-daphne-service:8001 max_fails=3 fail_timeout=0;
+        }
+        server {
+            listen 80;
+    		listen [::]:80;
+    		server_name devops.leffss.com;
+    	    client_max_body_size 30m;
+    	    add_header X-Frame-Options "DENY";
+            if ($http_user_agent ~* "^$|Baiduspider|Bytespider|EasouSpider|EtaoSpider|dotbot|Sougou|Scrapy|YisouSpider|bingbot|360Spider|Sogou web spider")
+            {
+                return 500;
+            }
+            location ^~ /admin {
+                return 500;
+            }
+            location ~* \.(php|asp||aspx|jsp)$ {
+                return 500;
+            }
+    	    location ~* ^/(media|static) {
+            	root /devops;
+            	# expires 30d;
+            	if ($request_filename ~* .*\.(css|js|gif|jpg|jpeg|png|bmp|swf|svg)$)
+                {
+                    expires 7d;
+                }
+        	}
+            location /ws {
+                try_files $uri @proxy_to_ws;
+            }
+            location @proxy_to_ws {
+    		    proxy_pass http://asgi-backend;
+            	proxy_http_version 1.1;
+            	proxy_set_header Upgrade $http_upgrade;
+            	proxy_set_header Connection "upgrade";
+            	proxy_redirect off;
+            	proxy_set_header Host $host;
+            	proxy_set_header X-Real-IP $remote_addr;
+            	proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            	proxy_set_header X-Forwarded-Proto $scheme;
+            	proxy_set_header X-Forwarded-Port $server_port;
+            	proxy_set_header X-Forwarded-Host $server_name;
+            	proxy_intercept_errors on; #获取后端错误码并处理
+            	recursive_error_pages on;
+            }
+            location / {
+                try_files $uri @proxy_to_app;
+            }
+            location @proxy_to_app {
+    		    proxy_pass http://wsgi-backend;
+            	proxy_http_version 1.1;
+            	proxy_redirect off;
+            	proxy_set_header Host $host;
+            	proxy_set_header X-Real-IP $remote_addr;
+            	proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            	proxy_set_header X-Forwarded-Proto $scheme;
+            	proxy_set_header X-Forwarded-Port $server_port;
+            	proxy_set_header X-Forwarded-Host $server_name;
+            	proxy_intercept_errors on;
+            	recursive_error_pages on;
+            }
+            location = /favicon.ico {
+                     access_log off;    #关闭正常访问日志
+            }
+            error_page 404 /404.html;
+            location = /404.html {
+                root   /usr/share/nginx/html;
+                if ( $request_uri ~ ^/favicon\.ico$ ) {    #关闭favicon.ico 404错误日志
+                    access_log off;
+                }
+            }
+            error_page 500 502 503 504 /50x.html;
+            location = /50x.html {
+                root   /usr/share/nginx/html;
+            }
+        }
+        include /etc/nginx/conf.d/*.conf;
+    }

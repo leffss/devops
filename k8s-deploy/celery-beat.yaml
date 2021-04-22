@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-beat-deployment
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: celery-beat
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: celery-beat
+    spec:
+      containers:
+      - name: celery-beat
+        image: devops:ver2.2.3
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: devops-pvc
+          mountPath: "/devops/media"
+        command: ["supervisord","-c","/etc/supervisord_celery_beat.conf"]
+      volumes:
+      - name: devops-pvc
+        persistentVolumeClaim:
+          claimName: devops-nfs-pvc
+

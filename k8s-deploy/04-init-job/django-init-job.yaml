@@ -1,0 +1,16 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: django-init
+  namespace: default
+spec:
+  template:
+    metadata:
+      name: django-init
+      namespace: default
+    spec:
+      containers:
+      - name: django-init
+        image: devops:ver2.2.3
+        command: ["bash","-c","sh delete_makemigrations.sh && rm -f db.sqlite3 && python3 manage.py makemigrations && python3 manage.py migrate && python3 manage.py loaddata initial_data.json && python3 init.py"]
+      restartPolicy: Never

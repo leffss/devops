@@ -35,6 +35,28 @@
 
 # 部署安装
 
+## kubernetes(k8s) 集群部署
+适合有 k8s 集群安装部署维护经验的同学，大概步骤：
+
+1. 准备完整 k8s 集群
+
+2. 根据根目录 Dockerfile 与 Dockerfile-nginx 文件打包镜像到集群 node 节点
+
+3. 替换 k8s-deploy/settings.py 文件配置到 devops/settings.py
+
+4. 根据 k8s 集群实际情况修改所有 yaml 参数配置
+
+5. 依次 kubectl apply 目录 01-mysql 、02-redis、03-guacd、04-init-job
+
+6. kubectl apply 目录 k8s-deploy 下所有 yaml 文件
+
+全部服务启动正常后访问 ingress 设置域名
+
+此部署方式在本人 k8s v1.19.9 集群上测试正常，不保证其他版本兼容性。且只做测试用。
+
+
+## 物理机安装
+
 环境：Centos 7.5，python 3.7.9，docker 1.13.1，项目目录为 `/home/workspace/devops` 。
 
 **1. 安装依赖**
@@ -299,6 +321,9 @@ systemctl start nginx
 
 
 # 升级日志
+### ver2.2.4
+新增 k8s 集群部署方式；
+
 ### ver2.2.3
 修复部分 linux 发行版 webssh 使用 sz 无法连续下载文件的问题；
 

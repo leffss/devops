@@ -1,0 +1,48 @@
+# 因为使用 ingress TCP 转发，所以和 ingress-controller 一样使用 DaemonSet
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devops-sshd-deployment
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: devops-sshd
+  template:
+    metadata:
+      labels:
+        app: devops-sshd
+    spec:
+      containers:
+      - name: devops-sshd
+        image: devops:ver2.2.3
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 2222
+        volumeMounts:
+        - name: devops-pvc
+          mountPath: "/devops/media"
+        command: ["supervisord","-c","/etc/supervisord_sshd.conf"]
+      volumes:
+      - name: devops-pvc
+        persistentVolumeClaim:
+          claimName: devops-nfs-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: devops-sshd-service
+  namespace: default
+  labels: 
+    app: devops-sshd
+spec:
+  type: ClusterIP
+  ports:
+  - port: 2222
+    protocol: TCP
+    targetPort: 2222
+  selector: 
+    app: devops-sshd
+
