@@ -13,7 +13,7 @@ channels==2.4.0
 # channels-redis==2.4.0
 channels-redis==3.1.0
 # celery==4.3.0
-celery==4.4.7
+celery==5.2.2
 redis==3.5.3
 eventlet==0.23.0
 selectors2==2.0.1
