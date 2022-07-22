@@ -6,7 +6,6 @@
 # 功能
 看图。
 
-
 # 预览
 ![效果](./screenshots/1.PNG)
 ![效果](./screenshots/2.PNG)
@@ -32,7 +31,6 @@
 ![效果](./screenshots/24.PNG)
 ![效果](./screenshots/25.PNG)
 
-
 # 部署安装
 
 ## kubernetes(k8s) 集群部署
@@ -54,12 +52,12 @@
 
 此部署方式在本人 k8s v1.19.9 集群上测试正常，不保证其他版本兼容性。且只做测试用。
 
-
 ## 物理机安装
 
 环境：Centos 7.5，python 3.7.9，docker 1.13.1，项目目录为 `/home/workspace/devops` 。
 
 **1. 安装依赖**
+
 ```bash
 yum install -y epel-release
 yum install -y gcc sshpass python3-devel mysql-devel
@@ -69,11 +67,20 @@ yum install -y gcc sshpass python3-devel mysql-devel
 - 不建议使用 pymysql 代替 mysqlclient ，因为 pymysql 为纯 python 编写的库，性能较低
 
 **2. 安装 mysql（docker 方式）**
+
 ```bash
 docker run -d --name mysql -e MYSQL_ROOT_PASSWORD=123456 -p 3306:3306 mysql:5.7.31
+
+# 创建数据库并授权
+docker exec -it mysql /bin/bash
+mysql -uroot -p
+create database devops default character set utf8mb4 collate utf8mb4_unicode_ci;
+grant all privileges on devops.* to 'devops'@'%' identified by '123456';
+flush privileges;
 ```
 
 **3. 安装 redis（docker 方式）**
+
 ```bash
 docker run --name redis-server -p 6379:6379 -d redis:6.0.8
 ```
@@ -88,11 +95,18 @@ docker run --name guacd -e GUACD_LOG_LEVEL=info -v /home/workspace/devops/media/
 - `-v /home/workspace/devops/media/guacd:/fs` 挂载磁盘，用于远程挂载文件系统实现上传和下载文件
 
 **5. 安装 python 依赖库**
+
 ```bash
+# 创建python虚拟环境
+python -m venv venv
+
+# 加载python虚拟环境，特别注意：后面的步骤均在此虚拟环境下运行
+source venv/bin/activate
+
 # 安装相关库
 pip3 install -i https://mirrors.aliyun.com/pypi/simple -r requirements.txt
 ```
-- -i 指定阿里源，速度飞起，我大 TC 威武，局域网玩得贼 6
+- -i 指定阿里源，速度飞起
 
 **6. 修改 devops/settings.py 配置**
 
@@ -103,7 +117,7 @@ pip3 install -i https://mirrors.aliyun.com/pypi/simple -r requirements.txt
 DATABASES = {
     'default': {
         #'ENGINE': 'django.db.backends.mysql',
-        'ENGINE': 'db_pool.mysql',     # db_pool.mysql 为重写 django 官方 mysql 连接库实现了真正的连接池
+        'ENGINE': 'db_pool.mysql',     # db_pool.mysql 重写了 django 官方 mysql 连接库实现了真正的连接池
         'NAME': 'devops',
         'USER':'devops',
         'PASSWORD':'devops',
@@ -122,9 +136,11 @@ DATABASES = {
 
 **7. 迁移数据库**
 ```bash
+# 删除可能存在的开发环境遗留数据
 sh delete_makemigrations.sh
 rm -f db.sqlite3
-# 以上是删除可能存在的开发环境遗留数据
+
+# 数据库迁移，创建表
 python3 manage.py makemigrations
 python3 manage.py migrate
 ```
@@ -140,12 +156,18 @@ python3 init.py
 **9. 启动相关服务**
 ```bash
 rm -rf logs/*
+
 export PYTHONOPTIMIZE=1		# 解决 celery 不允许创建子进程的问题
-nohup celery -A devops worker -l info -c 3 --max-tasks-per-child 40 --prefetch-multiplier 1 --pidfile logs/celery_worker.pid > logs/celery.log 2>&1 &
-nohup celery -A devops beat -l info --pidfile logs/celery_worker.pid > logs/celery_beat.log 2>&1 &
+
+nohup celery -A devops worker -l info -c 3 --max-tasks-per-child 40 --prefetch-multiplier 1 --pidfile logs/celery_worker.pid > logs/celery_worker.log 2>&1 &
+
+nohup celery -A devops beat -l info --pidfile logs/celery_beat.pid > logs/celery_beat.log 2>&1 &
+
 nohup python3 manage.py sshd > logs/sshd.log 2>&1 &
+
 nohup daphne -b 0.0.0.0 -p 8001 --access-log=logs/daphne_access.log devops.asgi:application > logs/daphne.log 2>&1 &
-nohup gunicorn -c gunicorn.cfg devops.wsgi:application > logs/gunicorn.log 2>&1 &
+
+nohup gunicorn -c gunicorn.py devops.wsgi:application > logs/gunicorn.log 2>&1 &
 ```
 - gunicorn 处理 http 请求，监听 8000 端口
 - daphne 处理 websocket 请求，监听 8001 端口
@@ -158,7 +180,7 @@ nohup gunicorn -c gunicorn.cfg devops.wsgi:application > logs/gunicorn.log 2>&1 
 ```
 yum install -y nginx
 ```
-- 为了方便，就不编译安装，直接 yum 安装，版本为 `nginx-1.16.1`
+- 为了方便，就不编译安装，直接 yum 安装，版本为 `nginx-1.20.1-9.el7.x86_64`
 
 修改 nginx 配置 /etc/nginx/nginx.conf 如下：
 ```
@@ -166,7 +188,7 @@ yum install -y nginx
 #   * Official English Documentation: http://nginx.org/en/docs/
 #   * Official Russian Documentation: http://nginx.org/ru/docs/
 
-# base on nginx 1.16.1
+# base on nginx-1.20.1-9.el7.x86_64
 
 user nginx;
 worker_processes auto;
