@@ -126,13 +126,12 @@ def task_run_script(hosts, group, data, user, user_agent, client, issuperuser=Fa
         hostinfo['port'] = host['port']
         hostinfo['username'] = host['username']
         hostinfo['password'] = host['password']
-        if issuperuser:
-            if host['superusername']:
-                hostinfo['become'] = {
-                    'method': 'su',
-                    'user': host['superusername'],
-                    'pass': host['superpassword']
-                }
+        if issuperuser and host['superusername']:
+            hostinfo['become'] = {
+                'method': 'su',
+                'user': host['superusername'],
+                'pass': host['superpassword']
+            }
         host_data.append(hostinfo)
     inventory = BaseInventory(host_data)
     callback = ModuleCallbackModule(group, cmd=data['script_name'], user=user, user_agent=user_agent, client=client, _hosts=_hosts)
@@ -182,13 +181,12 @@ def task_run_playbook(hosts, group, data, user, user_agent, client, issuperuser=
         hostinfo['username'] = host['username']
         hostinfo['password'] = host['password']
         hostinfo['groups'] = host['groups'] if host['groups'] else None
-        if issuperuser:
-            if host['superusername']:
-                hostinfo['become'] = {
-                    'method': 'su',
-                    'user': host['superusername'],
-                    'pass': host['superpassword']
-                }
+        if issuperuser and host['superusername']:
+            hostinfo['become'] = {
+                'method': 'su',
+                'user': host['superusername'],
+                'pass': host['superpassword']
+            }
         host_data.append(hostinfo)
     inventory = BaseInventory(host_data)
     callback = PlayBookCallbackModule(group, playbook=data['playbook_name'], user=user, user_agent=user_agent,
@@ -222,13 +220,12 @@ def task_run_module(hosts, group, data, user, user_agent, client, issuperuser=Fa
         hostinfo['port'] = host['port']
         hostinfo['username'] = host['username']
         hostinfo['password'] = host['password']
-        if issuperuser:
-            if host['superusername']:
-                hostinfo['become'] = {
-                    'method': 'su',
-                    'user': host['superusername'],
-                    'pass': host['superpassword']
-                }
+        if issuperuser and host['superusername']:
+            hostinfo['become'] = {
+                'method': 'su',
+                'user': host['superusername'],
+                'pass': host['superpassword']
+            }
         host_data.append(hostinfo)
     inventory = BaseInventory(host_data)
     module = data.get('module', 'command')
@@ -254,13 +251,12 @@ def task_run_file(hosts, group, data, user, user_agent, client, issuperuser=Fals
         hostinfo['port'] = host['port']
         hostinfo['username'] = host['username']
         hostinfo['password'] = host['password']
-        if issuperuser:
-            if host['superusername']:
-                hostinfo['become'] = {
-                    'method': 'su',
-                    'user': host['superusername'],
-                    'pass': host['superpassword']
-                }
+        if issuperuser and host['superusername']:
+            hostinfo['become'] = {
+                'method': 'su',
+                'user': host['superusername'],
+                'pass': host['superpassword']
+            }
         host_data.append(hostinfo)
     src = data.get('src')
     dst = data.get('dst', '/tmp')

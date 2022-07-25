@@ -162,14 +162,14 @@ class WebSSH(WebsocketConsumer):
             os.remove(ssh_key_file)
 
         self.ssh.connect(**ssh_connect_dict)
-        if self.remote_host.remote_user.enabled:
-            if self.remote_host.remote_user.superusername:
-                if '登陆后su跳转超级用户' in self.session[settings.INIT_PERMISSION]['titles']:  # 判断权限
-                    self.ssh.su_root(
-                        self.remote_host.remote_user.superusername,
-                        decrypt(self.remote_host.remote_user.superpassword),
-                        1,
-                    )
+        # 判断权限
+        if self.remote_host.remote_user.enabled and self.remote_host.remote_user.superusername and \
+                '登陆后su跳转超级用户' in self.session[settings.INIT_PERMISSION]['titles']:
+            self.ssh.su_root(
+                self.remote_host.remote_user.superusername,
+                decrypt(self.remote_host.remote_user.superpassword),
+                1,
+            )
 
         for i in self.scope['headers']:
             if i[0].decode('utf-8') == 'user-agent':

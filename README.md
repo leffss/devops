@@ -1,5 +1,5 @@
 # devops
-基于 python 3.7.9 + django 2.2.16 + channels 2.4.0 + celery 4.4.7 + ansible 2.9.14 + AdminLTE-3.0.0 实现的运维 devops 管理系统。具体见 `screenshots` 文件夹中的效果预览图。
+基于 python 3.9.13 + django 2.2.16 + channels 2.4.0 + celery 5.2.7 + ansible 2.9.14 + AdminLTE-3.0.0 实现的运维 devops 管理系统。具体见 `screenshots` 文件夹中的效果预览图。
 本人为运维工程师，非专业开发，项目各个功能模块都是现学现用，可能有的地方暂时没有考虑合理和性能的问题。
 
 
@@ -343,6 +343,17 @@ systemctl start nginx
 
 
 # 升级日志
+### ver2.2.5
+修正优化物理机部署步骤；
+
+redismultibeat 新增 RedisBeatManager 类（beat 任务管理），并修正动态修改 beat 任务无效问题；
+
+升级部分依赖：
+- celery 4.4.7 到 5.2.7；
+- eventlet 0.23.0 到 0.33.1；
+- greenlet 0.4.16 到 1.1.2；
+- gevent 1.4.0 到 21.12.0；
+
 ### ver2.2.4
 新增 k8s 集群部署方式；
 

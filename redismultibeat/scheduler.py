@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 基于：https://github.com/liuliqiang/celerybeatredis
-重写优化逻辑、完善功能等，只测试过 celery 4.3.0 版本
+重写优化逻辑、完善功能等，经过简单测试 celery 4.3.0 - 5.2.7 版本适用
 启动后会读取 celery 配置中的任务，类似：
 CELERY_BEAT_SCHEDULE = {    # celery 定时任务, 会覆盖 redis 当中相同任务名任务
     'task_check_scheduler_interval': {  # 任务名(随意起)
@@ -19,24 +19,31 @@ CELERY_BEAT_SCHEDULE = {    # celery 定时任务, 会覆盖 redis 当中相同�
     }
 }
 
-动态添加任务：
-from redismultibeat import RedisMultiScheduler
+
+# 请勿适用 RedisMultiScheduler 类中相关函数动态添加删除任务，
+# 因为实例化 RedisMultiScheduler 时会重复添加配置文件中的任务到 redis
+from redismultibeat import RedisBeatManager
 from devops.celery import app
 
-schduler = RedisMultiScheduler(app=app)
+manager = RedisBeatManager(app=app)
 
-schduler.add(**{
+# 任务列表
+for task in manager.iter_tasks():
+    print(task)
+
+# 动态添加任务：
+manager.add(**{
     'name': 'task_check_scheduler_cron_2',
     'task': 'tasks.tasks.task_check_scheduler',
     'schedule': timedelta(seconds=7200),
     "args": (None, 1, 3),
 })
 
-动态删除任务：
-schduler.remove('task_check_scheduler')
+# 动态删除任务：
+manager.remove('task_check_scheduler')
 
-动态修改任务：
-schduler.modify(**{
+# 动态修改任务：
+manager.modify(**{
     'name': 'task_check_scheduler_cron_2',
     'task': 'tasks.tasks.task_check_scheduler',
     'schedule': timedelta(seconds=1600),
@@ -44,6 +51,7 @@ schduler.modify(**{
     "limit_run_time": 5,    # 限制运行次数
 })
 
+manager.close()
 """
 import random
 import traceback
@@ -280,6 +288,7 @@ class RedisMultiScheduler(Scheduler):
                 with self.rdb.pipeline() as pipe:
                     pipe.zremrangebyrank(self.key, idx, idx)
                     pipe.zadd(self.key, {jsonpickle.encode(e): self._when(e, e.is_due()[1], ) or 0})
+                    pipe.execute()
                 return True
         warning("task: {} is not exists, can not modify".format(e.name))
         return False
@@ -355,3 +364,123 @@ class RedisMultiScheduler(Scheduler):
     def info(self):
         # 返回 Schedule 器信息
         return '    . db -> {self.schedule_url}, key -> {self.key}, multi_mode -> {self.multi_mode}'.format(self=self)
+
+
+class RedisBeatManager(Scheduler):
+    Entry = CustomScheduleEntry
+
+    def __init__(self, app):
+        self.schedule_url = app.conf.get("CELERY_BEAT_REDIS_SCHEDULER_URL", DEFAULT_CELERY_BEAT_REDIS_SCHEDULER_URL)
+        self.key = app.conf.get("CELERY_BEAT_REDIS_SCHEDULER_KEY", DEFAULT_CELERY_BEAT_REDIS_SCHEDULER_KEY)
+        # redis 哨兵模式 sentinels 支持
+        if self.schedule_url.startswith('sentinel://'):
+            self.broker_transport_options = app.conf.get("CELERY_BROKER_TRANSPORT_OPTIONS", DEFAULT_CELERY_BROKER_TRANSPORT_OPTIONS)
+            self.rdb = self.sentinel_connect(self.broker_transport_options['master_name'])
+        else:
+            self.rdb = Redis.from_url(self.schedule_url)
+
+    def _when(self, entry, next_time_to_run, **kwargs):
+        return mktime(entry.schedule.now().timetuple()) + (self.adjust(next_time_to_run) or 0)
+
+    def add(self, **kwargs):
+        e = self.Entry(app=current_app, **kwargs)
+        tasks = self.rdb.zrange(self.key, 0, -1) or []
+        for task in tasks:
+            entry = jsonpickle.decode(task)
+            if entry.name == e.name:
+                warning("task: {} is exists, can not add".format(e.name))
+                return False
+        # 其中 jsonpickle.encode(e) [任务序列化]为值，self._when(e, e.is_due()[1], ) or 0 [最后运行时间]为 score
+        self.rdb.zadd(self.key, {jsonpickle.encode(e): self._when(e, e.is_due()[1], ) or 0})
+        return True
+
+    def remove(self, task_name):
+        """
+        删除任务还可以用另一种逻辑实现：
+        调用 remove 时不实际删除，而是将其存入一个redis hash队列集合中，
+        然后在调用 tick 时添加任务到 worker 前判断任务是否删除或者执行
+        """
+        tasks = self.rdb.zrange(self.key, 0, -1) or []
+        for idx, task in enumerate(tasks):
+            entry = jsonpickle.decode(task)
+            if entry.name == task_name:
+                self.rdb.zremrangebyrank(self.key, idx, idx)
+                return True
+        else:
+            warning("task: {} is not exists, can not remove".format(task_name))
+            return False
+
+    def modify(self, **kwargs):
+        e = self.Entry(app=current_app, **kwargs)
+        tasks = self.rdb.zrange(self.key, 0, -1) or []
+        for idx, task in enumerate(tasks):
+            entry = jsonpickle.decode(task)
+            if entry.name == e.name:    # 先删除任务再创建
+                with self.rdb.pipeline() as pipe:
+                    pipe.zremrangebyrank(self.key, idx, idx)
+                    pipe.zadd(self.key, {jsonpickle.encode(e): self._when(e, e.is_due()[1], ) or 0})
+                    pipe.execute()
+                return True
+        warning("task: {} is not exists, can not modify".format(e.name))
+        return False
+
+    def remove_all(self):
+        if self.rdb.exists(self.key):
+            info("remove all exist tasks in rdb")
+            self.rdb.delete(self.key)
+            return True
+        else:
+            warning("tasks key: {} is not exists in rdb".format(self.key))
+            return False
+
+    def task(self, task_name):
+        tasks = self.rdb.zrange(self.key, 0, -1) or []
+        for task in tasks:
+            entry = jsonpickle.decode(task)
+            if entry.name == task_name:
+                return entry
+        else:
+            warning("task: {} is not exists".format(task_name))
+            return None
+
+    def tasks(self, start=0, end=-1):
+        # 返回任务列表
+        return [jsonpickle.decode(entry) for entry in self.rdb.zrange(self.key, start, end)]
+
+    def iter_tasks(self, start=0, end=-1):
+        # 返回任务迭代器
+        return (jsonpickle.decode(entry) for entry in self.rdb.zrange(self.key, start, end))
+
+    def close(self):
+        self.rdb.close()
+
+    def sentinel_connect(self, master_name):
+        url = urlparse.urlparse(self.schedule_url)
+
+        def parse_host(s):
+            if ':' in s:
+                host, port = s.split(':', 1)
+                port = int(port)
+            else:
+                host = s
+                port = 26379
+
+            return host, port
+
+        if '@' in url.netloc:
+            auth, hostspec = url.netloc.split('@', 1)
+        else:
+            auth = None
+            hostspec = url.netloc
+
+        if auth and ':' in auth:
+            _, password = auth.split(':', 1)
+        else:
+            password = None
+        path = url.path
+        if path.startswith('/'):
+            path = path[1:]
+        hosts = [parse_host(s) for s in hostspec.split(',')]
+        sentinel = Sentinel(hosts, password=password, db=path)
+        master = sentinel.master_for(master_name)
+        return master

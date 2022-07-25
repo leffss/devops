@@ -12,5 +12,5 @@ spec:
       containers:
       - name: create-database
         image: mysql:5.7
-        command: ["mysql","-h","mysql-service","-uroot","-p123456","-e","create database if not exists leffss default character set utf8mb4 default collate utf8mb4_general_ci"]
+        command: ["mysql","-h","mysql-service","-uroot","-p123456","-e","create database if not exists devops default character set utf8mb4 default collate utf8mb4_general_ci"]
       restartPolicy: Never

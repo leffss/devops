@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{component_name}}
+  namespace: {{NAMESPACE}}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{component_name}}
+  template:
+    metadata:
+      labels:
+        app: {{component_name}}
+    spec:
+      initContainers:
+        - name: init-redis-service
+          image: hub.leffss.com/library/busybox:v1.28.4
+          command: ['sh', '-c', 'until nslookup redis-service; do echo waiting for redis-service; sleep 3; done;']
+        - name: init-mysql-service
+          image: hub.leffss.com/library/busybox:v1.28.4
+          command: ['sh', '-c', 'until nslookup mysql-service; do echo waiting for mysql-service; sleep 3; done;']
+      containers:
+      - name: sshd
+        image: {{img_url}}
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 2222
+        volumeMounts:
+        - name: devops-pvc
+          mountPath: "/devops/media"
+        command: ["supervisord","-c","/etc/supervisord_sshd.conf"]
+      volumes:
+      - name: devops-pvc
+        persistentVolumeClaim:
+          claimName: devops-cephfs-share-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{component_name}}
+  namespace: {{NAMESPACE}}
+spec:
+  type: ClusterIP
+  ports:
+  - port: 2222
+    protocol: TCP
+    targetPort: 2222
+  selector: 
+    app: {{component_name}}

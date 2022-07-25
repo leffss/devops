@@ -60,19 +60,19 @@ class User(models.Model):
         'clissh': [
             {
                 'name': 'securecrt',
-                'path': 'C:\\Program Files (x86)\\VanDyke Software\\Clients\\SecureCRT.exe',
+                'path': 'C:\\Program Files\\VanDyke Software\\Clients\\SecureCRT.exe',
                 'args': '/T /N "{username}@{host}-{hostname}" /SSH2 /L {login_user} /PASSWORD {login_passwd} {login_host} /P {port}',
                 'enable': True
             },
             {
                 'name': 'xshell',
-                'path': 'C:\\Program Files (x86)\\NetSarang\\Xmanager Enterprise 5\\Xshell.exe',
+                'path': 'C:\\Program Files\\NetSarang\\Xmanager Enterprise 5\\Xshell.exe',
                  'args': '-newtab "{username}@{host}-{hostname}" -url ssh://{login_user}:{login_passwd}@{login_host}:{port}',
                  'enable': False
             },
             {
                 'name': 'putty',
-                'path': 'C:\\Program Files (x86)\\putty\\putty.exe',
+                'path': 'C:\\Program Files\\putty\\putty.exe',
                 'args': '-l {login_user} -pw {login_passwd} {login_host} -P {port}',
                 'enable': False
             },
@@ -86,7 +86,7 @@ class User(models.Model):
         'clisftp': [
             {
                 'name': 'winscp',
-                'path': 'C:\\Program Files (x86)\\winscp\\WinSCP.exe',
+                'path': 'C:\\Program Files\\winscp\\WinSCP.exe',
                 'args': '/sessionname="{username}@{host}-{hostname}" {login_user}:{login_passwd}@{login_host}:{port}',
                 'enable': True
             },

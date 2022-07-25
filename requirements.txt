@@ -1,5 +1,6 @@
 django==2.2.16
-vine==1.3.0
+#vine==1.3.0
+vine==5.0.0
 # django-debug-toolbar==2.0
 supervisor==4.2.1
 # simpleui
@@ -13,9 +14,11 @@ channels==2.4.0
 # channels-redis==2.4.0
 channels-redis==3.1.0
 # celery==4.3.0
-celery==4.4.7
+#celery==4.4.7
+celery==5.2.7
 redis==3.5.3
-eventlet==0.23.0
+#eventlet==0.23.0
+eventlet==0.33.1
 selectors2==2.0.1
 django-redis==4.12.1
 pyguacamole==0.8
@@ -25,14 +28,15 @@ ansible==2.9.14
 daphne==2.5.0
 # gunicorn==19.9.0
 gunicorn==20.0.4
-greenlet==0.4.16
-gevent==1.4.0
+#greenlet==0.4.16
+greenlet==1.1.2
+#gevent==1.4.0
+gevent==21.12.0
 async==0.6.2
 pymysql==0.9.3
 django-ratelimit==2.0.0
 # cryptography==2.8
 cryptography==3.2
-# mysqlclient 比 pymysql 性能高，安装前需要：
 # apt-get install python3-dev default-libmysqlclient-dev        # debian / Ubuntu
 # yum install python3-devel mysql-devel     # Red Hat / CentOS
 mysqlclient==1.4.4
@@ -41,4 +45,4 @@ apscheduler==3.6.3
 requests==2.24.0
 jsonpickle==1.4.1
 # redisbeat==1.2.4
-django-cachalot==2.3.2
+django-cachalot==2.3.5

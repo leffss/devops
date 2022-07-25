@@ -1,0 +1,353 @@
+stages:
+  - updateSql
+  - build
+  - invalidateCachalot
+  - deployComponent
+  - deployIngress
+  - rollbackConfirm
+  - rollback
+
+variables:
+  PROJECTNAME: "devops"
+  DOCKERHUB: "hub.leffss.com"
+  DOCKERHUBPROJECT: "library"
+  DOCKERHUBUSER: "admin"
+  DOCKERHUBPASS: "Liff@2019"
+  DINDSERVICE: "dind.kube-system"
+  DINDSERVICEPORT: 2375
+  NAMESPACE: devops
+
+mysql-update:
+  stage: updateSql
+  image: hub.leffss.com/library/mysql:5.7
+  script:
+    - |
+      if [ ! -d database ];then
+        echo "none database path, exit 0"
+        exit 0
+      fi
+      [ -d /data/${PROJECTNAME} ] || mkdir /data/${PROJECTNAME}
+      cd database
+      end_sql_num=$(ls 2>/dev/null|tail -1|awk -F '-' '{print $1}')
+      if [[ ${end_sql_num} == "" ]];then
+        echo "none sql update, exit 0"
+        exit 0
+      fi
+      echo "end_sql_num: ${end_sql_num}"
+      latest_sql_num=$(ls /data/${PROJECTNAME} 2>/dev/null|tail -1|awk -F '-' '{print $1}')
+      if [[ ${latest_sql_num} == "" ]];then
+        latest_sql_num=0
+      fi
+      echo "latest_sql_num: ${latest_sql_num}"
+      if [[ ${end_sql_num} -lt ${latest_sql_num} ]];then
+        echo "none sql update, exit 1"
+        exit 0
+      fi
+      if [[ ${end_sql_num} -eq ${latest_sql_num} ]];then
+        echo "none sql update, exit 2"
+        exit 0
+      fi
+      while true;do
+        let latest_sql_num=latest_sql_num+1
+        if [[ ${latest_sql_num} -gt ${end_sql_num} ]];then
+          echo "all sql update done, break"
+          break
+        fi
+        need_update_sql=$(ls ${latest_sql_num}-*.sql 2>/dev/null)
+        for sql in ${need_update_sql};do
+          echo "update sql: ${sql}"
+          cp -arf ${sql} /data/${PROJECTNAME}
+        done
+      done
+  #rules:
+  #  - if: $CI_COMMIT_TAG && $CI_BUILD_REF_NAME == "dev"
+  # gitlab ci 无法做到指定分支打tag时运行job，所以使用规范 COMMIT_MESSAGE 的方法发布指定版本
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /^deploy dev/'
+    - if: $CI_COMMIT_TAG
+
+devops-build:
+  stage: build
+  retry: 2
+  variables:
+    DOCKER_HOST: tcp://${DINDSERVICE}:${DINDSERVICEPORT}/
+    #DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
+    dockerfile: "Dockerfile"
+  before_script:
+    - docker login ${DOCKERHUB} -u "${DOCKERHUBUSER}" -p "${DOCKERHUBPASS}"
+  script:
+    - env
+    - cp -arf ./deploy/settings.py ./devops
+    - docker build -f ${dockerfile} --cache-from ${DOCKERHUB}/${DOCKERHUBPROJECT}/${PROJECTNAME}:latest -t ${DOCKERHUB}/${DOCKERHUBPROJECT}/${PROJECTNAME}:${CI_COMMIT_TAG} -t ${DOCKERHUB}/${DOCKERHUBPROJECT}/${PROJECTNAME}:latest .
+    - docker images
+    - docker push ${DOCKERHUB}/${DOCKERHUBPROJECT}/${PROJECTNAME}:${CI_COMMIT_TAG}
+    - docker push ${DOCKERHUB}/${DOCKERHUBPROJECT}/${PROJECTNAME}:latest
+  after_script:
+    - docker logout ${DOCKERHUB}
+  tags:
+    - "docker"
+  only:
+    - tags
+
+devops-nginx-build:
+  stage: build
+  retry: 2
+  variables:
+    DOCKER_HOST: tcp://${DINDSERVICE}:${DINDSERVICEPORT}/
+    #DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
+    dockerfile: "Dockerfile-nginx"
+  before_script:
+    - docker login ${DOCKERHUB} -u "${DOCKERHUBUSER}" -p "${DOCKERHUBPASS}"
+  script:
+    - cp -arf ./deploy/settings.py ./devops
+    - docker build -f ${dockerfile} --cache-from ${DOCKERHUB}/${DOCKERHUBPROJECT}/${PROJECTNAME}-nginx:latest -t ${DOCKERHUB}/${DOCKERHUBPROJECT}/${PROJECTNAME}-nginx:${CI_COMMIT_TAG} -t ${DOCKERHUB}/${DOCKERHUBPROJECT}/${PROJECTNAME}-nginx:latest .
+    - docker images
+    - docker push ${DOCKERHUB}/${DOCKERHUBPROJECT}/${PROJECTNAME}-nginx:${CI_COMMIT_TAG}
+    - docker push ${DOCKERHUB}/${DOCKERHUBPROJECT}/${PROJECTNAME}-nginx:latest
+  after_script:
+    - docker logout ${DOCKERHUB}
+  tags:
+    - "docker"
+  only:
+    - tags
+
+devops-invalidate-cachalot:
+  stage: invalidateCachalot
+  image: hub.leffss.com/library/${PROJECTNAME}:${CI_COMMIT_TAG}
+  script:
+    - cd /devops
+    - sed -i "s/mysql-service/mysql-service.${NAMESPACE}/g" devops/settings.py
+    - - sed -i "s/redis-service/redis-service.${NAMESPACE}/g" devops/settings.py
+    - python3 manage.py invalidate_cachalot
+  only:
+    - tags
+
+.deploy_component: &deploy_component |
+  [ -d ~/.kube ] || mkdir ~/.kube
+  echo "${kube_config}" > ~/.kube/config
+  cp -arf deploy/${component_name}-template.yaml ${component_name}-${CI_COMMIT_TAG}.yaml
+  sed -i "s#{{img_url}}#${img_url}#g" ${component_name}-${CI_COMMIT_TAG}.yaml
+  sed -i "s#{{component_name}}#${component_name}#g" ${component_name}-${CI_COMMIT_TAG}.yaml
+  sed -i "s#{{NAMESPACE}}#${NAMESPACE}#g" ${component_name}-${CI_COMMIT_TAG}.yaml
+  kubectl apply -f ${component_name}-${CI_COMMIT_TAG}.yaml --record
+  echo
+  echo
+  echo "============================================================="
+  echo "         ${component_name} Rollback Indx List"
+  echo "============================================================="
+  kubectl -n ${NAMESPACE} rollout history deployment ${component_name}
+
+celery-beat-deploy:
+  stage: deployComponent
+  image: hub.leffss.com/library/kubectl:v1.19.9
+  variables:
+    kube_config: "${KUBE_ADMIN_CONFIG}"
+    img_url: "${DOCKERHUB}/${DOCKERHUBPROJECT}/${PROJECTNAME}:${CI_COMMIT_TAG}"
+    component_name: "celery-beat"
+  script:
+    - *deploy_component
+  when: on_success
+  only:
+    - tags
+  needs: ["devops-build"]
+
+celery-worker-deploy:
+  stage: deployComponent
+  image: hub.leffss.com/library/kubectl:v1.19.9
+  variables:
+    kube_config: "${KUBE_ADMIN_CONFIG}"
+    img_url: "${DOCKERHUB}/${DOCKERHUBPROJECT}/${PROJECTNAME}:${CI_COMMIT_TAG}"
+    component_name: "celery-worker"
+  script:
+    - *deploy_component
+  when: on_success
+  only:
+    - tags
+  needs: ["devops-build"]
+
+daphne-deploy:
+  stage: deployComponent
+  image: hub.leffss.com/library/kubectl:v1.19.9
+  variables:
+    kube_config: "${KUBE_ADMIN_CONFIG}"
+    img_url: "${DOCKERHUB}/${DOCKERHUBPROJECT}/${PROJECTNAME}:${CI_COMMIT_TAG}"
+    component_name: "daphne"
+  script:
+    - *deploy_component
+  when: on_success
+  only:
+    - tags
+  needs: ["devops-build"]
+
+gunicorn-deploy:
+  stage: deployComponent
+  image: hub.leffss.com/library/kubectl:v1.19.9
+  variables:
+    kube_config: "${KUBE_ADMIN_CONFIG}"
+    img_url: "${DOCKERHUB}/${DOCKERHUBPROJECT}/${PROJECTNAME}:${CI_COMMIT_TAG}"
+    component_name: "gunicorn"
+  script:
+    - *deploy_component
+  when: on_success
+  only:
+    - tags
+  needs: ["devops-build"]
+
+sshd-deploy:
+  stage: deployComponent
+  image: hub.leffss.com/library/kubectl:v1.19.9
+  variables:
+    kube_config: "${KUBE_ADMIN_CONFIG}"
+    img_url: "${DOCKERHUB}/${DOCKERHUBPROJECT}/${PROJECTNAME}:${CI_COMMIT_TAG}"
+    component_name: "sshd"
+  script:
+    - *deploy_component
+  when: on_success
+  only:
+    - tags
+  needs: ["devops-build"]
+
+nginx-deploy:
+  stage: deployComponent
+  image: hub.leffss.com/library/kubectl:v1.19.9
+  variables:
+    kube_config: "${KUBE_ADMIN_CONFIG}"
+    img_url: "${DOCKERHUB}/${DOCKERHUBPROJECT}/${PROJECTNAME}-nginx:${CI_COMMIT_TAG}"
+    component_name: "nginx"
+  script:
+    - *deploy_component
+  when: on_success
+  only:
+    - tags
+  needs: ["devops-nginx-build"]
+
+.deploy_ingress: &deploy_ingress |
+  [ -d ~/.kube ] || mkdir ~/.kube
+  echo "${kube_config}" > ~/.kube/config
+  date
+  cp -arf deploy/${component_name}-template.yaml ${component_name}-${CI_COMMIT_TAG}.yaml
+  sed -i "s#{{component_name}}#${component_name}#g" ${component_name}-${CI_COMMIT_TAG}.yaml
+  sed -i "s#{{NAMESPACE}}#${NAMESPACE}#g" ${component_name}-${CI_COMMIT_TAG}.yaml
+  kubectl apply -f ${component_name}-${CI_COMMIT_TAG}.yaml --record
+  echo
+  echo
+  echo "============================================================="
+  echo "         ${component_name} Indx List"
+  echo "============================================================="
+  kubectl -n ${NAMESPACE} get ingress ${component_name}
+
+ingress-deploy:
+  stage: deployIngress
+  image: hub.leffss.com/library/kubectl:v1.19.9
+  variables:
+    kube_config: "${KUBE_ADMIN_CONFIG}"
+    component_name: "devops-ingress"
+  script:
+    - *deploy_ingress
+  when: on_success
+  only:
+    - tags
+  needs: ["daphne-deploy","gunicorn-deploy","sshd-deploy","nginx-deploy"]
+
+confirm-rollback:
+  stage: rollbackConfirm
+  script:
+    - echo "rollbackConfirm"
+  when: manual
+  only:
+    - tags
+
+.rollback_component: &rollback_component |
+  [ -d ~/.kube ] || mkdir ~/.kube
+  echo "${kube_config}" > ~/.kube/config
+  last_version=$(kubectl -n ${NAMESPACE} rollout history deployment ${component_name} | sed -n '3,$'p | tail -6 | head -5 | sed '$d' | awk -F"[ =]+" '{print $1" "$5}' | tail -1 | head -1)
+  last_version_num=$(echo ${last_version}|awk '{print $1}')
+  last_version_name=$(echo ${last_version}|awk '{print $2}')
+  echo
+  echo
+  echo "============================================================="
+  echo "         ${component_name} Rollback to ${last_version_name}"
+  echo "============================================================="
+  kubectl -n ${NAMESPACE} rollout undo deployment ${component_name} --to-revision=$last_version_num
+  kubectl -n ${NAMESPACE} rollout history deployment ${component_name}
+
+celery-beat-rollback:
+  stage: rollback
+  # 指定 image，不指定的话会使用 runner 配置文件 /etc/gitlab-runner/config.toml 中设置的 image
+  image: hub.leffss.com/library/kubectl:v1.19.9
+  variables:
+    kube_config: "${KUBE_ADMIN_CONFIG}"
+    component_name: "celery-beat"
+  script:
+    - *rollback_component
+  when: on_success
+  only:
+    - tags
+  needs: ["confirm-rollback"]
+
+celery-worker-rollback:
+  stage: rollback
+  image: hub.leffss.com/library/kubectl:v1.19.9
+  variables:
+    kube_config: "${KUBE_ADMIN_CONFIG}"
+    component_name: "celery-worker"
+  script:
+    - *rollback_component
+  when: on_success
+  only:
+    - tags
+  needs: ["confirm-rollback"]
+
+daphne-rollback:
+  stage: rollback
+  image: hub.leffss.com/library/kubectl:v1.19.9
+  variables:
+    kube_config: "${KUBE_ADMIN_CONFIG}"
+    component_name: "daphne"
+  script:
+    - *rollback_component
+  when: on_success
+  only:
+    - tags
+  needs: ["confirm-rollback"]
+
+gunicorn-rollback:
+  stage: rollback
+  image: hub.leffss.com/library/kubectl:v1.19.9
+  variables:
+    kube_config: "${KUBE_ADMIN_CONFIG}"
+    component_name: "gunicorn"
+  script:
+    - *rollback_component
+  when: on_success
+  only:
+    - tags
+  needs: ["confirm-rollback"]
+
+sshd-rollback:
+  stage: rollback
+  image: hub.leffss.com/library/kubectl:v1.19.9
+  variables:
+    kube_config: "${KUBE_ADMIN_CONFIG}"
+    component_name: "sshd"
+  script:
+    - *rollback_component
+  when: on_success
+  only:
+    - tags
+  needs: ["confirm-rollback"]
+
+nginx-rollback:
+  stage: rollback
+  image: hub.leffss.com/library/kubectl:v1.19.9
+  variables:
+    kube_config: "${KUBE_ADMIN_CONFIG}"
+    component_name: "nginx"
+  script:
+    - *rollback_component
+  when: on_success
+  only:
+    - tags
+  needs: ["confirm-rollback"]

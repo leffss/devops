@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import os
 from datetime import timedelta
+import random
 
 
 if __name__ == '__main__':
@@ -11,45 +12,50 @@ if __name__ == '__main__':
     import django
     django.setup()
 
-    from redismultibeat import RedisMultiScheduler
+    from redismultibeat import RedisBeatManager
     from devops.celery import app
 
-    schduler = RedisMultiScheduler(app=app)
-    for task in schduler.iter_tasks():
+    app.loader.import_default_modules()
+    tasks = list(sorted(name for name in app.tasks if not name.startswith('celery.')))
+    print(tasks)
+
+    manager = RedisBeatManager(app=app)
+    for task in manager.iter_tasks():
         print(task)
 
     # print('remove----------------------', end='')
-    # print(schduler.remove('task_check_scheduler'))
-    # for task in schduler.iter_tasks():
+    # print(manager.remove('task_check_scheduler'))
+    # for task in manager.iter_tasks():
     #     print(task)
     #
-    # print(schduler.remove('task_check_scheduler'))
+    # print(manager.remove('task_check_scheduler'))
     #
     # print('add----------------------', end='')
-    # print(schduler.add(**{
+    # print(manager.add(**{
     #     'name': 'task_check_scheduler_cron_2',
     #     'task': 'tasks.tasks.task_check_scheduler',
     #     'schedule': timedelta(seconds=7200),
     #     "args": (None, 1, 3),
     # }))
-    # for task in schduler.iter_tasks():
+    # for task in manager.iter_tasks():
     #     print(task)
     #
     # print('modify----------------------', end='')
-    # print(schduler.modify(**{
+    # print(manager.modify(**{
     #     'name': 'task_check_scheduler_cron_2',
     #     'task': 'tasks.tasks.task_check_scheduler',
-    #     'schedule': timedelta(seconds=1600),
+    #     'schedule': timedelta(seconds=random.randint(3600,7200)),
     #     "args": (None, 1, 3),
     # }))
-    # for task in schduler.iter_tasks():
+    # for task in manager.iter_tasks():
     #     print(task)
     #
-    # print(schduler.task('task_check_scheduler'))
+    # print(manager.task('task_check_scheduler'))
     #
-    # print(schduler.remove_all())
+    # print(manager.remove_all())
     #
-    # for task in schduler.iter_tasks():
+    # for task in manager.iter_tasks():
     #     print(task)
     #
-    print(schduler.remove_all())
+    print(manager.remove_all())
+    manager.close()
