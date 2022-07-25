@@ -4,4 +4,4 @@ metadata:
   name: tcp-services
   namespace: ingress-nginx
 data:
-  2222: "default/devops-sshd-service:2222"
+  22: "default/gitlab:22"

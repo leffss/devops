@@ -137,14 +137,14 @@ class WebSSH(WebsocketConsumer):
             os.remove(ssh_key_file)
 
         self.ssh.connect(**ssh_connect_dict)
-        if self.remote_host.remote_user.enabled:
-            if self.session.get('issuperuser', None):  # 超级管理员才能使用 su 跳转功能
-                if self.remote_host.remote_user.superusername:
-                    self.ssh.su_root(
-                        self.remote_host.remote_user.superusername,
-                        self.remote_host.remote_user.superpassword,
-                        0.3,
-                    )
+        # 超级管理员才能使用 su 跳转功能
+        if self.remote_host.remote_user.enabled and self.session.get('issuperuser', None) and \
+                self.remote_host.remote_user.superusername:
+            self.ssh.su_root(
+                self.remote_host.remote_user.superusername,
+                self.remote_host.remote_user.superpassword,
+                0.3,
+            )
 
     def disconnect(self, close_code):
         try:

@@ -1,0 +1,18 @@
+variables:
+  sonar_host_url: http://10.10.10.61:9000
+  sonar_login: 0fad40c3880b4b9969f6e5039758615d02697250
+
+# include:
+#   - template: Security/SAST.gitlab-ci.yml
+
+sonarqube:
+  image: sonarscanner:4.7
+  script:
+  - sh /sonar-scanner/scan.sh
+  artifacts:
+    reports:
+      sast:
+      - gl-sast-report.json
+  only:
+    - main
+    - merge_requests

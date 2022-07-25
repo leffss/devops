@@ -1,0 +1,6 @@
+.github
+.gitlab
+.idea
+.gitlab-ci.yml
+Jenkinsfile
+db.sqlite3

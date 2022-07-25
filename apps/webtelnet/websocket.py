@@ -122,9 +122,7 @@ class WebTelnet(WebsocketConsumer):
     
     def disconnect(self, close_code):
         try:
-            if close_code == 3001:
-                pass
-            else:
+            if close_code != 3001:
                 self.telnet.close()
         except:
             pass
@@ -162,8 +160,6 @@ class WebTelnet(WebsocketConsumer):
             if status == 0:
                 data = data['data']
                 self.telnet.shell(data)
-            else:
-                pass
 
     def check_login(self):
         lasttime = int(self.scope['session']['lasttime'])

@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{component_name}}
+  namespace: {{NAMESPACE}}
+spec:
+  selector:
+    matchLabels:
+      app: {{component_name}}
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: {{component_name}}
+    spec:
+      containers:
+      - name: nginx
+        image: {{img_url}}
+        ports:
+        - containerPort: 80
+          name: http
+        volumeMounts:
+        - name: devops-pvc
+          mountPath: "/devops/media"
+        - name: nginx-conf
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+      volumes:
+      - name: devops-pvc
+        persistentVolumeClaim:
+          claimName: devops-cephfs-share-pvc
+      - name: nginx-conf
+        configMap:
+          name: nginx-configmap
+          items:
+          - key: nginx_conf
+            path: nginx.conf
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{component_name}}
+  namespace: {{NAMESPACE}}
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: {{component_name}}

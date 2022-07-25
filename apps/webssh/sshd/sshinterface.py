@@ -411,7 +411,7 @@ class ServerInterface(paramiko.ServerInterface):
     def close(self, terminal_type='ssh'):
         time.sleep(0.5)     # 防止多次停止重复保存数据
 
-        if terminal_type is 'N':    # 重复登陆时可能会调用close，这时不能删除这些 key，否则会把当前正常会话也关闭掉
+        if terminal_type == 'N':    # 重复登陆时可能会调用close，这时不能删除这些 key，否则会把当前正常会话也关闭掉
             self.closed = True
             try:
                 # logger.error("密码无效 {} - {}".format(self.http_user, self.password))
@@ -516,7 +516,7 @@ class ServerInterface(paramiko.ServerInterface):
         由于 paramiko 实现的 ssh server 在克隆会话后，被克隆的会话就无法操作了，解决方法还没研究出来，
         所以这里使用 and chanid is 0 禁止克隆会话（开启多个 channel）
         """
-        if kind == "session" and chanid is 0:
+        if kind == "session" and chanid == 0:
             return paramiko.OPEN_SUCCEEDED
         return paramiko.OPEN_FAILED_ADMINISTRATIVELY_PROHIBITED
 

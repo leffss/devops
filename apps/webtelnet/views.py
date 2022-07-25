@@ -19,8 +19,6 @@ def terminal(request):
     error_message = '请检查填写的内容!'
     if host_form.is_valid():
         host_id = host_form.cleaned_data.get('hostid')
-        # host = RemoteUserBindHost.objects.get(id=host_id, enabled=True)
-        # host = get_object_or_404(RemoteUserBindHost, id=host_id, enabled=True)
         username = request.session.get('username')
         if request.session['issuperuser'] and request.session['username'] == 'admin':
             hosts = RemoteUserBindHost.objects.filter(
