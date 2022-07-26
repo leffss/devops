@@ -79,6 +79,7 @@ DEFAULT_CELERY_BEAT_REDIS_LOCK_KEY = 'celery:beat:lock'
 DEFAULT_CELERY_BEAT_REDIS_LOCK_TTL = 60
 DEFAULT_CELERY_BEAT_REDIS_LOCK_SLEEP = None
 DEFAULT_CELERY_BEAT_FLUSH_TASKS = False
+DEFAULT_CELERY_BEAT_SCHEDULE = {}
 
 
 class CustomScheduleEntry(ScheduleEntry):
@@ -143,7 +144,7 @@ class RedisMultiScheduler(Scheduler):
         #     self.remove_all()
 
         # init entries
-        self.merge_inplace(self.app.conf.CELERY_BEAT_SCHEDULE)
+        self.merge_inplace(self.app.conf.get("CELERY_BEAT_SCHEDULE", DEFAULT_CELERY_BEAT_SCHEDULE))
         tasks = [jsonpickle.decode(entry) for entry in self.rdb.zrange(self.key, 0, -1)]    # -1 表示取所有
         for entry in tasks:
             if hasattr(entry.schedule, 'human_seconds'):
