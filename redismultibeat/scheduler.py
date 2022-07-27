@@ -452,6 +452,9 @@ class RedisBeatManager(Scheduler):
         # 返回任务迭代器
         return (jsonpickle.decode(entry) for entry in self.rdb.zrange(self.key, start, end))
 
+    def tasks_count(self):
+        return self.rdb.zcard(self.key)
+
     def close(self):
         self.rdb.close()
 
