@@ -7,6 +7,7 @@ CELERY_BEAT_SCHEDULE = {    # celery 定时任务, 会覆盖 redis 当中相同�
     'task_check_scheduler_interval': {  # 任务名(随意起)
         'task': 'tasks.tasks.task_check_scheduler',  # 定时任务函数路径
         'schedule': timedelta(seconds=30),  # 任务循环时间
+        "relative": True,
         # "args": None,  # 参数
         "args": (None, 0, 3),  # 参数
         "limit_run_time": 5,    # 限制运行次数
@@ -20,8 +21,6 @@ CELERY_BEAT_SCHEDULE = {    # celery 定时任务, 会覆盖 redis 当中相同�
 }
 
 
-# 请勿适用 RedisMultiScheduler 类中相关函数动态添加删除任务，
-# 因为实例化 RedisMultiScheduler 时会重复添加配置文件中的任务到 redis
 from redismultibeat import RedisBeatManager
 from devops.celery import app
 
@@ -98,14 +97,17 @@ class CustomScheduleEntry(ScheduleEntry):
     """
 
     limit_run_time = 0
+    enable = True
 
-    def __init__(self, limit_run_time=None, *args, **kwargs):
+    def __init__(self, limit_run_time=None, enable=True, *args, **kwargs):
         self.limit_run_time = limit_run_time or 0
+        self.enable = enable
         ScheduleEntry.__init__(self, *args, **kwargs)
 
     def __reduce__(self):
         return self.__class__, (
             self.limit_run_time,
+            self.enable,
             self.name, self.task, self.last_run_at, self.total_run_count,
             self.schedule, self.args, self.kwargs, self.options,
         )
@@ -127,7 +129,6 @@ class RedisMultiScheduler(Scheduler):
             self.rdb = Redis.from_url(self.schedule_url)
         Scheduler.__init__(self, *args, **kwargs)
         self.max_interval = app.conf.get("CELERY_BEAT_MAX_LOOP_INTERVAL", DEFAULT_CELERY_BEAT_MAX_LOOP_INTERVAL)
-        app.add_task = partial(self.add, self)
         # 多实例模式锁
         self.multi_mode = app.conf.get("CELERY_BEAT_REDIS_MULTI_NODE_MODE", DEFAULT_CELERY_BEAT_REDIS_MULTI_NODE_MODE)
         if self.multi_mode:
@@ -252,48 +253,6 @@ class RedisMultiScheduler(Scheduler):
         else:
             return self._tick()
 
-    def add(self, **kwargs):
-        e = self.Entry(app=current_app, **kwargs)
-        tasks = self.rdb.zrange(self.key, 0, -1) or []
-        for task in tasks:
-            entry = jsonpickle.decode(task)
-            if entry.name == e.name:
-                warning("task: {} is exists, can not add".format(e.name))
-                return False
-        # 其中 jsonpickle.encode(e) [任务序列化]为值，self._when(e, e.is_due()[1], ) or 0 [最后运行时间]为 score
-        self.rdb.zadd(self.key, {jsonpickle.encode(e): self._when(e, e.is_due()[1], ) or 0})
-        return True
-
-    def remove(self, task_name):
-        """
-        删除任务还可以用另一种逻辑实现：
-        调用 remove 时不实际删除，而是将其存入一个redis hash队列集合中，
-        然后在调用 tick 时添加任务到 worker 前判断任务是否删除或者执行
-        """
-        tasks = self.rdb.zrange(self.key, 0, -1) or []
-        for idx, task in enumerate(tasks):
-            entry = jsonpickle.decode(task)
-            if entry.name == task_name:
-                self.rdb.zremrangebyrank(self.key, idx, idx)
-                return True
-        else:
-            warning("task: {} is not exists, can not remove".format(task_name))
-            return False
-
-    def modify(self, **kwargs):
-        e = self.Entry(app=current_app, **kwargs)
-        tasks = self.rdb.zrange(self.key, 0, -1) or []
-        for idx, task in enumerate(tasks):
-            entry = jsonpickle.decode(task)
-            if entry.name == e.name:    # 先删除任务再创建
-                with self.rdb.pipeline() as pipe:
-                    pipe.zremrangebyrank(self.key, idx, idx)
-                    pipe.zadd(self.key, {jsonpickle.encode(e): self._when(e, e.is_due()[1], ) or 0})
-                    pipe.execute()
-                return True
-        warning("task: {} is not exists, can not modify".format(e.name))
-        return False
-
     def remove_all(self):
         if self.rdb.exists(self.key):
             info("remove all exist tasks in rdb")
@@ -302,24 +261,6 @@ class RedisMultiScheduler(Scheduler):
         else:
             warning("tasks key: {} is not exists in rdb".format(self.key))
             return False
-
-    def task(self, task_name):
-        tasks = self.rdb.zrange(self.key, 0, -1) or []
-        for task in tasks:
-            entry = jsonpickle.decode(task)
-            if entry.name == task_name:
-                return entry
-        else:
-            warning("task: {} is not exists".format(task_name))
-            return None
-
-    def tasks(self, start=0, end=-1):
-        # 返回任务列表
-        return [jsonpickle.decode(entry) for entry in self.rdb.zrange(self.key, start, end)]
-
-    def iter_tasks(self, start=0, end=-1):
-        # 返回任务迭代器
-        return (jsonpickle.decode(entry) for entry in self.rdb.zrange(self.key, start, end))
 
     def close(self):
         self.sync()
@@ -417,6 +358,8 @@ class RedisBeatManager(Scheduler):
         for idx, task in enumerate(tasks):
             entry = jsonpickle.decode(task)
             if entry.name == e.name:    # 先删除任务再创建
+                e.last_run_at = entry.last_run_at
+                e.total_run_count = entry.total_run_count
                 with self.rdb.pipeline() as pipe:
                     pipe.zremrangebyrank(self.key, idx, idx)
                     pipe.zadd(self.key, {jsonpickle.encode(e): self._when(e, e.is_due()[1], ) or 0})

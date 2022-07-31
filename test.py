@@ -13,7 +13,7 @@ if __name__ == '__main__':
     django.setup()
 
     from redismultibeat import RedisBeatManager
-    from devops.celery import app
+    from devops import celery_app as app
 
     app.loader.import_default_modules()
     tasks = list(sorted(name for name in app.tasks if not name.startswith('celery.')))

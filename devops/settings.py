@@ -278,10 +278,11 @@ celery beat 中间隔时间任务有个小问题，比如任务10秒间隔执行
 2019-12-07 13:21:39,008
 你会发现每次执行时间都会延迟 10-30 毫秒之间（程序执行逻辑耗费的时间），如果任务有严格时间要求，则不适合使用这种类型的任务
 cron 任务暂时没发现这个问题
+经过测试发现在 interval 任务种加入 "relative": True 即可解决此问题
 """
 CELERY_BEAT_FLUSH_TASKS = True  # 启动 beat 时是否清空已有任务
 CELERY_TIMEZONE = TIME_ZONE     # celery 使用的是 utc 时间，需要设置为 django 相同时区
-CELERY_ENABLE_UTC = True
+CELERY_ENABLE_UTC = False
 USER_LOGS_KEEP_DAYS = 1095   # 操作日志保留天数，需开启 CELERY_BEAT_SCHEDULE 中相应的定时任务才生效
 TERMINAL_LOGS_KEEP_DAYS = 1095   # 终端日志保留天数，需开启 CELERY_BEAT_SCHEDULE 中相应的定时任务才生效
 BATCH_LOGS_KEEP_DAYS = 1095  # 批量日志保留天数，需开启 CELERY_BEAT_SCHEDULE 中相应的定时任务才生效
@@ -301,6 +302,7 @@ CELERY_BEAT_SCHEDULE = {    # celery 定时任务, 会覆盖 redis 当中相同�
     'task_cls_terminalsession': {   # 清除 terminalsession 表，系统异常退出时此表可能会有垃圾数据，仅启动时运行一次
         'task': 'tasks.tasks.task_cls_terminalsession',
         'schedule': timedelta(seconds=3),
+        "relative": True,
         "limit_run_time": 1,   # 限制任务执行次数，>=0, 默认 0 为不限制。注意：celery 原版 beat 是不支持此参数的
     },
     # 'task_cls_user_logs': {     # 清除操作日志定时任务，如不自动清除，注释此任务即可
