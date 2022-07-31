@@ -278,9 +278,10 @@ celery beat 中间隔时间任务有个小问题，比如任务10秒间隔执行
 2019-12-07 13:21:39,008
 你会发现每次执行时间都会延迟 10-30 毫秒之间（程序执行逻辑耗费的时间），如果任务有严格时间要求，则不适合使用这种类型的任务
 cron 任务暂时没发现这个问题
-经过测试发现在 interval 任务种加入 "relative": True 即可解决此问题
+经过测试发现在 interval 任务种加入 "relative": True 后，windows 上面运行的celery可以解决此问题
+但是 linux 下运行的 celery 只有第一次任务的毫秒变成1-10的样子，后面还是会递增（使用 -P eventlet 一样）
 """
-CELERY_BEAT_FLUSH_TASKS = True  # 启动 beat 时是否清空已有任务
+CELERY_BEAT_FLUSH_TASKS = False  # 启动 beat 时是否清空已有任务
 CELERY_TIMEZONE = TIME_ZONE     # celery 使用的是 utc 时间，需要设置为 django 相同时区
 CELERY_ENABLE_UTC = False
 USER_LOGS_KEEP_DAYS = 1095   # 操作日志保留天数，需开启 CELERY_BEAT_SCHEDULE 中相应的定时任务才生效

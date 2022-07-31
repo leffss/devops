@@ -136,6 +136,11 @@ class RedisMultiScheduler(Scheduler):
             self.lock_ttl = app.conf.get("CELERY_BEAT_REDIS_LOCK_TTL", DEFAULT_CELERY_BEAT_REDIS_LOCK_TTL)
             self.lock_sleep = app.conf.get("CELERY_BEAT_REDIS_LOCK_SLEEP", DEFAULT_CELERY_BEAT_REDIS_LOCK_SLEEP)
             self.lock = self.rdb.lock(self.lock_key, timeout=self.lock_ttl)
+            self.tick = self.tick_with_lock
+            self.close = self.close_with_lock
+        else:
+            self.tick = self.tick_with_no_lock
+            self.close = self.close_with_no_lock
 
     def _when(self, entry, next_time_to_run, **kwargs):
         return mktime(entry.schedule.now().timetuple()) + (self.adjust(next_time_to_run) or 0)
@@ -238,23 +243,24 @@ class RedisMultiScheduler(Scheduler):
         next_times.append(self.is_due(entry)[1])
         return min(next_times)
 
-    def tick(self, **kwargs):
+    def tick_with_lock(self, **kwargs):
         # 每个任务重新调度会执行
-        if self.multi_mode:
-            if self.lock.acquire(blocking=False):
-                # debug("Redis Lock acquired")
-                result = self._tick()
-                self.lock.release()
-                # debug("Redis Lock released")
-                return result
-            if self.lock_sleep is None:
-                next_time = random.randint(1, self.lock_ttl)    # 如果未获取到锁，随机 sleep
-            else:   # 或者 sleep 设置的值
-                next_time = self.lock_sleep
-            info("Redis Lock not acquired, sleep {} s".format(next_time))
-            return next_time
-        else:
-            return self._tick()
+        if self.lock.acquire(blocking=False):
+            # debug("Redis Lock acquired")
+            result = self._tick()
+            self.lock.release()
+            # debug("Redis Lock released")
+            return result
+        if self.lock_sleep is None:
+            next_time = random.randint(1, self.lock_ttl)    # 如果未获取到锁，随机 sleep
+        else:   # 或者 sleep 设置的值
+            next_time = self.lock_sleep
+        info("Redis Lock not acquired, sleep {} s".format(next_time))
+        return next_time
+
+    def tick_with_no_lock(self, **kwargs):
+        # 每个任务重新调度会执行
+        return self._tick()
 
     def remove_all(self):
         if self.rdb.exists(self.key):
@@ -265,13 +271,16 @@ class RedisMultiScheduler(Scheduler):
             warning("tasks key: {} is not exists in rdb".format(self.key))
             return False
 
-    def close(self):
+    def close_with_lock(self):
         self.sync()
-        if self.multi_mode:
-            try:
-                self.lock.release()
-            except LockError:
-                pass
+        try:
+            self.lock.release()
+        except LockError:
+            pass
+        self.rdb.close()
+
+    def close_with_no_lock(self):
+        self.sync()
         self.rdb.close()
 
     def sentinel_connect(self, master_name):
