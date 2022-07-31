@@ -149,10 +149,10 @@ class RedisMultiScheduler(Scheduler):
         tasks = [jsonpickle.decode(entry) for entry in self.rdb.zrange(self.key, 0, -1)]    # -1 表示取所有
         for entry in tasks:
             if hasattr(entry.schedule, 'human_seconds'):
-                info('add task: ' + str('name: ' + entry.name + '; func: ' + entry.task + '; args: ' +
+                info('add interval task: ' + str('name: ' + entry.name + '; func: ' + entry.task + '; args: ' +
                      entry.args.__str__() + '; each: ' + entry.schedule.human_seconds) + '; limit_run_time: ' + str(entry.limit_run_time)
                      )
-            else:
+            elif hasattr(entry.schedule, '_orig_minute'):
                 cron = '{minute} {hour} {day_of_month} {month_of_year} {day_of_week} ' \
                        '(minute/hour/day_of_month/month_of_year/day_of_week)'.format(
                     minute=entry.schedule._orig_minute,
@@ -161,8 +161,10 @@ class RedisMultiScheduler(Scheduler):
                     month_of_year=entry.schedule._orig_month_of_year,
                     day_of_week=entry.schedule._orig_day_of_week,
                 )
-                info('add task: ' + str('name: ' + entry.name + '; func: ' + entry.task + '; args: ' +
+                info('add cron task: ' + str('name: ' + entry.name + '; func: ' + entry.task + '; args: ' +
                                          entry.args.__str__() + '; cron: ' + cron) + '; limit_run_time: ' + str(entry.limit_run_time))
+            else:
+                info('add other task: ' + str(entry))
 
     def merge_inplace(self, tasks):
         # 重启 beat 调度会执行该函数
@@ -186,6 +188,7 @@ class RedisMultiScheduler(Scheduler):
                 if key in old_entries_dict:
                     # 若配置文件和已存数据库中的任务重叠，获取数据库中上次运行的时间后从旧数据中删除
                     last_run_at = old_entries_dict[key][1]
+                    e.total_run_count = old_entries_dict[key][0].total_run_count
                     del old_entries_dict[key]
                 pipe.zadd(self.key, {jsonpickle.encode(e): min(last_run_at, self._when(e, e.is_due()[1], ) or 0)})
             # 将旧任务重新添加到调度任务当中
