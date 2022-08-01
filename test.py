@@ -2,6 +2,7 @@
 import os
 from datetime import timedelta
 import random
+from importlib import import_module
 
 
 if __name__ == '__main__':
@@ -18,6 +19,16 @@ if __name__ == '__main__':
     app.loader.import_default_modules()
     tasks = list(sorted(name for name in app.tasks if not name.startswith('celery.')))
     print(tasks)
+    for task in tasks:
+        print(task)
+        tmp = task.split('.')
+        module = tmp[:-1]
+        func = tmp[-1]
+        module = '.'.join(module)
+        m = import_module(module)
+        n = getattr(m, func)
+        if hasattr(n, 'usege'):
+            print(n.usege)
 
     manager = RedisBeatManager(app=app)
     for task in manager.iter_tasks():
@@ -59,3 +70,13 @@ if __name__ == '__main__':
     #
     print(manager.remove_all())
     manager.close()
+
+    func_str = 'tasks.tasks.task_cls_terminalsession'
+    tmp = func_str.split('.')
+    module = tmp[:-1]
+    func = tmp[-1]
+    module = '.'.join(module)
+    m = import_module(module)
+    n = getattr(m, func)
+    if hasattr(n, 'usege'):
+        print(n.usege)

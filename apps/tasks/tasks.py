@@ -353,7 +353,7 @@ def task_check_scheduler(id=None, retry=2, timeout=5):
             scheduler_host.save()
 
 
-@app.task()
+@app.task(usege='usege 说明')
 def task_cls_terminalsession():
     try:
         TerminalSession.objects.all().delete()
