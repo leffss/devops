@@ -36,7 +36,7 @@ async==0.6.2
 pymysql==0.9.3
 django-ratelimit==2.0.0
 # cryptography==2.8
-cryptography==3.2
+cryptography==3.3.2
 # apt-get install python3-dev default-libmysqlclient-dev        # debian / Ubuntu
 # yum install python3-devel mysql-devel     # Red Hat / CentOS
 mysqlclient==1.4.4
