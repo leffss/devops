@@ -83,6 +83,7 @@ from celery import current_app
 from celery.utils.log import get_logger
 from redis.exceptions import LockError
 import urllib.parse as urlparse
+from kombu.utils.functional import reprcall
 
 logger = get_logger(__name__)
 debug, info, error, warning = (logger.debug, logger.info, logger.error, logger.warning)
@@ -130,6 +131,34 @@ class CustomScheduleEntry(ScheduleEntry):
             self.name, self.task, self.last_run_at, self.total_run_count,
             self.schedule, self.args, self.kwargs, self.options,
         )
+
+    def update(self, other):
+        """Update values from another entry.
+
+        Will only update "editable" fields:
+            ``task``, ``schedule``, ``args``, ``kwargs``, ``options``.
+            ``limit_run_time``, ``enable``.
+        """
+        self.__dict__.update({
+            'task': other.task, 'schedule': other.schedule,
+            'args': other.args, 'kwargs': other.kwargs,
+            'options': other.options, 'limit_run_time': other.limit_run_time,
+            'enable': other.enable
+        })
+
+    def __repr__(self):
+        return '<{name}: {0.name} {call} {0.schedule} limit_run_time: {0.limit_run_time} ' \
+               'enable: {0.enable} options: {0.options}>'.format(
+                self,
+                call=reprcall(self.task, self.args or (), self.kwargs or {}),
+                name=type(self).__name__,
+               )
+
+    def editable_fields_equal(self, other):
+        for attr in ('task', 'args', 'kwargs', 'options', 'schedule', 'limit_run_time', 'enable'):
+            if getattr(self, attr) != getattr(other, attr):
+                return False
+        return True
 
 
 class RedisMultiScheduler(Scheduler):
