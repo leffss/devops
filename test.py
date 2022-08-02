@@ -47,6 +47,11 @@ if __name__ == '__main__':
     #     'task': 'tasks.tasks.task_check_scheduler',
     #     'schedule': timedelta(seconds=7200),
     #     "args": (None, 1, 3),
+    #     'kwargs': {},
+    #     'options': {},
+    #     "relative": True,
+    #     "limit_run_time": 0,
+    #     'enable': True,
     # }))
     # for task in manager.iter_tasks():
     #     print(task)
@@ -57,6 +62,11 @@ if __name__ == '__main__':
     #     'task': 'tasks.tasks.task_check_scheduler',
     #     'schedule': timedelta(seconds=random.randint(3600,7200)),
     #     "args": (None, 1, 3),
+    #     'kwargs': {},
+    #     'options': {},
+    #     "relative": True,
+    #     "limit_run_time": 0,
+    #     'enable': True,
     # }))
     # for task in manager.iter_tasks():
     #     print(task)

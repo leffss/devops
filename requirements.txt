@@ -42,7 +42,9 @@ cryptography==3.2
 mysqlclient==1.4.4
 apscheduler==3.6.3
 # django-apscheduler==0.4.2
-requests==2.24.0
-jsonpickle==1.4.1
+# requests==2.24.0
+requests==2.27.1
+# jsonpickle==1.4.1
+jsonpickle==2.2.0
 # redisbeat==1.2.4
 django-cachalot==2.3.5

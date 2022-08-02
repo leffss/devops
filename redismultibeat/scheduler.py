@@ -10,13 +10,22 @@ CELERY_BEAT_SCHEDULE = {    # celery 定时任务, 会覆盖 redis 当中相同�
         "relative": True,
         # "args": None,  # 参数
         "args": (None, 0, 3),  # 参数
-        "limit_run_time": 5,    # 限制运行次数
+        'kwargs': {},
+        'options': {},
+        "relative": True,
+        "limit_run_time": 5,   # 限制任务执行次数，>=0, 默认 0 为不限制。注意：celery 原版 beat 是不支持此参数的
+        'enable': True,     # 是否启用。注意：celery 原版 beat 是不支持此参数的
     },
     'task_check_scheduler_cron': {
         'task': 'tasks.tasks.task_check_scheduler',
         'schedule': crontab(minute='*/1', hour='*', day_of_week='*', day_of_month='*', month_of_year='*'),  # cron 任务
         # "args": None,  # 参数
         "args": (None, 0, 3),  # 参数
+        'kwargs': {},
+        'options': {},
+        "relative": True,
+        "limit_run_time": 0,
+        'enable': True,
     }
 }
 
@@ -36,6 +45,11 @@ manager.add(**{
     'task': 'tasks.tasks.task_check_scheduler',
     'schedule': timedelta(seconds=7200),
     "args": (None, 1, 3),
+    'kwargs': {},
+    'options': {},
+    "relative": True,
+    "limit_run_time": 0,
+    'enable': True,
 })
 
 # 动态删除任务：
@@ -47,7 +61,11 @@ manager.modify(**{
     'task': 'tasks.tasks.task_check_scheduler',
     'schedule': timedelta(seconds=1600),
     "args": (None, 1, 3),
-    "limit_run_time": 5,    # 限制运行次数
+    'kwargs': {},
+    'options': {},
+    "relative": True,
+    "limit_run_time": 0,
+    'enable': False,
 })
 
 manager.close()
@@ -94,6 +112,7 @@ class CustomScheduleEntry(ScheduleEntry):
         total_run_count (int): 参考 celery 官方文档
         relative (bool): 参考 celery 官方文档
         limit_run_time (int): 限制任务执行次数，>=0, 0 为不限制
+        enable (bool): 是否启用任务
     """
 
     limit_run_time = 0
@@ -218,20 +237,26 @@ class RedisMultiScheduler(Scheduler):
                 next_times.append(next_time_to_run)
                 if is_due:
                     try:
-                        info("scheduler task entry: {} to publisher, total_run_count: {}, limit_run_time: {}".format(entry.name, entry.total_run_count + 1, entry.limit_run_time))
-                        result = self.apply_async(entry)  # 添加任务到worker队列
+                        if entry.enable:
+                            info("scheduler task entry: {} to publisher, total_run_count: {}, limit_run_time: {}".format(entry.name, entry.total_run_count + 1, entry.limit_run_time))
+                            result = self.apply_async(entry)  # 添加任务到worker队列
+                            debug('%s sent. id->%s', entry.task, result.id)
+                        else:
+                            info(
+                                "task entry disable: {}, total_run_count: {}, limit_run_time: {}".format(
+                                    entry.name, entry.total_run_count, entry.limit_run_time))
                     except Exception as exc:
                         error('Message Error: %s\n%s',
                               exc, traceback.format_stack(), exc_info=True)
-                    else:
-                        debug('%s sent. id->%s', entry.task, result.id)
                     next_entry = self.reserve(entry)
+                    if not entry.enable:
+                        next_entry.total_run_count = next_entry.total_run_count - 1
                     pipe.zrem(self.key, task)  # 删除旧的任务
                     if next_entry.limit_run_time == 0 or next_entry.total_run_count < next_entry.limit_run_time:
                         # 将旧任务重新计算时间后再添加
                         pipe.zadd(self.key, {jsonpickle.encode(next_entry): self._when(next_entry, next_time_to_run, ) or 0})
                     else:
-                        logger.info("task entry: {} limit to run {} times, stopped".format(entry.name, entry.limit_run_time))
+                        logger.info("task entry: {} limit to run {} times, total run {} times, stopped".format(entry.name, entry.limit_run_time, entry.total_run_count + 1))
             pipe.execute()
 
         # 获取最近一个需要执行的任务的时间

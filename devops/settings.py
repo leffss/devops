@@ -277,9 +277,9 @@ celery beat 中间隔时间任务有个小问题，比如任务10秒间隔执行
 ...
 2019-12-07 13:21:39,008
 你会发现每次执行时间都会延迟 10-30 毫秒之间（程序执行逻辑耗费的时间），如果任务有严格时间要求，则不适合使用这种类型的任务
-cron 任务暂时没发现这个问题
-经过测试发现在 interval 任务种加入 "relative": True 后，windows 上面运行的celery可以解决此问题
-但是 linux 下运行的 celery 只有第一次任务的毫秒变成1-10的样子，后面还是会递增（使用 -P eventlet 一样）
+cron 任务也发现这个问题
+经过测试发在任务中加入 "relative": True 后，在我的其他django项目中解决了这个问题，本项目还是有问题
+两个项目scheduler代码一样，只是依赖也不太相同，不知道是什么原因了
 """
 CELERY_BEAT_FLUSH_TASKS = False  # 启动 beat 时是否清空已有任务
 CELERY_TIMEZONE = TIME_ZONE     # celery 使用的是 utc 时间，需要设置为 django 相同时区
@@ -293,33 +293,63 @@ CELERY_BEAT_SCHEDULE = {    # celery 定时任务, 会覆盖 redis 当中相同�
     #     'schedule': timedelta(seconds=30),  # 任务循环时间
     #     # "args": None,  # 参数
     #     "args": (None, 0, 3),  # 参数，可迭代对象，元组或者列表
+    #     'kwargs': {},   # task 任务函数参数
+    #     'options': {},  # apply_async 函数附加参数
+    #     'relative': True,
+    #     'limit_run_time': 0,
+    #     'enable': True,
     # },
     # 'task_check_scheduler_cron': {
     #     'task': 'tasks.tasks.task_check_scheduler',
     #     'schedule': crontab(minute='*/1', hour='*', day_of_week='*', day_of_month='*', month_of_year='*'),  # cron 任务
     #     # "args": None,  # 参数
     #     "args": (None, 0, 3),  # 参数，可迭代对象，元组或者列表
+    #     'kwargs': {},
+    #     'options': {},
+    #     'relative': True,
+    #     'limit_run_time': 0,
+    #     'enable': True,
     # },
     'task_cls_terminalsession': {   # 清除 terminalsession 表，系统异常退出时此表可能会有垃圾数据，仅启动时运行一次
         'task': 'tasks.tasks.task_cls_terminalsession',
         'schedule': timedelta(seconds=3),
+        'args': None,
+        'kwargs': {},
+        'options': {},
         "relative": True,
         "limit_run_time": 1,   # 限制任务执行次数，>=0, 默认 0 为不限制。注意：celery 原版 beat 是不支持此参数的
+        'enable': True,     # 是否启用。注意：celery 原版 beat 是不支持此参数的
     },
     # 'task_cls_user_logs': {     # 清除操作日志定时任务，如不自动清除，注释此任务即可
     #     'task': 'tasks.tasks.task_cls_user_logs',
     #     'schedule': crontab(minute=5, hour=2),
     #     "args": (USER_LOGS_KEEP_DAYS,),
+    #     'kwargs': {},
+    #     'options': {},
+    #     'relative': True,
+    #     'limit_run_time': 0,
+    #     'enable': True,
     # },
     'task_cls_terminal_logs': {     # 清除终端日志定时任务，如不自动清除，注释此任务即可
         'task': 'tasks.tasks.task_cls_terminal_logs',
         'schedule': crontab(minute=10, hour=2),
         "args": (TERMINAL_LOGS_KEEP_DAYS,),
+        'kwargs': {},
+        'options': {},
+        "relative": True,
+        "limit_run_time": 0,
+        'enable': True,
     },
     'task_cls_batch_logs': {        # 清除批量日志定时任务，如不自动清除，注释此任务即可
         'task': 'tasks.tasks.task_cls_batch_logs',
         'schedule': crontab(minute=15, hour=2),
-        "args": [BATCH_LOGS_KEEP_DAYS],
+        # "args": [BATCH_LOGS_KEEP_DAYS],
+        'args': None,
+        'kwargs': {'keep_days': BATCH_LOGS_KEEP_DAYS},
+        'options': {},
+        "relative": True,
+        "limit_run_time": 0,
+        'enable': True,
     },
 }
 
