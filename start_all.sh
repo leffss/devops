@@ -12,7 +12,7 @@ fi
 rm -rf logs/*.pid
 
 echo 'start celery worker'
-nohup celery -A devops worker -l info -c 3 --max-tasks-per-child 40 --prefetch-multiplier 1 --pidfile logs/celery_worker.pid >> logs/celery_worker.log 2>&1 &
+nohup celery -A devops worker -l info -c 5 --max-tasks-per-child 200 --prefetch-multiplier 10 --pidfile logs/celery_worker.pid >> logs/celery_worker.log 2>&1 &
 
 echo 'start celery beat'
 nohup celery -A devops beat -l info --pidfile logs/celery_beat.pid >> logs/celery_beat.log 2>&1 &

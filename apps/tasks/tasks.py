@@ -25,6 +25,11 @@ def gen_rand_char(length=16, chars='0123456789zyxwvutsrqponmlkjihgfedcbaZYXWVUTS
 
 
 @app.task()
+def show():
+    print('ok')
+
+
+@app.task()
 def task_host_update_info(hostinfo):
     try:
         if hostinfo['platform'] in ['linux', 'unix']:

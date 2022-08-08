@@ -1,7 +1,7 @@
 
 cd /home/workspace/devops/ && /home/python372/bin/pip3 install -i https://mirrors.aliyun.com/pypi/simple -r requirements.txt
 
-cd /home/workspace/devops/ && export PYTHONOPTIMIZE=1 && /home/python372/bin/celery -A devops worker -l info -c 3 --max-tasks-per-child 40 --prefetch-multiplier 1 --pidfile logs/celery_worker.pid
+cd /home/workspace/devops/ && export PYTHONOPTIMIZE=1 && /home/python372/bin/celery -A devops worker -l info -c 5 --max-tasks-per-child 200 --prefetch-multiplier 10 --pidfile logs/celery_worker.pid
 
 cd /home/workspace/devops/ && export PYTHONOPTIMIZE=1 && /home/python372/bin/celery -A devops beat -l info --pidfile logs/celery_beat.pid
 
