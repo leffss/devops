@@ -280,6 +280,7 @@ celery beat 中间隔时间任务有个小问题，比如任务10秒间隔执行
 cron 任务也发现这个问题
 经过测试发在任务中加入 "relative": True 后，在我的其他django项目中解决了这个问题，本项目还是有问题
 两个项目scheduler代码一样，只是依赖也不太相同，不知道是什么原因了
+注意：已经修复
 """
 CELERY_BEAT_FLUSH_TASKS = False  # 启动 beat 时是否清空已有任务
 CELERY_TIMEZONE = TIME_ZONE     # celery 使用的是 utc 时间，需要设置为 django 相同时区
@@ -306,7 +307,6 @@ CELERY_BEAT_SCHEDULE = {    # celery 定时任务, 会覆盖 redis 当中相同�
     #     "args": (None, 0, 3),  # 参数，可迭代对象，元组或者列表
     #     'kwargs': {},
     #     'options': {},
-    #     'relative': True,
     #     'limit_run_time': 0,
     #     'enable': True,
     # },
@@ -326,7 +326,6 @@ CELERY_BEAT_SCHEDULE = {    # celery 定时任务, 会覆盖 redis 当中相同�
     #     "args": (USER_LOGS_KEEP_DAYS,),
     #     'kwargs': {},
     #     'options': {},
-    #     'relative': True,
     #     'limit_run_time': 0,
     #     'enable': True,
     # },
@@ -336,7 +335,6 @@ CELERY_BEAT_SCHEDULE = {    # celery 定时任务, 会覆盖 redis 当中相同�
         "args": (TERMINAL_LOGS_KEEP_DAYS,),
         'kwargs': {},
         'options': {},
-        "relative": True,
         "limit_run_time": 0,
         'enable': True,
     },
@@ -347,7 +345,6 @@ CELERY_BEAT_SCHEDULE = {    # celery 定时任务, 会覆盖 redis 当中相同�
         'args': None,
         'kwargs': {'keep_days': BATCH_LOGS_KEEP_DAYS},
         'options': {},
-        "relative": True,
         "limit_run_time": 0,
         'enable': True,
     },
