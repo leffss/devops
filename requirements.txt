@@ -4,7 +4,7 @@ vine==5.0.0
 # django-debug-toolbar==2.0
 supervisor==4.2.1
 # simpleui
-paramiko==2.6.0
+paramiko==2.10.1
 # "paramiko[gssapi]==2.6.0"
 decorator==4.4.2
 gssapi==1.6.9
